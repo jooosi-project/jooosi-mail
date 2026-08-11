@@ -1,7 +1,7 @@
 {
   "name": "jooosi-mail",
   "private": true,
-  "version": "1.0.7",
+  "version": "1.0.8",
   "packageManager": "pnpm@10.30.3",
   "scripts": {
     "dev": "vp dev",

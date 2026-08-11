@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-08-11
+
 ### Changed
 - Lowered the minimum PHP version to 8.1.
 
@@ -51,7 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - 🐣 Initial release.
 
-[unreleased]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.7...HEAD
+[unreleased]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.8...HEAD
+[1.0.8]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.7...1.0.8
 [1.0.7]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.6...1.0.7
 [1.0.6]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.5...1.0.6
 [1.0.5]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.4...1.0.5
