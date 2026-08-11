@@ -5,7 +5,7 @@
 <h1 align="center">Jooosi Mail</h1>
 
 <p align="center">
-  <i>A modern WordPress mail delivery plugin that routes <code>wp_mail()</code> through Symfony Mailer, durable queues, provider failover, webhooks, and operational observability.</i>
+  <i>A modern WordPress mail delivery plugin with durable queues, provider failover, webhooks, and operational observability.</i>
 </p>
 
 <p align="center">
@@ -42,7 +42,7 @@
   </a>
   <a href="https://github.com/jooosi-project/jooosi-mail/actions">
     <picture>
-      <img src="https://img.shields.io/github/actions/workflow/status/jooosi-project/jooosi-mail/ci.yaml?branch=main" alt="Build Status" />
+      <img src="https://img.shields.io/github/actions/workflow/status/jooosi-project/jooosi-mail/deploy.yaml?branch=main" alt="Build Status" />
     </picture>
   </a>
   <br />
@@ -65,7 +65,7 @@
 
 > [!NOTE]
 >
-> Jooosi Mail is an open-source WordPress plugin by [Nabasa](https://nabasa.dev). Consider sponsoring us to support continued development.
+> Jooosi Mail is an open-source WordPress plugin from [Jooosi](https://jooo.si).
 
 ## Intro
 
@@ -139,37 +139,16 @@ Want to contribute or customize the plugin? Check out the following documentatio
 
 ## Sponsors
 
+Jooosi Mail is proudly supported by:
 
-If you like this project, please consider supporting us by becoming a sponsor. Your sponsorship helps us maintain and improve **all our open-source WordPress plugins**, not just Jooosi Mail.
-
-### Sponsorship Benefits
-
-As a sponsor, you'll receive benefits across our entire plugin ecosystem:
-
-- 📝 **Your logo and link featured** in the README of **all our current and future open-source plugins**
-- ⭐ **Recognition** in the admin area sponsor section across **all our plugins**
-- 💼 **Direct exposure** to thousands of WordPress developers and designers using our plugin ecosystem
-- 🌟 **Unified sponsor listing** - one sponsorship covers your presence in our entire plugin family
-
-**Supporting one plugin means supporting all our open-source efforts!**
-
-### Become a Sponsor
-
-- [GitHub Sponsors](https://github.com/sponsors/suasgn)
-- [Ko-fi](https://ko-fi.com/Q5Q75XSF7)
-
-Thank you to our amazing sponsors who support all our plugin development! 🥰🫰🫶
-
-<!-- Sponsor logos will be displayed here -->
-
-<p align="center">
-  <a href="https://jooo.si" title="Jooosi - Open-source tools and products for WordPress"><kbd><img src="./resources/icons/jooosi.svg" width="80" height="80" alt="Jooosi" /></kbd></a>
-  <a href="https://livecanvas.com" title="LiveCanvas - The Professional Page Builder for WordPress"><kbd><img src="https://livecanvas.com/wp-content/uploads/2022/06/favicon_big.png" width="80" height="80" alt="LiveCanvas" /></kbd></a>
+<p>
+  <a href="https://jooo.si"><img src="./resources/icons/jooosi.svg" width="48" height="48" alt="Jooosi" /></a>
+  &nbsp;
+  <a href="https://livecanvas.com"><img src="./resources/icons/livecanvas.svg" width="57" height="48" alt="LiveCanvas" /></a>
 </p>
 
-<!-- --- -->
-
-<!-- *Interested in sponsoring? Contact us to discuss custom sponsorship packages tailored to your needs.* -->
+- [Jooosi](https://jooo.si) — open-source tools and products for WordPress.
+- [LiveCanvas](https://livecanvas.com) — a visual site builder for WordPress.
 
 ## Credits
 
