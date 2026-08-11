@@ -13,9 +13,12 @@ use JooosiMail\Mail\Connection\Connection;
  * @since 0.1.0
  */
 #[Service]
-final readonly class WeightedRandomSelector
+final class WeightedRandomSelector
 {
-    private const int PRIMARY_HEALTH_THRESHOLD = 25;
+    /**
+     * @var int
+     */
+    private const PRIMARY_HEALTH_THRESHOLD = 25;
 
     /**
      * @param list<Connection> $connections

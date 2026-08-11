@@ -20,14 +20,14 @@ use function WP_CLI\Utils\format_items;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MigrationCommand
+final class MigrationCommand
 {
     /**
      * @since 0.1.0
      */
     public function __construct(
-        private MigrationManager $migrationManager,
-        private MigrationStubGenerator $migrationStubGenerator,
+        private readonly MigrationManager $migrationManager,
+        private readonly MigrationStubGenerator $migrationStubGenerator,
     ) {
     }
 

@@ -24,7 +24,10 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class GmailApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'gmail.googleapis.com';
+    /**
+     * @var string
+     */
+    private const HOST = 'gmail.googleapis.com';
 
     /**
      * @since 0.1.0

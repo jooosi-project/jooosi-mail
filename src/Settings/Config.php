@@ -16,7 +16,10 @@ use JooosiMail\Discovery\Attribute\Service;
 #[Service]
 final class Config
 {
-    private const string OPTION_KEY = 'jooosi_mail_config';
+    /**
+     * @var string
+     */
+    private const OPTION_KEY = 'jooosi_mail_config';
 
     /**
      * @return array<string, mixed>

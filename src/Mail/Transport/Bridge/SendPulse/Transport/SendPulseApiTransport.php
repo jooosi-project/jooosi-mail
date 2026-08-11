@@ -25,7 +25,10 @@ use Throwable;
  */
 final class SendPulseApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'api.sendpulse.com';
+    /**
+     * @var string
+     */
+    private const HOST = 'api.sendpulse.com';
 
     private ?string $accessToken = null;
 

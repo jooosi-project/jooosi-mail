@@ -13,10 +13,10 @@ use JooosiMail\Queue\Query\QueueMessageQuery;
  * @since 0.1.0
  */
 #[Service]
-final readonly class FailedMessageRepository
+final class FailedMessageRepository
 {
     public function __construct(
-        private QueueMessageQuery $queueMessageQuery,
+        private readonly QueueMessageQuery $queueMessageQuery,
     ) {
     }
 

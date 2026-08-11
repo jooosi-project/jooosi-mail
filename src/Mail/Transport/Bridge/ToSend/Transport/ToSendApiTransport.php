@@ -29,10 +29,13 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class ToSendApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'api.tosend.com';
+    /**
+     * @var string
+     */
+    private const HOST = 'api.tosend.com';
 
     /** @var list<string> */
-    private const array DISALLOWED_HEADERS = [
+    private const DISALLOWED_HEADERS = [
         'bcc',
         'cc',
         'content-transfer-encoding',

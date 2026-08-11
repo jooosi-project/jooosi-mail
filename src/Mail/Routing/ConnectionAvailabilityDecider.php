@@ -14,12 +14,12 @@ use JooosiMail\Mail\Connection\Connection;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionAvailabilityDecider
+final class ConnectionAvailabilityDecider
 {
     public function __construct(
-        private ConnectionCircuitBreaker $connectionCircuitBreaker,
-        private ConnectionRateLimiter $connectionRateLimiter,
-        private EventPublisherInterface $eventPublisher,
+        private readonly ConnectionCircuitBreaker $connectionCircuitBreaker,
+        private readonly ConnectionRateLimiter $connectionRateLimiter,
+        private readonly EventPublisherInterface $eventPublisher,
     ) {
     }
 

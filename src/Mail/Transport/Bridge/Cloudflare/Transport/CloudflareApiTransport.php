@@ -29,10 +29,13 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class CloudflareApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'api.cloudflare.com';
+    /**
+     * @var string
+     */
+    private const HOST = 'api.cloudflare.com';
 
     /** @var list<string> */
-    private const array ALLOWED_HEADERS = [
+    private const ALLOWED_HEADERS = [
         'archived-at',
         'auto-submitted',
         'comments',

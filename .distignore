@@ -37,6 +37,7 @@
 /CHANGELOG.md
 /AGENTS.md
 /skills-lock.json
+/.mcp.json
 
 # Vendor development files
 /vendor/bin

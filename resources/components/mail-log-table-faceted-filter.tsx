@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/reui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -11,26 +11,22 @@ import {
   CommandItemIndicator,
   CommandList,
   CommandSeparator,
-} from "@/components/ui/command"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { Separator } from "@/components/ui/separator"
-import { cn } from "@/lib/utils"
-import Add01Icon from "~icons/hugeicons/add-01"
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import Add01Icon from "~icons/hugeicons/add-01";
 
 type MailLogTableFacetedFilterProps = {
-  title: string
+  title: string;
   options: {
-    label: string
-    value: string
-    count?: number
-  }[]
-  selectedValues: string[]
-  onChange: (values: string[]) => void
-}
+    label: string;
+    value: string;
+    count?: number;
+  }[];
+  selectedValues: string[];
+  onChange: (values: string[]) => void;
+};
 
 export function MailLogTableFacetedFilter({
   title,
@@ -38,18 +34,12 @@ export function MailLogTableFacetedFilter({
   selectedValues,
   onChange,
 }: MailLogTableFacetedFilterProps) {
-  const selectedValueSet = new Set(selectedValues)
+  const selectedValueSet = new Set(selectedValues);
 
   return (
     <Popover>
       <PopoverTrigger
-        render={
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 rounded-md border-dashed"
-          />
-        }
+        render={<Button variant="outline" size="sm" className="h-8 rounded-md border-dashed" />}
       >
         <Add01Icon data-icon="inline-start" />
         {title}
@@ -68,7 +58,11 @@ export function MailLogTableFacetedFilter({
                 options
                   .filter((option) => selectedValueSet.has(option.value))
                   .map((option) => (
-                    <Badge key={option.value} variant="secondary" className="rounded-sm px-1 font-normal">
+                    <Badge
+                      key={option.value}
+                      variant="secondary"
+                      className="rounded-sm px-1 font-normal"
+                    >
                       {option.label}
                     </Badge>
                   ))
@@ -84,21 +78,21 @@ export function MailLogTableFacetedFilter({
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
-                const isSelected = selectedValueSet.has(option.value)
+                const isSelected = selectedValueSet.has(option.value);
 
                 return (
                   <CommandItem
                     key={option.value}
                     onSelect={() => {
-                      const nextValues = new Set(selectedValues)
+                      const nextValues = new Set(selectedValues);
 
                       if (isSelected) {
-                        nextValues.delete(option.value)
+                        nextValues.delete(option.value);
                       } else {
-                        nextValues.add(option.value)
+                        nextValues.add(option.value);
                       }
 
-                      onChange(Array.from(nextValues))
+                      onChange(Array.from(nextValues));
                     }}
                   >
                     <div
@@ -118,17 +112,14 @@ export function MailLogTableFacetedFilter({
                       </span>
                     ) : null}
                   </CommandItem>
-                )
+                );
               })}
             </CommandGroup>
             {selectedValueSet.size > 0 ? (
               <>
                 <CommandSeparator />
                 <CommandGroup>
-                  <CommandItem
-                    onSelect={() => onChange([])}
-                    className="justify-center text-center"
-                  >
+                  <CommandItem onSelect={() => onChange([])} className="justify-center text-center">
                     Clear filters
                   </CommandItem>
                 </CommandGroup>
@@ -138,7 +129,7 @@ export function MailLogTableFacetedFilter({
         </Command>
       </PopoverContent>
     </Popover>
-  )
+  );
 }
 
-export default MailLogTableFacetedFilter
+export default MailLogTableFacetedFilter;

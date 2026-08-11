@@ -5,7 +5,7 @@ Tags: email, smtp, mailer, transactional email, logs
 Requires at least: 7.0
 Tested up to: 7.0
 Stable tag: 1.0.7
-Requires PHP: 8.5
+Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -66,7 +66,7 @@ Jooosi Mail works with SMTP and many popular email providers. Available sending 
 * [ZeptoMail](https://www.zoho.com/zeptomail/) - API, SMTP, SMTPS. Webhooks supported.
 * [Zoho Mail](https://www.zoho.com/mail/) - SMTP, SMTPS.
 
-Visit [the GitHub repository](https://github.com/nabasa-dev/jooosi-mail) for documentation, development notes, and issue tracking.
+Visit [the GitHub repository](https://github.com/jooosi-project/jooosi-mail) for documentation, development notes, and issue tracking.
 
 ### External services
 

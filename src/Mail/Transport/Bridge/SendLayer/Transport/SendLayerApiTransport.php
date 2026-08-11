@@ -26,7 +26,10 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class SendLayerApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'console.sendlayer.com';
+    /**
+     * @var string
+     */
+    private const HOST = 'console.sendlayer.com';
 
     public function __construct(
         #[SensitiveParameter] private readonly string $apiKey,

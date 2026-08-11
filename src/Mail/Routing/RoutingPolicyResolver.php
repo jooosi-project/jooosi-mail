@@ -14,10 +14,10 @@ use JooosiMail\Mail\ValueObject\MailRequest;
  * @since 0.1.0
  */
 #[Service]
-final readonly class RoutingPolicyResolver
+final class RoutingPolicyResolver
 {
     public function __construct(
-        private OptionStore $optionStore,
+        private readonly OptionStore $optionStore,
     ) {
     }
 

@@ -2,6 +2,8 @@
 
 This directory contains the living documentation for Jooosi Mail. The root README is intentionally a concise product overview, while these documents keep the deeper setup, runtime, architecture, development, and current-limit details.
 
+Third-party code incorporated into the plugin is documented in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
 ## Start Here
 
 - [`../README.md`](../README.md) - product overview and entry points

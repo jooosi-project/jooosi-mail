@@ -22,14 +22,14 @@ use function Symfony\Component\String\u;
  * @since 0.1.0
  */
 #[Controller(namespace: 'jooosi-mail/v1', prefix: 'admin/logs/webhooks')]
-final readonly class WebhookController
+final class WebhookController
 {
     /**
      * @since 0.1.0
      */
     public function __construct(
-        private DbalConnection $connection,
-        private TableNameResolver $tableNameResolver,
+        private readonly DbalConnection $connection,
+        private readonly TableNameResolver $tableNameResolver,
     ) {
     }
 

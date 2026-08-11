@@ -36,4 +36,7 @@ export default defineConfig({
       // "@": path.resolve(__dirname, "./resources"),
     },
   },
+  optimizeDeps: {
+    include: ["@tanstack/react-table"],
+  },
 });

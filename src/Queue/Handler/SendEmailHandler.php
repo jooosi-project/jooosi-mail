@@ -19,10 +19,10 @@ use RuntimeException;
  */
 #[Service]
 #[MessageHandler(SendEmailMessage::class, DatabaseTransport::NAME)]
-final readonly class SendEmailHandler
+final class SendEmailHandler
 {
     public function __construct(
-        private DeliveryService $deliveryService,
+        private readonly DeliveryService $deliveryService,
     ) {
     }
 

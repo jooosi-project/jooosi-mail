@@ -1,23 +1,34 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
+  useTable,
   type ColumnDef,
   type PaginationState,
+  type ReactTable as TanstackTable,
   type SortingState,
-  type Table as TanstackTable,
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
 
-import { MailLogTableFacetedFilter } from "@/components/mail-log-table-faceted-filter"
-import { ProfileBrandIcon } from "@/components/profile-brand-icon"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { MailLogTableFacetedFilter } from "@/components/mail-log-table-faceted-filter";
+import { ProfileBrandIcon } from "@/components/profile-brand-icon";
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
+import { Badge } from "@/components/reui/badge";
+import {
+  DataGrid,
+  dataGridFeatures,
+  type DataGridFeatures,
+} from "@/components/reui/data-grid/data-grid";
+import { DataGridTable } from "@/components/reui/data-grid/data-grid-table";
+import {
+  Frame,
+  FrameDescription,
+  FrameFooter,
+  FrameHeader,
+  FramePanel,
+  FrameTitle,
+} from "@/components/reui/frame";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -25,8 +36,8 @@ import {
   PopoverHeader,
   PopoverTitle,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+} from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -34,93 +45,93 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Switch } from "@/components/ui/switch"
-import type { AdminConnectionProfile, AdminConnectionSummary } from "@/lib/admin-api"
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import type { AdminConnectionProfile, AdminConnectionSummary } from "@/lib/admin-api";
 import {
   type ConnectionOperationalStatus,
   getConnectionOperationalLabel,
   getConnectionOperationalStatus,
   hasEnabledConnectionWebhooks,
   supportsConnectionWebhooks,
-} from "@/lib/admin-connections"
-import { titleCase } from "@/lib/admin-format"
-import ArrowDown01Icon from "~icons/hugeicons/arrow-down-01"
-import ArrowLeft01Icon from "~icons/hugeicons/arrow-left-01"
-import ArrowLeftDoubleIcon from "~icons/hugeicons/arrow-left-double"
-import ArrowRight01Icon from "~icons/hugeicons/arrow-right-01"
-import ArrowRightDoubleIcon from "~icons/hugeicons/arrow-right-double"
-import ArrowUp01Icon from "~icons/hugeicons/arrow-up-01"
-import BookOpen01Icon from "~icons/hugeicons/book-open-01"
-import Briefcase02Icon from "~icons/hugeicons/briefcase-02"
-import CheckmarkCircle02Icon from "~icons/hugeicons/checkmark-circle-02"
-import Globe02Icon from "~icons/hugeicons/globe-02"
-import InformationCircleIcon from "~icons/hugeicons/information-circle"
-import MultiplicationSignCircleIcon from "~icons/hugeicons/multiplication-sign-circle"
-import UnfoldMoreIcon from "~icons/hugeicons/unfold-more"
-import WebhookIcon from "~icons/hugeicons/webhook"
+} from "@/lib/admin-connections";
+import { titleCase } from "@/lib/admin-format";
+import ArrowDown01Icon from "~icons/hugeicons/arrow-down-01";
+import ArrowLeft01Icon from "~icons/hugeicons/arrow-left-01";
+import ArrowLeftDoubleIcon from "~icons/hugeicons/arrow-left-double";
+import ArrowRight01Icon from "~icons/hugeicons/arrow-right-01";
+import ArrowRightDoubleIcon from "~icons/hugeicons/arrow-right-double";
+import ArrowUp01Icon from "~icons/hugeicons/arrow-up-01";
+import BookOpen01Icon from "~icons/hugeicons/book-open-01";
+import Briefcase02Icon from "~icons/hugeicons/briefcase-02";
+import CheckmarkCircle02Icon from "~icons/hugeicons/checkmark-circle-02";
+import Globe02Icon from "~icons/hugeicons/globe-02";
+import InformationCircleIcon from "~icons/hugeicons/information-circle";
+import MultiplicationSignCircleIcon from "~icons/hugeicons/multiplication-sign-circle";
+import UnfoldMoreIcon from "~icons/hugeicons/unfold-more";
+import WebhookIcon from "~icons/hugeicons/webhook";
 
 type ConnectionsOverviewTableProps = {
-  profiles: AdminConnectionProfile[]
-  connections: AdminConnectionSummary[]
-  onOpenConnection: (connectionId: number | null) => void
-  onCreateConnection: () => void
-  onEnabledChange: (connectionId: number, enabled: boolean) => Promise<void> | void
-  onDefaultChange: (connectionId: number) => Promise<void> | void
-  enabledSavingConnectionIds: ReadonlySet<number>
-  defaultSavingConnectionId: number | null
-}
+  profiles: AdminConnectionProfile[];
+  connections: AdminConnectionSummary[];
+  onOpenConnection: (connectionId: number | null) => void;
+  onCreateConnection: () => void;
+  onEnabledChange: (connectionId: number, enabled: boolean) => Promise<void> | void;
+  onDefaultChange: (connectionId: number) => Promise<void> | void;
+  enabledSavingConnectionIds: ReadonlySet<number>;
+  defaultSavingConnectionId: number | null;
+};
 
 type ConnectionTableRow = AdminConnectionSummary & {
-  statusKey: ConnectionOperationalStatus
-  statusLabel: string
-  searchText: string
-}
+  statusKey: ConnectionOperationalStatus;
+  statusLabel: string;
+  searchText: string;
+};
 
-type ConnectionSortId = "enabled" | "default" | "name" | "profile" | "health" | "route" | "webhooks"
+type ConnectionSortId =
+  | "enabled"
+  | "default"
+  | "name"
+  | "profile"
+  | "health"
+  | "route"
+  | "webhooks";
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 30, 40, 50]
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 30, 40, 50];
 
 function formatProfileMetadataLabel(label: string): string {
-  return titleCase(label.replace(/([a-z0-9])([A-Z])/g, "$1 $2"))
+  return titleCase(label.replace(/([a-z0-9])([A-Z])/g, "$1 $2"));
 }
 
 function formatProfileMetadataValue(value: string | string[]): string {
-  return Array.isArray(value) ? value.join(", ") : value
+  return Array.isArray(value) ? value.join(", ") : value;
 }
 
 function getHealthVariant(score: number): "default" | "secondary" | "destructive" | "outline" {
   if (score >= 80) {
-    return "default"
+    return "default";
   }
 
   if (score >= 60) {
-    return "secondary"
+    return "secondary";
   }
 
   if (score >= 40) {
-    return "outline"
+    return "outline";
   }
 
-  return "destructive"
+  return "destructive";
 }
 
 function getConnectionStatusDotClassName(status: ConnectionOperationalStatus): string {
   switch (status) {
     case "available":
-      return "bg-primary"
+      return "bg-primary";
     case "blocked":
-      return "bg-destructive"
+      return "bg-destructive";
     case "disabled":
-      return "bg-muted-foreground/50"
+      return "bg-muted-foreground/50";
   }
 }
 
@@ -128,8 +139,8 @@ function ConnectionStatusDot({
   status,
   label,
 }: {
-  status: ConnectionOperationalStatus
-  label: string
+  status: ConnectionOperationalStatus;
+  label: string;
 }) {
   return (
     <Popover>
@@ -147,18 +158,23 @@ function ConnectionStatusDot({
           />
         }
       />
-      <PopoverContent side="top" align="center" sideOffset={6} className="w-auto px-2 py-1 text-xs font-medium">
+      <PopoverContent
+        side="top"
+        align="center"
+        sideOffset={6}
+        className="w-auto px-2 py-1 text-xs font-medium"
+      >
         {label}
       </PopoverContent>
     </Popover>
-  )
+  );
 }
 
 function normalizeConnectionRows(connections: AdminConnectionSummary[]): ConnectionTableRow[] {
   return connections.map((connection) => {
-    const statusKey = getConnectionOperationalStatus(connection)
-    const supportsWebhooks = supportsConnectionWebhooks(connection)
-    const webhookEnabled = hasEnabledConnectionWebhooks(connection)
+    const statusKey = getConnectionOperationalStatus(connection);
+    const supportsWebhooks = supportsConnectionWebhooks(connection);
+    const webhookEnabled = hasEnabledConnectionWebhooks(connection);
 
     return {
       ...connection,
@@ -176,8 +192,8 @@ function normalizeConnectionRows(connections: AdminConnectionSummary[]): Connect
       ]
         .join(" ")
         .toLowerCase(),
-    }
-  })
+    };
+  });
 }
 
 function SortableHeader({
@@ -185,15 +201,16 @@ function SortableHeader({
   title,
 }: {
   column: {
-    getIsSorted: () => false | "asc" | "desc"
-    toggleSorting: (desc?: boolean) => void
-  }
-  title: string
+    getIsSorted: () => false | "asc" | "desc";
+    toggleSorting: (desc?: boolean) => void;
+  };
+  title: string;
 }) {
-  const direction = column.getIsSorted()
+  const direction = column.getIsSorted();
 
   return (
     <Button
+      type="button"
       variant="ghost"
       size="sm"
       className="-ml-3 h-8"
@@ -204,21 +221,22 @@ function SortableHeader({
       {direction === "desc" ? <ArrowDown01Icon data-icon="inline-end" /> : null}
       {direction === false ? <UnfoldMoreIcon data-icon="inline-end" /> : null}
     </Button>
-  )
+  );
 }
 
 function ConnectionProfileHoverCard({
   profile,
   fullProfile,
 }: {
-  profile: AdminConnectionSummary["profile"]
-  fullProfile: AdminConnectionProfile | undefined
+  profile: AdminConnectionSummary["profile"];
+  fullProfile: AdminConnectionProfile | undefined;
 }) {
-  const description = fullProfile?.description ?? profile.description ?? "No profile description is available."
-  const metadata = fullProfile?.metadata ?? profile.metadata
-  const supportsWebhooks = fullProfile?.supportsWebhooks ?? profile.supportsWebhooks
-  const useCases = metadata?.useCases ?? []
-  const extraEntries = Object.entries(metadata?.extra ?? {})
+  const description =
+    fullProfile?.description ?? profile.description ?? "No profile description is available.";
+  const metadata = fullProfile?.metadata ?? profile.metadata;
+  const supportsWebhooks = fullProfile?.supportsWebhooks ?? profile.supportsWebhooks;
+  const useCases = metadata?.useCases ?? [];
+  const extraEntries = Object.entries(metadata?.extra ?? {});
 
   return (
     <Popover>
@@ -236,7 +254,12 @@ function ConnectionProfileHoverCard({
         <ProfileBrandIcon profileKey={profile.key} label={profile.label} size="sm" />
         <span className="truncate">{profile.label}</span>
       </PopoverTrigger>
-      <PopoverContent side="right" align="start" sideOffset={8} className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden p-0">
+      <PopoverContent
+        side="right"
+        align="start"
+        sideOffset={8}
+        className="w-96 max-w-[calc(100vw-2rem)] overflow-hidden p-0"
+      >
         <PopoverHeader className="border-b p-4">
           <div className="flex items-start gap-3">
             <ProfileBrandIcon profileKey={profile.key} label={profile.label} />
@@ -256,7 +279,7 @@ function ConnectionProfileHoverCard({
                 <a
                   href={metadata.website}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="inline-flex h-8 items-center gap-2 rounded-md border bg-background px-2.5 text-sm font-medium shadow-xs transition-colors hover:bg-muted"
                 >
                   <Globe02Icon aria-hidden="true" />
@@ -267,7 +290,7 @@ function ConnectionProfileHoverCard({
                 <a
                   href={metadata.docsUrl}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="inline-flex h-8 items-center gap-2 rounded-md border bg-background px-2.5 text-sm font-medium shadow-xs transition-colors hover:bg-muted"
                 >
                   <BookOpen01Icon aria-hidden="true" />
@@ -305,17 +328,19 @@ function ConnectionProfileHoverCard({
                 <InformationCircleIcon aria-hidden="true" />
                 {formatProfileMetadataLabel(label)}
               </dt>
-              <dd className="mt-2 font-medium text-foreground">{formatProfileMetadataValue(value)}</dd>
+              <dd className="mt-2 font-medium text-foreground">
+                {formatProfileMetadataValue(value)}
+              </dd>
             </div>
           ))}
         </dl>
       </PopoverContent>
     </Popover>
-  )
+  );
 }
 
 function resolveSortBy(sorting: SortingState): ConnectionSortId {
-  const sortId = sorting[0]?.id
+  const sortId = sorting[0]?.id;
 
   if (
     sortId === "name" ||
@@ -326,18 +351,18 @@ function resolveSortBy(sorting: SortingState): ConnectionSortId {
     sortId === "route" ||
     sortId === "webhooks"
   ) {
-    return sortId
+    return sortId;
   }
 
-  return "name"
+  return "name";
 }
 
-function ConnectionsTablePagination<TData>({
+function ConnectionsTablePagination<TData extends object>({
   table,
   totalRows,
 }: {
-  table: TanstackTable<TData>
-  totalRows: number
+  table: TanstackTable<DataGridFeatures, TData>;
+  totalRows: number;
 }) {
   return (
     <div className="flex flex-col gap-4 px-2 lg:flex-row lg:items-center lg:justify-between">
@@ -348,15 +373,15 @@ function ConnectionsTablePagination<TData>({
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium">Rows per page</p>
           <Select
-            value={`${table.getState().pagination.pageSize}`}
+            value={`${table.state.pagination.pageSize}`}
             onValueChange={(value) => {
               if (value) {
-                table.setPageSize(Number(value))
+                table.setPageSize(Number(value));
               }
             }}
           >
             <SelectTrigger className="h-8 w-[72px]">
-              <SelectValue placeholder={table.getState().pagination.pageSize} />
+              <SelectValue placeholder={table.state.pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
               <SelectGroup>
@@ -371,11 +396,12 @@ function ConnectionsTablePagination<TData>({
         </div>
 
         <div className="flex w-[108px] items-center justify-center text-sm font-medium">
-          Page {table.getState().pagination.pageIndex + 1} of {Math.max(1, table.getPageCount())}
+          Page {table.state.pagination.pageIndex + 1} of {Math.max(1, table.getPageCount())}
         </div>
 
         <div className="flex items-center gap-2">
           <Button
+            type="button"
             variant="outline"
             size="icon-sm"
             className="hidden lg:flex"
@@ -386,6 +412,7 @@ function ConnectionsTablePagination<TData>({
             <ArrowLeftDoubleIcon />
           </Button>
           <Button
+            type="button"
             variant="outline"
             size="icon-sm"
             onClick={() => table.previousPage()}
@@ -395,6 +422,7 @@ function ConnectionsTablePagination<TData>({
             <ArrowLeft01Icon />
           </Button>
           <Button
+            type="button"
             variant="outline"
             size="icon-sm"
             onClick={() => table.nextPage()}
@@ -404,6 +432,7 @@ function ConnectionsTablePagination<TData>({
             <ArrowRight01Icon />
           </Button>
           <Button
+            type="button"
             variant="outline"
             size="icon-sm"
             className="hidden lg:flex"
@@ -416,7 +445,7 @@ function ConnectionsTablePagination<TData>({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export function ConnectionsOverviewTable({
@@ -429,78 +458,81 @@ export function ConnectionsOverviewTable({
   enabledSavingConnectionIds,
   defaultSavingConnectionId,
 }: ConnectionsOverviewTableProps) {
-  const [searchValue, setSearchValue] = React.useState("")
-  const deferredSearchValue = React.useDeferredValue(searchValue)
-  const [selectedStatuses, setSelectedStatuses] = React.useState<string[]>([])
-  const [selectedProfiles, setSelectedProfiles] = React.useState<string[]>([])
+  const [searchValue, setSearchValue] = React.useState("");
+  const deferredSearchValue = React.useDeferredValue(searchValue);
+  const [selectedStatuses, setSelectedStatuses] = React.useState<string[]>([]);
+  const [selectedProfiles, setSelectedProfiles] = React.useState<string[]>([]);
   const [sorting, setSorting] = React.useState<SortingState>([
     {
       id: "name",
       desc: false,
     },
-  ])
+  ]);
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
-  })
+  });
 
-  const rows = React.useMemo(() => normalizeConnectionRows(connections), [connections])
+  const rows = React.useMemo(() => normalizeConnectionRows(connections), [connections]);
   const profilesByKey = React.useMemo(
     () => new Map(profiles.map((profile) => [profile.key, profile])),
     [profiles],
-  )
+  );
   const statusOptions = React.useMemo(
-    () => [
-      {
-        label: "Available",
-        value: "available",
-        count: rows.filter((row) => row.statusKey === "available").length,
-      },
-      {
-        label: "Blocked",
-        value: "blocked",
-        count: rows.filter((row) => row.statusKey === "blocked").length,
-      },
-      {
-        label: "Disabled",
-        value: "disabled",
-        count: rows.filter((row) => row.statusKey === "disabled").length,
-      },
-    ].filter((option) => option.count > 0),
+    () =>
+      [
+        {
+          label: "Available",
+          value: "available",
+          count: rows.filter((row) => row.statusKey === "available").length,
+        },
+        {
+          label: "Blocked",
+          value: "blocked",
+          count: rows.filter((row) => row.statusKey === "blocked").length,
+        },
+        {
+          label: "Disabled",
+          value: "disabled",
+          count: rows.filter((row) => row.statusKey === "disabled").length,
+        },
+      ].filter((option) => option.count > 0),
     [rows],
-  )
+  );
   const profileOptions = React.useMemo(() => {
-    const counts = new Map<string, { label: string; value: string; count: number }>()
+    const counts = new Map<string, { label: string; value: string; count: number }>();
 
     rows.forEach((row) => {
-      const existing = counts.get(row.profile.key)
+      const existing = counts.get(row.profile.key);
 
       if (existing) {
-        existing.count += 1
-        return
+        existing.count += 1;
+        return;
       }
 
       counts.set(row.profile.key, {
         label: row.profile.label,
         value: row.profile.key,
         count: 1,
-      })
-    })
+      });
+    });
 
-    return Array.from(counts.values()).sort((left, right) => left.label.localeCompare(right.label))
-  }, [rows])
+    return Array.from(counts.values()).sort((left, right) => left.label.localeCompare(right.label));
+  }, [rows]);
   const filteredRows = React.useMemo(() => {
-    const normalizedQuery = deferredSearchValue.trim().toLowerCase()
+    const normalizedQuery = deferredSearchValue.trim().toLowerCase();
 
     return rows.filter((row) => {
-      const matchesSearch = normalizedQuery === "" || row.searchText.includes(normalizedQuery)
-      const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(row.statusKey)
-      const matchesProfile = selectedProfiles.length === 0 || selectedProfiles.includes(row.profile.key)
+      const matchesSearch = normalizedQuery === "" || row.searchText.includes(normalizedQuery);
+      const matchesStatus =
+        selectedStatuses.length === 0 || selectedStatuses.includes(row.statusKey);
+      const matchesProfile =
+        selectedProfiles.length === 0 || selectedProfiles.includes(row.profile.key);
 
-      return matchesSearch && matchesStatus && matchesProfile
-    })
-  }, [deferredSearchValue, rows, selectedProfiles, selectedStatuses])
-  const sortBy = resolveSortBy(sorting)
+      return matchesSearch && matchesStatus && matchesProfile;
+    });
+  }, [deferredSearchValue, rows, selectedProfiles, selectedStatuses]);
+  const sortBy = resolveSortBy(sorting);
 
   React.useEffect(() => {
     setPagination((currentPagination) =>
@@ -510,17 +542,17 @@ export function ConnectionsOverviewTable({
             ...currentPagination,
             pageIndex: 0,
           },
-    )
-  }, [deferredSearchValue, selectedProfiles, selectedStatuses, sortBy, pagination.pageSize])
+    );
+  }, [deferredSearchValue, selectedProfiles, selectedStatuses, sortBy, pagination.pageSize]);
 
-  const columns = React.useMemo<ColumnDef<ConnectionTableRow>[]>(
+  const columns = React.useMemo<ColumnDef<DataGridFeatures, ConnectionTableRow>[]>(
     () => [
       {
         accessorFn: (row) => (row.enabled ? "enabled" : "disabled"),
         id: "enabled",
         header: () => <span className="text-xs font-medium">Enabled</span>,
         cell: ({ row }) => {
-          const connectionId = row.original.id
+          const connectionId = row.original.id;
 
           return (
             <Switch
@@ -530,11 +562,11 @@ export function ConnectionsOverviewTable({
               aria-label={`${row.original.enabled ? "Disable" : "Enable"} ${row.original.name}`}
               onCheckedChange={(checked) => {
                 if (connectionId !== null) {
-                  void onEnabledChange(connectionId, checked === true)
+                  void onEnabledChange(connectionId, checked === true);
                 }
               }}
             />
-          )
+          );
         },
       },
       {
@@ -546,6 +578,7 @@ export function ConnectionsOverviewTable({
             <ConnectionStatusDot status={row.original.statusKey} label={row.original.statusLabel} />
             <div className="flex min-w-0 flex-col gap-1">
               <Button
+                type="button"
                 variant="link"
                 className="h-auto justify-start px-0 text-left"
                 onClick={() => onOpenConnection(row.original.id)}
@@ -578,7 +611,9 @@ export function ConnectionsOverviewTable({
         id: "health",
         header: ({ column }) => <SortableHeader column={column} title="Health" />,
         cell: ({ row }) => (
-          <Badge variant={getHealthVariant(row.original.healthScore)}>{row.original.healthScore}</Badge>
+          <Badge variant={getHealthVariant(row.original.healthScore)}>
+            {row.original.healthScore}
+          </Badge>
         ),
       },
       {
@@ -594,17 +629,17 @@ export function ConnectionsOverviewTable({
       {
         accessorFn: (row) => {
           if (!supportsConnectionWebhooks(row)) {
-            return ""
+            return "";
           }
 
-          return hasEnabledConnectionWebhooks(row) ? "enabled" : "disabled"
+          return hasEnabledConnectionWebhooks(row) ? "enabled" : "disabled";
         },
         id: "webhooks",
         header: ({ column }) => <SortableHeader column={column} title="Webhooks" />,
         cell: ({ row }) =>
-          !supportsConnectionWebhooks(row.original) ? (
-            null
-          ) : hasEnabledConnectionWebhooks(row.original) ? (
+          !supportsConnectionWebhooks(row.original) ? null : hasEnabledConnectionWebhooks(
+              row.original,
+            ) ? (
             <Badge variant="secondary">
               <CheckmarkCircle02Icon data-icon="inline-start" />
               Enabled
@@ -621,8 +656,9 @@ export function ConnectionsOverviewTable({
         id: "default",
         header: () => <span className="text-xs font-medium">Default</span>,
         cell: ({ row }) => {
-          const connectionId = row.original.id
-          const disabled = connectionId === null || !row.original.enabled || defaultSavingConnectionId !== null
+          const connectionId = row.original.id;
+          const disabled =
+            connectionId === null || !row.original.enabled || defaultSavingConnectionId !== null;
 
           return (
             <RadioGroupItem
@@ -635,14 +671,21 @@ export function ConnectionsOverviewTable({
               }
               className="mx-auto"
             />
-          )
+          );
         },
       },
     ],
-    [defaultSavingConnectionId, enabledSavingConnectionIds, onEnabledChange, onOpenConnection, profilesByKey],
-  )
+    [
+      defaultSavingConnectionId,
+      enabledSavingConnectionIds,
+      onEnabledChange,
+      onOpenConnection,
+      profilesByKey,
+    ],
+  );
 
-  const table = useReactTable({
+  const table = useTable({
+    features: dataGridFeatures,
     data: filteredRows,
     columns,
     state: {
@@ -651,141 +694,114 @@ export function ConnectionsOverviewTable({
     },
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-  })
+  });
 
   const isFiltered =
-    searchValue.trim() !== "" || selectedStatuses.length > 0 || selectedProfiles.length > 0
-  const defaultConnectionId = filteredRows.find((row) => row.default)?.id
+    searchValue.trim() !== "" || selectedStatuses.length > 0 || selectedProfiles.length > 0;
+  const defaultConnectionId = filteredRows.find((row) => row.default)?.id;
 
   if (connections.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-8 text-center">
-        <div className="mx-auto max-w-md space-y-3">
-          <h3 className="font-medium">No connections yet</h3>
-          <p className="text-sm text-muted-foreground">
-            Create your first provider route to start routing mail through Jooosi Mail.
-          </p>
-          <div>
-            <Button onClick={onCreateConnection}>New connection</Button>
-          </div>
-        </div>
-      </div>
-    )
+      <Frame>
+        <FramePanel className="p-0!">
+          <Alert variant="info">
+            <InformationCircleIcon />
+            <AlertTitle>No connections yet</AlertTitle>
+            <AlertDescription>
+              Create your first provider route to start routing mail through Jooosi Mail.
+            </AlertDescription>
+            <AlertAction>
+              <Button type="button" size="xs" onClick={onCreateConnection}>
+                New connection
+              </Button>
+            </AlertAction>
+          </Alert>
+        </FramePanel>
+      </Frame>
+    );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-1 flex-wrap items-center gap-2">
-          <Input
-            placeholder="Search connections..."
-            value={searchValue}
-            onChange={(event) => setSearchValue(event.target.value)}
-            className="h-8 w-full md:w-[220px]"
-          />
-
-          {statusOptions.length > 0 ? (
-            <MailLogTableFacetedFilter
-              title="Status"
-              options={statusOptions}
-              selectedValues={selectedStatuses}
-              onChange={setSelectedStatuses}
+    <DataGrid
+      table={table}
+      recordCount={filteredRows.length}
+      emptyMessage="No connections match the current search and filters."
+      tableLayout={{ headerBackground: true, rowBorder: true }}
+    >
+      <Frame stacked spacing="sm">
+        <FrameHeader>
+          <FrameTitle>Configured routes</FrameTitle>
+          <FrameDescription>
+            Search, prioritize, and monitor every provider connection.
+          </FrameDescription>
+        </FrameHeader>
+        <FramePanel className="p-0! shadow-none!">
+          <div className="flex flex-wrap items-center gap-2 p-3">
+            <Input
+              placeholder="Search connections..."
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
+              className="h-8 w-full md:w-[220px]"
             />
-          ) : null}
 
-          {profileOptions.length > 0 ? (
-            <MailLogTableFacetedFilter
-              title="Profile"
-              options={profileOptions}
-              selectedValues={selectedProfiles}
-              onChange={setSelectedProfiles}
-            />
-          ) : null}
+            {statusOptions.length > 0 ? (
+              <MailLogTableFacetedFilter
+                title="Status"
+                options={statusOptions}
+                selectedValues={selectedStatuses}
+                onChange={setSelectedStatuses}
+              />
+            ) : null}
 
-          {isFiltered ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearchValue("")
-                setSelectedStatuses([])
-                setSelectedProfiles([])
-              }}
-            >
-              Reset
-            </Button>
-          ) : null}
-        </div>
-      </div>
+            {profileOptions.length > 0 ? (
+              <MailLogTableFacetedFilter
+                title="Profile"
+                options={profileOptions}
+                selectedValues={selectedProfiles}
+                onChange={setSelectedProfiles}
+              />
+            ) : null}
 
-      <RadioGroup
-        value={defaultConnectionId === null || defaultConnectionId === undefined ? "" : `${defaultConnectionId}`}
-        onValueChange={(value) => {
-          if (/^\d+$/.test(value)) {
-            void onDefaultChange(Number(value))
-          }
-        }}
-        className="contents"
-      >
-      <div className="overflow-hidden rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    colSpan={header.colSpan}
-                    className={
-                      header.column.id === "enabled" || header.column.id === "default"
-                        ? "w-[72px] text-center"
-                        : undefined
-                    }
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={
-                        cell.column.id === "enabled" || cell.column.id === "default"
-                          ? "w-[72px] text-center"
-                          : undefined
-                      }
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No connections match the current search and filters.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      </RadioGroup>
+            {isFiltered ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchValue("");
+                  setSelectedStatuses([]);
+                  setSelectedProfiles([]);
+                }}
+              >
+                Reset
+              </Button>
+            ) : null}
+          </div>
 
-      <ConnectionsTablePagination table={table} totalRows={filteredRows.length} />
-    </div>
-  )
+          <Separator />
+
+          <RadioGroup
+            value={
+              defaultConnectionId === null || defaultConnectionId === undefined
+                ? ""
+                : `${defaultConnectionId}`
+            }
+            onValueChange={(value) => {
+              if (/^\d+$/.test(value)) {
+                void onDefaultChange(Number(value));
+              }
+            }}
+            className="contents"
+          >
+            <DataGridTable />
+          </RadioGroup>
+        </FramePanel>
+        <FrameFooter>
+          <ConnectionsTablePagination table={table} totalRows={filteredRows.length} />
+        </FrameFooter>
+      </Frame>
+    </DataGrid>
+  );
 }
 
-export default ConnectionsOverviewTable
+export default ConnectionsOverviewTable;

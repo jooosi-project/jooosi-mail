@@ -13,14 +13,20 @@ use JooosiMail\Infrastructure\WordPress\OptionStore;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MailLogRetentionPolicy
+final class MailLogRetentionPolicy
 {
-    public const string ENABLED_PATH = 'settings.logging.email.enabled';
+    /**
+     * @var string
+     */
+    public const ENABLED_PATH = 'settings.logging.email.enabled';
 
-    public const string RETENTION_DAYS_PATH = 'settings.logging.email.retention_days';
+    /**
+     * @var string
+     */
+    public const RETENTION_DAYS_PATH = 'settings.logging.email.retention_days';
 
     public function __construct(
-        private OptionStore $optionStore,
+        private readonly OptionStore $optionStore,
     ) {
     }
 

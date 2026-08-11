@@ -12,14 +12,14 @@ namespace JooosiMail\Mail\Routing;
  *
  * @since 0.1.0
  */
-final readonly class DeliveryPlan
+final class DeliveryPlan
 {
     public function __construct(
-        public DeliveryMode $mode,
-        public RoutingStrategy $strategy,
-        public int $priority,
-        public int $delaySeconds,
-        public ?int $preferredConnectionId = null,
+        public readonly DeliveryMode $mode,
+        public readonly RoutingStrategy $strategy,
+        public readonly int $priority,
+        public readonly int $delaySeconds,
+        public readonly ?int $preferredConnectionId = null,
     ) {
     }
 

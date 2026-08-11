@@ -12,7 +12,7 @@ use Attribute;
  * @since 0.1.0
  */
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
-final readonly class Command
+final class Command
 {
     /**
      * @param list<string> $aliases
@@ -20,11 +20,11 @@ final readonly class Command
      * @since 0.1.0
      */
     public function __construct(
-        public ?string $name = null,
-        public string $description = '',
-        public array $aliases = [],
-        public ?string $synopsis = null,
-        public ?string $when = 'after_wp_load',
+        public readonly ?string $name = null,
+        public readonly string $description = '',
+        public readonly array $aliases = [],
+        public readonly ?string $synopsis = null,
+        public readonly ?string $when = 'after_wp_load',
     ) {
     }
 }

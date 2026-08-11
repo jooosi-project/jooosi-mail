@@ -1,9 +1,10 @@
-"use client"
+"use client";
 
-import type { Table } from "@tanstack/react-table"
+import type { Table } from "@tanstack/react-table";
 
-import type { WebhookLogTableRow } from "@/components/webhook-log-table-types"
-import { Button } from "@/components/ui/button"
+import type { WebhookLogTableRow } from "@/components/webhook-log-table-types";
+import type { DataGridFeatures } from "@/components/reui/data-grid/data-grid";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -12,8 +13,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import LeftToRightListBulletIcon from "~icons/hugeicons/left-to-right-list-bullet"
+} from "@/components/ui/dropdown-menu";
+import LeftToRightListBulletIcon from "~icons/hugeicons/left-to-right-list-bullet";
 
 const TOGGLEABLE_COLUMNS = {
   id: "ID",
@@ -22,12 +23,12 @@ const TOGGLEABLE_COLUMNS = {
   mailLogId: "Mail",
   transportMessageId: "Transport Message",
   dateTime: "Occurred",
-} as const
+} as const;
 
 export function WebhookLogTableViewOptions({
   table,
 }: {
-  table: Table<WebhookLogTableRow>
+  table: Table<DataGridFeatures, WebhookLogTableRow>;
 }) {
   return (
     <DropdownMenu>
@@ -58,7 +59,7 @@ export function WebhookLogTableViewOptions({
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
 
-export default WebhookLogTableViewOptions
+export default WebhookLogTableViewOptions;

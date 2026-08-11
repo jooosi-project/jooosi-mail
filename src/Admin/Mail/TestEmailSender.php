@@ -13,13 +13,13 @@ use JooosiMail\Mail\ValueObject\MailRequest;
  * @since 0.1.0
  */
 #[Service]
-final readonly class TestEmailSender
+final class TestEmailSender
 {
     /**
      * @since 0.1.0
      */
     public function __construct(
-        private TestEmailTemplateRenderer $templateRenderer,
+        private readonly TestEmailTemplateRenderer $templateRenderer,
     ) {
     }
 

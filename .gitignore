@@ -30,6 +30,7 @@ pnpm-debug.log*
 # Testing
 coverage/
 .phpunit.result.cache
+.phpunit.*.cache
 .phpunit.cache/
 .vitest/
 junit.xml

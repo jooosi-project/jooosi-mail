@@ -13,10 +13,10 @@ use RuntimeException;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MigrationRunner
+final class MigrationRunner
 {
     public function __construct(
-        private MigrationManager $migrationManager,
+        private readonly MigrationManager $migrationManager,
     ) {
     }
 

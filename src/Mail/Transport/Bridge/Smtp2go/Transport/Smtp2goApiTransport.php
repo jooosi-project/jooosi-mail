@@ -25,8 +25,14 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class Smtp2goApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'api.smtp2go.com';
-    private const array REGIONAL_HOSTS = [
+    /**
+     * @var string
+     */
+    private const HOST = 'api.smtp2go.com';
+    /**
+     * @var mixed[]
+     */
+    private const REGIONAL_HOSTS = [
         'global' => 'api.smtp2go.com',
         'us' => 'us-api.smtp2go.com',
         'eu' => 'eu-api.smtp2go.com',

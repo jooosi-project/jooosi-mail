@@ -13,10 +13,10 @@ use JooosiMail\Queue\Maintenance\QueueMaintenanceService;
  * @since 0.1.0
  */
 #[Service]
-final readonly class FailedMessageService
+final class FailedMessageService
 {
     public function __construct(
-        private QueueMaintenanceService $queueMaintenanceService,
+        private readonly QueueMaintenanceService $queueMaintenanceService,
     ) {
     }
 

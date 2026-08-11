@@ -16,13 +16,13 @@ use Throwable;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MigrationManager
+final class MigrationManager
 {
     public function __construct(
-        private Connection $connection,
-        private MigrationRegistry $migrationRegistry,
-        private MigrationRepository $migrationRepository,
-        private TableNameResolver $tableNameResolver,
+        private readonly Connection $connection,
+        private readonly MigrationRegistry $migrationRegistry,
+        private readonly MigrationRepository $migrationRepository,
+        private readonly TableNameResolver $tableNameResolver,
     ) {
     }
 

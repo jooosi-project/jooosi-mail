@@ -1,7 +1,8 @@
-"use client"
+"use client";
 
-import type { RowData, Table } from "@tanstack/react-table"
-import { Button } from "@/components/ui/button"
+import type { ReactTable, RowData } from "@tanstack/react-table";
+import type { DataGridFeatures } from "@/components/reui/data-grid/data-grid";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -9,20 +10,20 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import ArrowLeft01Icon from "~icons/hugeicons/arrow-left-01"
-import ArrowLeftDoubleIcon from "~icons/hugeicons/arrow-left-double"
-import ArrowRight01Icon from "~icons/hugeicons/arrow-right-01"
-import ArrowRightDoubleIcon from "~icons/hugeicons/arrow-right-double"
+} from "@/components/ui/select";
+import ArrowLeft01Icon from "~icons/hugeicons/arrow-left-01";
+import ArrowLeftDoubleIcon from "~icons/hugeicons/arrow-left-double";
+import ArrowRight01Icon from "~icons/hugeicons/arrow-right-01";
+import ArrowRightDoubleIcon from "~icons/hugeicons/arrow-right-double";
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 30, 40, 50]
+const PAGE_SIZE_OPTIONS = [10, 20, 25, 30, 40, 50];
 
 export function MailLogTablePagination<TData extends RowData>({
   table,
   totalRows,
 }: {
-  table: Table<TData>
-  totalRows: number
+  table: ReactTable<DataGridFeatures, TData>;
+  totalRows: number;
 }) {
   return (
     <div className="flex flex-col gap-4 px-2 lg:flex-row lg:items-center lg:justify-between">
@@ -33,10 +34,10 @@ export function MailLogTablePagination<TData extends RowData>({
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium">Rows per page</p>
           <Select
-            value={`${table.getState().pagination.pageSize}`}
+            value={`${table.state.pagination.pageSize}`}
             onValueChange={(value) => {
               if (value) {
-                table.setPageSize(Number(value))
+                table.setPageSize(Number(value));
               }
             }}
             items={PAGE_SIZE_OPTIONS.map((pageSize) => ({
@@ -45,7 +46,7 @@ export function MailLogTablePagination<TData extends RowData>({
             }))}
           >
             <SelectTrigger className="h-8 w-[72px]">
-              <SelectValue placeholder={table.getState().pagination.pageSize} />
+              <SelectValue placeholder={table.state.pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
               <SelectGroup>
@@ -60,7 +61,7 @@ export function MailLogTablePagination<TData extends RowData>({
         </div>
 
         <div className="flex w-[108px] items-center justify-center text-sm font-medium">
-          Page {table.getState().pagination.pageIndex + 1} of {Math.max(1, table.getPageCount())}
+          Page {table.state.pagination.pageIndex + 1} of {Math.max(1, table.getPageCount())}
         </div>
 
         <div className="flex items-center gap-2">
@@ -105,7 +106,7 @@ export function MailLogTablePagination<TData extends RowData>({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default MailLogTablePagination
+export default MailLogTablePagination;

@@ -17,8 +17,14 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 final class GmailTokenManager
 {
-    private const string TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
-    private const string GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
+    /**
+     * @var string
+     */
+    private const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
+    /**
+     * @var string
+     */
+    private const GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
 
     private ?string $token = null;
 

@@ -27,7 +27,10 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class ElasticEmailApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'api.elasticemail.com';
+    /**
+     * @var string
+     */
+    private const HOST = 'api.elasticemail.com';
 
     public function __construct(
         #[SensitiveParameter] private readonly string $apiKey,

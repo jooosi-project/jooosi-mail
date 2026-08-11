@@ -17,13 +17,16 @@ use WP_CLI;
  *
  * @since 0.1.0
  */
-final readonly class CommandRegistrar
+final class CommandRegistrar
 {
-    private const string COMMAND_PREFIX = 'jooosi-mail';
+    /**
+     * @var string
+     */
+    private const COMMAND_PREFIX = 'jooosi-mail';
 
     public function __construct(
-        private ContainerInterface $container,
-        private DiscoveryManifest $manifest,
+        private readonly ContainerInterface $container,
+        private readonly DiscoveryManifest $manifest,
     ) {
     }
 
@@ -53,7 +56,8 @@ final readonly class CommandRegistrar
         $reflectionClass = new ReflectionClass($className);
         $instance = $this->container->get($className);
 
-        $classCommand = $this->newCommandInstance(array_first($reflectionClass->getAttributes(Command::class)));
+        $classAttributes = $reflectionClass->getAttributes(Command::class);
+        $classCommand = $this->newCommandInstance($classAttributes[0] ?? null);
         if ($classCommand instanceof Command && $reflectionClass->hasMethod('__invoke')) {
             $this->registerCommand($classCommand, [$instance, '__invoke'], $reflectionClass);
         }
@@ -63,7 +67,8 @@ final readonly class CommandRegistrar
                 continue;
             }
 
-            $methodCommand = $this->newCommandInstance(array_first($reflectionMethod->getAttributes(Command::class)));
+            $methodAttributes = $reflectionMethod->getAttributes(Command::class);
+            $methodCommand = $this->newCommandInstance($methodAttributes[0] ?? null);
             if (! $methodCommand instanceof Command) {
                 continue;
             }

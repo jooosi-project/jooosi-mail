@@ -18,9 +18,15 @@ use function Nabasa\VitePlus\assets;
 #[Service]
 final class AdminMenu
 {
-    private const string PAGE_SLUG = 'jooosi-mail';
+    /**
+     * @var string
+     */
+    private const PAGE_SLUG = 'jooosi-mail';
 
-    private const string ASSET_HANDLE = 'jooosi-mail-admin';
+    /**
+     * @var string
+     */
+    private const ASSET_HANDLE = 'jooosi-mail-admin';
 
     /**
      * @since 0.1.0

@@ -15,13 +15,16 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
  * @since 0.1.0
  */
 #[Service]
-final readonly class DatabaseTransport implements TransportInterface
+final class DatabaseTransport implements TransportInterface
 {
-    public const string NAME = 'async';
+    /**
+     * @var string
+     */
+    public const NAME = 'async';
 
     public function __construct(
-        private DatabaseSender $sender,
-        private DatabaseReceiver $receiver,
+        private readonly DatabaseSender $sender,
+        private readonly DatabaseReceiver $receiver,
     ) {
     }
 

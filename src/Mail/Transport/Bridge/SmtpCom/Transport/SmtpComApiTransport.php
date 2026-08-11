@@ -23,7 +23,10 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class SmtpComApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'api.smtp.com';
+    /**
+     * @var string
+     */
+    private const HOST = 'api.smtp.com';
 
     public function __construct(
         private readonly string $apiKey,

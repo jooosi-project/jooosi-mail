@@ -26,16 +26,16 @@ use WP_REST_Response;
  * @since 0.1.0
  */
 #[Controller(namespace: 'jooosi-mail/v1', prefix: 'webhook')]
-final readonly class WebhookController
+final class WebhookController
 {
     public function __construct(
-        private ConnectionRepository $connectionRepository,
-        private MailLogRepository $mailLogRepository,
-        private MailAttemptRepository $mailAttemptRepository,
-        private WebhookEventRepository $webhookEventRepository,
-        private WebhookEventProjector $webhookEventProjector,
-        private WebhookAdapterRegistry $webhookAdapterRegistry,
-        private EventPublisherInterface $eventPublisher,
+        private readonly ConnectionRepository $connectionRepository,
+        private readonly MailLogRepository $mailLogRepository,
+        private readonly MailAttemptRepository $mailAttemptRepository,
+        private readonly WebhookEventRepository $webhookEventRepository,
+        private readonly WebhookEventProjector $webhookEventProjector,
+        private readonly WebhookAdapterRegistry $webhookAdapterRegistry,
+        private readonly EventPublisherInterface $eventPublisher,
     ) {
     }
 

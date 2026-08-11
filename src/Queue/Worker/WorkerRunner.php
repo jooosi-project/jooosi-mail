@@ -15,14 +15,17 @@ use JooosiMail\Queue\Trigger\ActionSchedulerTrigger;
  * @since 0.1.0
  */
 #[Service]
-final readonly class WorkerRunner
+final class WorkerRunner
 {
-    public const string RUNNER_LEASE_OPTION = 'jooosi_mail_queue_runner_lease';
+    /**
+     * @var string
+     */
+    public const RUNNER_LEASE_OPTION = 'jooosi_mail_queue_runner_lease';
 
     public function __construct(
-        private QueueWorker $queueWorker,
-        private QueueMessageQuery $queueMessageQuery,
-        private ActionSchedulerTrigger $actionSchedulerTrigger,
+        private readonly QueueWorker $queueWorker,
+        private readonly QueueMessageQuery $queueMessageQuery,
+        private readonly ActionSchedulerTrigger $actionSchedulerTrigger,
     ) {
     }
 

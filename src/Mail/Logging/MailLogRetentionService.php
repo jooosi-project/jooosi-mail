@@ -12,11 +12,11 @@ use JooosiMail\Discovery\Attribute\Service;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MailLogRetentionService
+final class MailLogRetentionService
 {
     public function __construct(
-        private MailLogRetentionPolicy $retentionPolicy,
-        private MailLogRepository $mailLogRepository,
+        private readonly MailLogRetentionPolicy $retentionPolicy,
+        private readonly MailLogRepository $mailLogRepository,
     ) {
     }
 

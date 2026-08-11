@@ -14,12 +14,12 @@ use JooosiMail\Mail\Connection\ConnectionRepository;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionStatusReporter
+final class ConnectionStatusReporter
 {
     public function __construct(
-        private ConnectionRepository $connectionRepository,
-        private ConnectionAvailabilityDecider $connectionAvailabilityDecider,
-        private ConnectionHealthScorer $connectionHealthScorer,
+        private readonly ConnectionRepository $connectionRepository,
+        private readonly ConnectionAvailabilityDecider $connectionAvailabilityDecider,
+        private readonly ConnectionHealthScorer $connectionHealthScorer,
     ) {
     }
 

@@ -15,7 +15,7 @@ use RuntimeException;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ProfileMetadataResolver
+final class ProfileMetadataResolver
 {
     /**
      * @since 0.1.0

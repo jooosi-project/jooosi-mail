@@ -6,7 +6,7 @@ This guide is for contributors working on the Jooosi Mail codebase.
 
 Requirements:
 
-- PHP 8.5+
+- PHP 8.1+
 - WordPress 6.8+
 - Composer
 - Node.js
@@ -32,11 +32,14 @@ wp jooosi-mail queue:failed
 wp jooosi-mail mail:test --to=you@example.com
 wp jooosi-mail mail:test --to=you@example.com --connection-id=3
 pnpm dev
+pnpm check
 pnpm build
 pnpm wp-env:start
 pnpm wp-env:test:start
 pnpm test:php:docker
 ```
+
+Pull requests and pushes to `main` run the same frontend validation and WordPress-backed PHP integration tests in GitHub Actions. Prepare a release with `pnpm run release -- <major.minor.patch>`, review the generated commit and tag, then push both to trigger the deployment workflow.
 
 ## Docker Test Workflow
 
@@ -78,8 +81,8 @@ Notes:
 
 ## Key Architectural Conventions
 
-- Use strict types and PHP 8.5+ features.
-- Keep runtime discovery attribute-driven.
+- Use strict types and PHP 8.1+ features.
+- Keep runtime discovery attribute-driven through the internal PSR-4 scanner.
 - Register WordPress hooks, REST routes, and CLI commands through discovery and registrars.
 - Keep provider-specific behavior in profiles and webhook adapters.
 - Use Doctrine DBAL-backed repositories for persistence.

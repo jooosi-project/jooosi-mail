@@ -9,12 +9,12 @@ namespace JooosiMail\Mail\ValueObject;
  *
  * @since 0.1.0
  */
-final readonly class MailAttachment
+final class MailAttachment
 {
     public function __construct(
-        public string $path,
-        public ?string $name = null,
-        public ?string $contentType = null,
+        public readonly string $path,
+        public readonly ?string $name = null,
+        public readonly ?string $contentType = null,
     ) {
     }
 

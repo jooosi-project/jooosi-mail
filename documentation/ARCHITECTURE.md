@@ -23,7 +23,7 @@ The architecture is designed to keep WordPress integration thin while making del
 
 ### Discovery and Registration Layer
 
-- `src/Discovery` defines the attributes and manifest used by the runtime.
+- `src/Discovery` defines the attributes, internal PSR-4 scanner, and manifest used by the runtime.
 - `ContainerFactory` builds the compiled container and injects the discovery output.
 - WordPress registrars attach hooks, REST routes, and WP-CLI commands from discovered services.
 

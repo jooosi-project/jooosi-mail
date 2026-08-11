@@ -12,7 +12,7 @@ require_once __DIR__ . '/rector/Rule/DowngradeCloneWithRector.php';
 require_once __DIR__ . '/rector/Rule/DowngradePropertyHookRector.php';
 
 return RectorConfig::configure()
-    ->withDowngradeSets(php83: true)
+    ->withDowngradeSets(php81: true)
     ->withRules([
         DowngradeAsymmetricVisibilityRector::class,
         DowngradeCloneWithRector::class,

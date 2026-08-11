@@ -15,10 +15,10 @@ use JooosiMail\Mail\Sender\SenderPolicyResolver;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionInputResolver
+final class ConnectionInputResolver
 {
     public function __construct(
-        private ProfileMetadataResolver $profileMetadataResolver,
+        private readonly ProfileMetadataResolver $profileMetadataResolver,
     ) {
     }
 

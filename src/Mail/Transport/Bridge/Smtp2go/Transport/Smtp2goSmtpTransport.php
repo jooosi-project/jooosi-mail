@@ -11,7 +11,10 @@ use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 
 final class Smtp2goSmtpTransport extends EsmtpTransport
 {
-    private const array REGIONAL_HOSTS = [
+    /**
+     * @var mixed[]
+     */
+    private const REGIONAL_HOSTS = [
         'global' => 'mail.smtp2go.com',
         'us' => 'mail-us.smtp2go.com',
         'eu' => 'mail-eu.smtp2go.com',

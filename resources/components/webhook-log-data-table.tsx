@@ -1,75 +1,86 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
+  useTable,
   type ColumnDef,
+  type ColumnVisibilityState,
   type PaginationState,
   type RowSelectionState,
   type SortingState,
-  type VisibilityState,
-} from "@tanstack/react-table"
-import { toast } from "sonner"
+} from "@tanstack/react-table";
+import { toast } from "sonner";
 
-import { MailLogTablePagination } from "@/components/mail-log-table-pagination"
-import { MailLogTableToolbar } from "@/components/mail-log-table-toolbar"
-import { WebhookLogDetailsSheet } from "@/components/webhook-log-details-sheet"
-import { normalizeWebhookLogRows, type WebhookLogTableRow } from "@/components/webhook-log-table-types"
-import { WebhookLogTableViewOptions } from "@/components/webhook-log-table-view-options"
-import { buildAdminHashHref } from "@/admin/routes"
-import type { AdminMailLogFilterOption, AdminWebhookLogQuery } from "@/lib/admin-api"
-import { getWebhookLogs } from "@/lib/admin-api"
-import { formatAdminDateTime, titleCase } from "@/lib/admin-format"
-import { getWebhookEventVariant } from "@/lib/admin-log-helpers"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { MailLogTablePagination } from "@/components/mail-log-table-pagination";
+import { MailLogTableToolbar } from "@/components/mail-log-table-toolbar";
+import { WebhookLogDetailsSheet } from "@/components/webhook-log-details-sheet";
+import { Alert, AlertDescription, AlertTitle } from "@/components/reui/alert";
+import {
+  normalizeWebhookLogRows,
+  type WebhookLogTableRow,
+} from "@/components/webhook-log-table-types";
+import { WebhookLogTableViewOptions } from "@/components/webhook-log-table-view-options";
+import { buildAdminHashHref } from "@/admin/routes";
+import type { AdminMailLogFilterOption, AdminWebhookLogQuery } from "@/lib/admin-api";
+import { getWebhookLogs } from "@/lib/admin-api";
+import { formatAdminDateTime, titleCase } from "@/lib/admin-format";
+import { getWebhookEventVariant } from "@/lib/admin-log-helpers";
+import { Badge } from "@/components/reui/badge";
+import {
+  DataGrid,
+  dataGridFeatures,
+  type DataGridFeatures,
+} from "@/components/reui/data-grid/data-grid";
+import { DataGridTable } from "@/components/reui/data-grid/data-grid-table";
+import {
+  Frame,
+  FrameDescription,
+  FrameFooter,
+  FrameHeader,
+  FramePanel,
+  FrameTitle,
+} from "@/components/reui/frame";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import type { MailLogDateRangeFilter } from "@/components/mail-log-table-types"
-import ArrowDown01Icon from "~icons/hugeicons/arrow-down-01"
-import ArrowUp01Icon from "~icons/hugeicons/arrow-up-01"
-import DatabaseIcon from "~icons/tabler/database"
-import MailIcon from "~icons/tabler/mail"
-import MoreVerticalCircle01Icon from "~icons/hugeicons/more-vertical-circle-01"
-import UnfoldMoreIcon from "~icons/hugeicons/unfold-more"
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
+import type { MailLogDateRangeFilter } from "@/components/mail-log-table-types";
+import ArrowDown01Icon from "~icons/hugeicons/arrow-down-01";
+import ArrowUp01Icon from "~icons/hugeicons/arrow-up-01";
+import DatabaseIcon from "~icons/tabler/database";
+import MailIcon from "~icons/tabler/mail";
+import MoreVerticalCircle01Icon from "~icons/hugeicons/more-vertical-circle-01";
+import UnfoldMoreIcon from "~icons/hugeicons/unfold-more";
+import AlertCircleIcon from "~icons/hugeicons/alert-circle";
 
-type WebhookLogSortId = "id" | "eventType" | "dateTime" | "connection" | "mailLogId"
+type WebhookLogSortId = "id" | "eventType" | "dateTime" | "connection" | "mailLogId";
 
 type WebhookLogDataTableProps = {
-  refreshToken?: number
-}
+  refreshToken?: number;
+};
 
-const LOG_TABLE_POLL_MS = 15_000
+const LOG_TABLE_POLL_MS = 15_000;
 
 function SortableHeader({
   column,
   title,
 }: {
   column: {
-    getIsSorted: () => false | "asc" | "desc"
-    toggleSorting: (desc?: boolean) => void
-  }
-  title: string
+    getIsSorted: () => false | "asc" | "desc";
+    toggleSorting: (desc?: boolean) => void;
+  };
+  title: string;
 }) {
-  const direction = column.getIsSorted()
+  const direction = column.getIsSorted();
 
   return (
     <Button
+      type="button"
       variant="ghost"
       size="sm"
       className="-ml-3 h-8"
@@ -80,68 +91,73 @@ function SortableHeader({
       {direction === "desc" ? <ArrowDown01Icon data-icon="inline-end" /> : null}
       {direction === false ? <UnfoldMoreIcon data-icon="inline-end" /> : null}
     </Button>
-  )
+  );
 }
 
 function resolveSortBy(sorting: SortingState): WebhookLogSortId {
-  const sortId = sorting[0]?.id
+  const sortId = sorting[0]?.id;
 
-  if (sortId === "id" || sortId === "eventType" || sortId === "connection" || sortId === "mailLogId") {
-    return sortId
+  if (
+    sortId === "id" ||
+    sortId === "eventType" ||
+    sortId === "connection" ||
+    sortId === "mailLogId"
+  ) {
+    return sortId;
   }
 
-  return "dateTime"
+  return "dateTime";
 }
 
 export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTableProps) {
-  const [selectedEvent, setSelectedEvent] = React.useState<WebhookLogTableRow | null>(null)
-  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  const [selectedEvent, setSelectedEvent] = React.useState<WebhookLogTableRow | null>(null);
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [columnVisibility, setColumnVisibility] = React.useState<ColumnVisibilityState>({});
   const [sorting, setSorting] = React.useState<SortingState>([
     {
       id: "dateTime",
       desc: true,
     },
-  ])
+  ]);
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 25,
-  })
-  const [searchValue, setSearchValue] = React.useState("")
-  const deferredSearchValue = React.useDeferredValue(searchValue)
-  const [selectedEventTypes, setSelectedEventTypes] = React.useState<string[]>([])
-  const [selectedConnectionIds, setSelectedConnectionIds] = React.useState<string[]>([])
-  const [dateRange, setDateRange] = React.useState<MailLogDateRangeFilter | undefined>(undefined)
-  const [rows, setRows] = React.useState<WebhookLogTableRow[]>([])
-  const [eventTypeOptions, setEventTypeOptions] = React.useState<AdminMailLogFilterOption[]>([])
-  const [connectionOptions, setConnectionOptions] = React.useState<AdminMailLogFilterOption[]>([])
-  const [totalRows, setTotalRows] = React.useState(0)
-  const [pageCount, setPageCount] = React.useState(1)
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
+  });
+  const [searchValue, setSearchValue] = React.useState("");
+  const deferredSearchValue = React.useDeferredValue(searchValue);
+  const [selectedEventTypes, setSelectedEventTypes] = React.useState<string[]>([]);
+  const [selectedConnectionIds, setSelectedConnectionIds] = React.useState<string[]>([]);
+  const [dateRange, setDateRange] = React.useState<MailLogDateRangeFilter | undefined>(undefined);
+  const [rows, setRows] = React.useState<WebhookLogTableRow[]>([]);
+  const [eventTypeOptions, setEventTypeOptions] = React.useState<AdminMailLogFilterOption[]>([]);
+  const [connectionOptions, setConnectionOptions] = React.useState<AdminMailLogFilterOption[]>([]);
+  const [totalRows, setTotalRows] = React.useState(0);
+  const [pageCount, setPageCount] = React.useState(1);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
   const openRelatedMailLog = React.useCallback((mailLogId: number) => {
     if (typeof window === "undefined") {
-      return
+      return;
     }
 
     window.location.hash = buildAdminHashHref("/logs/mail", {
       id: mailLogId,
-    }).slice(1)
-  }, [])
+    }).slice(1);
+  }, []);
 
   const openConnection = React.useCallback((connectionId: number) => {
     if (typeof window === "undefined") {
-      return
+      return;
     }
 
     window.location.hash = buildAdminHashHref("/connections", {
       id: connectionId,
-    }).slice(1)
-  }, [])
+    }).slice(1);
+  }, []);
 
-  const sortBy = resolveSortBy(sorting)
-  const sortDirection = sorting[0]?.desc ? "desc" : "asc"
+  const sortBy = resolveSortBy(sorting);
+  const sortDirection = sorting[0]?.desc ? "desc" : "asc";
 
   React.useEffect(() => {
     setPagination((currentPagination) =>
@@ -151,7 +167,7 @@ export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTablePro
             ...currentPagination,
             pageIndex: 0,
           },
-    )
+    );
   }, [
     deferredSearchValue,
     selectedEventTypes,
@@ -161,7 +177,7 @@ export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTablePro
     sortBy,
     sortDirection,
     pagination.pageSize,
-  ])
+  ]);
 
   const query = React.useMemo<AdminWebhookLogQuery>(
     () => ({
@@ -186,76 +202,80 @@ export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTablePro
       sortBy,
       sortDirection,
     ],
-  )
+  );
 
   React.useEffect(() => {
-    let active = true
-    let requestId = 0
+    let active = true;
+    let requestId = 0;
 
     const loadWebhookLogs = (showLoading: boolean) => {
-      const currentRequestId = requestId + 1
+      const currentRequestId = requestId + 1;
 
-      requestId = currentRequestId
+      requestId = currentRequestId;
       if (showLoading) {
-        setLoading(true)
+        setLoading(true);
       }
 
-      setError(null)
+      setError(null);
 
       void getWebhookLogs(query)
         .then((response) => {
           if (!active || currentRequestId !== requestId) {
-            return
+            return;
           }
 
-          setRows(normalizeWebhookLogRows(response.items))
-          setEventTypeOptions(response.filters.eventTypes)
-          setConnectionOptions(response.filters.connections)
-          setTotalRows(response.pagination.total)
-          setPageCount(response.pagination.totalPages)
+          setRows(normalizeWebhookLogRows(response.items));
+          setEventTypeOptions(response.filters.eventTypes);
+          setConnectionOptions(response.filters.connections);
+          setTotalRows(response.pagination.total);
+          setPageCount(response.pagination.totalPages);
           setPagination((currentPagination) => {
-            const nextPageIndex = Math.max(0, response.pagination.page - 1)
+            const nextPageIndex = Math.max(0, response.pagination.page - 1);
 
             if (
               currentPagination.pageIndex === nextPageIndex &&
               currentPagination.pageSize === response.pagination.perPage
             ) {
-              return currentPagination
+              return currentPagination;
             }
 
             return {
               pageIndex: nextPageIndex,
               pageSize: response.pagination.perPage,
-            }
-          })
+            };
+          });
         })
         .catch((caughtError) => {
           if (!active || currentRequestId !== requestId) {
-            return
+            return;
           }
 
-          setError(caughtError instanceof Error ? caughtError.message : "The webhook logs could not be loaded.")
+          setError(
+            caughtError instanceof Error
+              ? caughtError.message
+              : "The webhook logs could not be loaded.",
+          );
         })
         .finally(() => {
           if (active && currentRequestId === requestId) {
-            setLoading(false)
+            setLoading(false);
           }
-        })
-    }
+        });
+    };
 
-    loadWebhookLogs(true)
+    loadWebhookLogs(true);
 
     const intervalId = window.setInterval(() => {
-      loadWebhookLogs(false)
-    }, LOG_TABLE_POLL_MS)
+      loadWebhookLogs(false);
+    }, LOG_TABLE_POLL_MS);
 
     return () => {
-      active = false
-      window.clearInterval(intervalId)
-    }
-  }, [query, refreshToken])
+      active = false;
+      window.clearInterval(intervalId);
+    };
+  }, [query, refreshToken]);
 
-  const columns = React.useMemo<ColumnDef<WebhookLogTableRow>[]>(
+  const columns = React.useMemo<ColumnDef<DataGridFeatures, WebhookLogTableRow>[]>(
     () => [
       {
         id: "select",
@@ -276,13 +296,22 @@ export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTablePro
         ),
         enableSorting: false,
         enableHiding: false,
+        enableResizing: false,
+        size: 36,
+        meta: {
+          headerClassName: "ps-2",
+          cellClassName: "px-2",
+        },
       },
       {
         accessorFn: (row) => `#${row.id}`,
         id: "id",
+        minSize: 52,
+        size: 52,
         header: ({ column }) => <SortableHeader column={column} title="ID" />,
         cell: ({ row }) => (
           <Button
+            type="button"
             variant="link"
             className="h-auto justify-start px-0 text-left"
             onClick={() => setSelectedEvent(row.original)}
@@ -294,9 +323,12 @@ export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTablePro
       {
         accessorKey: "eventType",
         id: "eventType",
+        minSize: 95,
+        size: 105,
         header: ({ column }) => <SortableHeader column={column} title="Event" />,
         cell: ({ row }) => (
           <Button
+            type="button"
             variant="link"
             className="h-auto justify-start px-0 text-left"
             onClick={() => setSelectedEvent(row.original)}
@@ -310,10 +342,13 @@ export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTablePro
       {
         accessorFn: (row) => row.mailLogLabel,
         id: "mailLogId",
+        minSize: 84,
+        size: 90,
         header: ({ column }) => <SortableHeader column={column} title="Mail" />,
         cell: ({ row }) =>
           row.original.mailLogId !== null ? (
             <Button
+              type="button"
               variant="secondary"
               size="sm"
               onClick={() => openRelatedMailLog(row.original.mailLogId as number)}
@@ -328,6 +363,9 @@ export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTablePro
       {
         accessorKey: "transportMessageId",
         id: "transportMessageId",
+        minSize: 130,
+        size: 150,
+        meta: { autoSize: true },
         header: ({ column }) => <SortableHeader column={column} title="Transport Message" />,
         cell: ({ row }) => (
           <span className="block max-w-56 truncate text-sm text-muted-foreground">
@@ -339,24 +377,29 @@ export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTablePro
       {
         accessorKey: "dateTime",
         id: "dateTime",
+        minSize: 130,
+        size: 140,
         header: ({ column }) => <SortableHeader column={column} title="Occurred" />,
         cell: ({ row }) => formatAdminDateTime(row.original.dateTime),
       },
       {
         accessorFn: (row) => row.connectionLabel,
         id: "connection",
+        minSize: 105,
+        size: 115,
         header: ({ column }) => <SortableHeader column={column} title="Connection" />,
         cell: ({ row }) => (
           <Button
+            type="button"
             variant="secondary"
             size="sm"
             disabled={row.original.connectionId === null}
             onClick={() => {
               if (row.original.connectionId === null) {
-                return
+                return;
               }
 
-              openConnection(row.original.connectionId)
+              openConnection(row.original.connectionId);
             }}
           >
             <DatabaseIcon data-icon="inline-start" />
@@ -368,10 +411,19 @@ export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTablePro
         id: "actions",
         enableSorting: false,
         enableHiding: false,
+        enableResizing: false,
+        size: 44,
         cell: ({ row }) => (
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<Button variant="ghost" size="icon-sm" className="data-open:bg-muted" />}
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="data-open:bg-muted"
+                />
+              }
             >
               <MoreVerticalCircle01Icon />
               <span className="sr-only">Open webhook log actions</span>
@@ -383,14 +435,14 @@ export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTablePro
               <DropdownMenuItem
                 disabled={!row.original.transportMessageId}
                 onClick={() => {
-                  const transportMessageId = row.original.transportMessageId
+                  const transportMessageId = row.original.transportMessageId;
 
                   if (!transportMessageId) {
-                    return
+                    return;
                   }
 
-                  void navigator.clipboard.writeText(transportMessageId)
-                  toast.success("Transport message id copied.")
+                  void navigator.clipboard.writeText(transportMessageId);
+                  toast.success("Transport message id copied.");
                 }}
               >
                 Copy transport id
@@ -401,9 +453,10 @@ export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTablePro
       },
     ],
     [openConnection, openRelatedMailLog],
-  )
+  );
 
-  const table = useReactTable({
+  const table = useTable({
+    features: dataGridFeatures,
     data: rows,
     columns,
     state: {
@@ -421,86 +474,76 @@ export function WebhookLogDataTable({ refreshToken = 0 }: WebhookLogDataTablePro
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-  })
+  });
 
   return (
     <>
-      <div className="flex flex-col gap-4">
-        <MailLogTableToolbar
-          searchValue={searchValue}
-          onSearchChange={setSearchValue}
-          searchPlaceholder="Search webhook logs..."
-          statusOptions={eventTypeOptions}
-          selectedStatuses={selectedEventTypes}
-          onStatusesChange={setSelectedEventTypes}
-          connectionOptions={connectionOptions}
-          selectedConnectionIds={selectedConnectionIds}
-          onConnectionIdsChange={setSelectedConnectionIds}
-          dateRange={dateRange}
-          onDateRangeChange={setDateRange}
-          onReset={() => {
-            setSearchValue("")
-            setSelectedEventTypes([])
-            setSelectedConnectionIds([])
-            setDateRange(undefined)
-          }}
-          viewOptions={<WebhookLogTableViewOptions table={table} />}
-        />
+      <DataGrid
+        table={table}
+        recordCount={totalRows}
+        isLoading={loading}
+        emptyMessage="No webhook events match the current search and filters."
+        tableLayout={{ columnsResizable: true, headerBackground: true, rowBorder: true }}
+      >
+        <Frame stacked spacing="sm">
+          <FrameHeader>
+            <FrameTitle>Webhook events</FrameTitle>
+            <FrameDescription>Search and inspect normalized provider callbacks.</FrameDescription>
+          </FrameHeader>
+          <FramePanel className="p-0! shadow-none!">
+            <div className="p-3">
+              <MailLogTableToolbar
+                searchValue={searchValue}
+                onSearchChange={setSearchValue}
+                searchPlaceholder="Search webhook logs..."
+                statusOptions={eventTypeOptions}
+                selectedStatuses={selectedEventTypes}
+                onStatusesChange={setSelectedEventTypes}
+                connectionOptions={connectionOptions}
+                selectedConnectionIds={selectedConnectionIds}
+                onConnectionIdsChange={setSelectedConnectionIds}
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                onReset={() => {
+                  setSearchValue("");
+                  setSelectedEventTypes([]);
+                  setSelectedConnectionIds([]);
+                  setDateRange(undefined);
+                }}
+                viewOptions={<WebhookLogTableViewOptions table={table} />}
+              />
+            </div>
 
-        {error ? <div className="text-sm text-destructive">{error}</div> : null}
+            {error ? (
+              <div className="px-3 pb-3">
+                <Alert variant="destructive">
+                  <AlertCircleIcon />
+                  <AlertTitle>Webhook logs could not be refreshed</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              </div>
+            ) : null}
 
-        <div className="overflow-hidden rounded-md border">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} colSpan={header.colSpan}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                    {loading ? "Loading webhook logs..." : "No webhook events match the current search and filters."}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        <MailLogTablePagination table={table} totalRows={totalRows} />
-      </div>
+            <Separator />
+            <DataGridTable />
+          </FramePanel>
+          <FrameFooter>
+            <MailLogTablePagination table={table} totalRows={totalRows} />
+          </FrameFooter>
+        </Frame>
+      </DataGrid>
 
       <WebhookLogDetailsSheet
         event={selectedEvent}
         open={selectedEvent !== null}
         onOpenChange={(open) => {
           if (!open) {
-            setSelectedEvent(null)
+            setSelectedEvent(null);
           }
         }}
       />
     </>
-  )
+  );
 }
 
-export default WebhookLogDataTable
+export default WebhookLogDataTable;

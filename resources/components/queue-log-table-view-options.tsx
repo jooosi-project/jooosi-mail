@@ -1,9 +1,10 @@
-"use client"
+"use client";
 
-import type { Table } from "@tanstack/react-table"
+import type { Table } from "@tanstack/react-table";
 
-import type { AdminQueueMessage } from "@/lib/admin-api"
-import { Button } from "@/components/ui/button"
+import type { DataGridFeatures } from "@/components/reui/data-grid/data-grid";
+import type { AdminQueueMessage } from "@/lib/admin-api";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -12,8 +13,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import LeftToRightListBulletIcon from "~icons/hugeicons/left-to-right-list-bullet"
+} from "@/components/ui/dropdown-menu";
+import LeftToRightListBulletIcon from "~icons/hugeicons/left-to-right-list-bullet";
 
 const TOGGLEABLE_COLUMNS = {
   id: "ID",
@@ -22,12 +23,12 @@ const TOGGLEABLE_COLUMNS = {
   priority: "Priority",
   attempts: "Attempts",
   dateTime: "Date",
-} as const
+} as const;
 
 export function QueueLogTableViewOptions({
   table,
 }: {
-  table: Table<AdminQueueMessage>
+  table: Table<DataGridFeatures, AdminQueueMessage>;
 }) {
   return (
     <DropdownMenu>
@@ -58,7 +59,7 @@ export function QueueLogTableViewOptions({
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
 
-export default QueueLogTableViewOptions
+export default QueueLogTableViewOptions;

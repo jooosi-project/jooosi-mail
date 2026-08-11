@@ -164,7 +164,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'api_key' => 'ahasend-api-key',
             'webhook_enabled' => true,
             'webhook_secret' => 'ahasend-secret',
-        ], 'ahasend+api://ahasend-api-key@default', 'Symfony\\Component\\Mailer\\Bridge\\AhaSend\\Transport\\AhaSendApiTransport');
+        ], 'ahasend+api://ahasend-api-key@default', 'JooosiMail\\Mail\\Transport\\Bridge\\AhaSend\\Transport\\AhaSendApiTransport');
 
         $this->assertResolvedTransport([
             'profile' => 'ahasend',
@@ -172,7 +172,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'scheme' => 'ahasend+smtp',
             'username' => 'ahasend-user',
             'password' => 'ahasend-pass',
-        ], 'ahasend+smtp://ahasend-user:ahasend-pass@default', 'Symfony\\Component\\Mailer\\Bridge\\AhaSend\\Transport\\AhaSendSmtpTransport');
+        ], 'ahasend+smtp://ahasend-user:ahasend-pass@default', 'JooosiMail\\Mail\\Transport\\Bridge\\AhaSend\\Transport\\AhaSendSmtpTransport');
     }
 
     /**
@@ -224,7 +224,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'api_key' => 'azure-api-key',
             'api_version' => '2024-07-01-preview',
             'disable_tracking' => 'true',
-        ], 'azure+api://jooosimail-resource:azure-api-key@default?api_version=2024-07-01-preview&disable_tracking=true', 'Symfony\\Component\\Mailer\\Bridge\\Azure\\Transport\\AzureApiTransport');
+        ], 'azure+api://jooosimail-resource:azure-api-key@default?api_version=2024-07-01-preview&disable_tracking=true', 'JooosiMail\\Mail\\Transport\\Bridge\\Azure\\Transport\\AzureApiTransport');
     }
 
     /**
@@ -416,7 +416,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'scheme' => 'mailtrap+api',
             'token' => 'mailtrap-api-token',
             'webhook_enabled' => true,
-        ], 'mailtrap+api://mailtrap-api-token@default', 'Symfony\\Component\\Mailer\\Bridge\\Mailtrap\\Transport\\MailtrapApiTransport');
+        ], 'mailtrap+api://mailtrap-api-token@default', 'JooosiMail\\Mail\\Transport\\Bridge\\Mailtrap\\Transport\\MailtrapApiTransport');
 
         $this->assertResolvedTransport([
             'profile' => 'mailtrap',
@@ -425,14 +425,14 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'token' => 'mailtrap-sandbox-token',
             'inbox_id' => 123,
             'webhook_enabled' => true,
-        ], 'mailtrap+sandbox://mailtrap-sandbox-token@default?inboxId=123', 'Symfony\\Component\\Mailer\\Bridge\\Mailtrap\\Transport\\MailtrapApiTransport');
+        ], 'mailtrap+sandbox://mailtrap-sandbox-token@default?inboxId=123', 'JooosiMail\\Mail\\Transport\\Bridge\\Mailtrap\\Transport\\MailtrapApiTransport');
 
         $this->assertResolvedTransport([
             'profile' => 'mailtrap',
             'name' => 'Mailtrap SMTP',
             'scheme' => 'mailtrap+smtp',
             'password' => 'mailtrap-smtp-password',
-        ], 'mailtrap+smtp://mailtrap-smtp-password@default', 'Symfony\\Component\\Mailer\\Bridge\\Mailtrap\\Transport\\MailtrapSmtpTransport');
+        ], 'mailtrap+smtp://mailtrap-smtp-password@default', 'JooosiMail\\Mail\\Transport\\Bridge\\Mailtrap\\Transport\\MailtrapSmtpTransport');
     }
 
     /**
@@ -494,7 +494,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'api_key' => 'mailomat-api-key',
             'webhook_enabled' => true,
             'webhook_secret' => 'mailomat-webhook-secret',
-        ], 'mailomat+api://mailomat-api-key@default', 'Symfony\\Component\\Mailer\\Bridge\\Mailomat\\Transport\\MailomatApiTransport');
+        ], 'mailomat+api://mailomat-api-key@default', 'JooosiMail\\Mail\\Transport\\Bridge\\Mailomat\\Transport\\MailomatApiTransport');
 
         self::assertSame('mailomat-webhook-secret', $apiConnection->getWebhookSecret());
 
@@ -504,7 +504,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'scheme' => 'mailomat+smtp',
             'username' => 'mailer@example.com',
             'password' => 'mailomat-smtp-password',
-        ], 'mailomat+smtp://mailer%40example.com:mailomat-smtp-password@default', 'Symfony\\Component\\Mailer\\Bridge\\Mailomat\\Transport\\MailomatSmtpTransport');
+        ], 'mailomat+smtp://mailer%40example.com:mailomat-smtp-password@default', 'JooosiMail\\Mail\\Transport\\Bridge\\Mailomat\\Transport\\MailomatSmtpTransport');
     }
 
     /**
@@ -552,7 +552,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'graph_endpoint' => 'microsoftgraph.chinacloudapi.cn',
             'auth_endpoint' => 'login.partner.microsoftonline.cn',
             'no_save' => 'true',
-        ], 'microsoftgraph+api://microsoft-client-id:microsoft-client-secret@microsoftgraph.chinacloudapi.cn?tenantId=tenant-id-1&authEndpoint=login.partner.microsoftonline.cn&noSave=true', 'Symfony\\Component\\Mailer\\Bridge\\MicrosoftGraph\\Transport\\MicrosoftGraphApiTransport');
+        ], 'microsoftgraph+api://microsoft-client-id:microsoft-client-secret@microsoftgraph.chinacloudapi.cn?tenantId=tenant-id-1&authEndpoint=login.partner.microsoftonline.cn&noSave=true', 'JooosiMail\\Mail\\Transport\\Bridge\\MicrosoftGraph\\Transport\\MicrosoftGraphApiTransport');
     }
 
     /**
@@ -590,7 +590,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'api_key' => 'postal-api-key',
             'host' => 'postal.example.com',
             'port' => 8443,
-        ], 'postal+api://postal-api-key@postal.example.com:8443', 'Symfony\\Component\\Mailer\\Bridge\\Postal\\Transport\\PostalApiTransport');
+        ], 'postal+api://postal-api-key@postal.example.com:8443', 'JooosiMail\\Mail\\Transport\\Bridge\\Postal\\Transport\\PostalApiTransport');
     }
 
     /**
@@ -756,7 +756,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'api_key' => 'resend-key',
             'webhook_enabled' => true,
             'webhook_secret' => 'resend-webhook-secret',
-        ], 'resend+api://resend-key@default', 'Symfony\\Component\\Mailer\\Bridge\\Resend\\Transport\\ResendApiTransport');
+        ], 'resend+api://resend-key@default', 'JooosiMail\\Mail\\Transport\\Bridge\\Resend\\Transport\\ResendApiTransport');
 
         self::assertTrue($apiConnection->webhookEnabled);
         self::assertSame('resend-webhook-secret', $apiConnection->getWebhookSecret());
@@ -766,7 +766,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'name' => 'Resend SMTP',
             'scheme' => 'resend+smtp',
             'api_key' => 'resend-smtp-key',
-        ], 'resend+smtp://resend:resend-smtp-key@default', 'Symfony\\Component\\Mailer\\Bridge\\Resend\\Transport\\ResendSmtpTransport');
+        ], 'resend+smtp://resend:resend-smtp-key@default', 'JooosiMail\\Mail\\Transport\\Bridge\\Resend\\Transport\\ResendSmtpTransport');
     }
 
     /**
@@ -837,7 +837,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'api_key' => 'sweego-api-key',
             'webhook_enabled' => true,
             'webhook_secret' => base64_encode('sweego-shared-secret'),
-        ], 'sweego+api://sweego-api-key@default', 'Symfony\\Component\\Mailer\\Bridge\\Sweego\\Transport\\SweegoApiTransport');
+        ], 'sweego+api://sweego-api-key@default', 'JooosiMail\\Mail\\Transport\\Bridge\\Sweego\\Transport\\SweegoApiTransport');
 
         $this->assertResolvedTransport([
             'profile' => 'sweego',
@@ -847,7 +847,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'port' => 465,
             'username' => 'sweego-user',
             'password' => 'sweego-pass',
-        ], 'sweego+smtp://sweego-user:sweego-pass@smtp.sweego.example:465', 'Symfony\\Component\\Mailer\\Bridge\\Sweego\\Transport\\SweegoSmtpTransport');
+        ], 'sweego+smtp://sweego-user:sweego-pass@smtp.sweego.example:465', 'JooosiMail\\Mail\\Transport\\Bridge\\Sweego\\Transport\\SweegoSmtpTransport');
     }
 
     /**

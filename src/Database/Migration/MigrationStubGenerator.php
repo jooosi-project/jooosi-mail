@@ -14,10 +14,10 @@ use RuntimeException;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MigrationStubGenerator
+final class MigrationStubGenerator
 {
     public function __construct(
-        private MigrationRegistry $migrationRegistry,
+        private readonly MigrationRegistry $migrationRegistry,
     ) {
     }
 
@@ -177,7 +177,7 @@ use JooosiMail\Infrastructure\Database\TableNameResolver;
  *
  * @since 0.1.0
  */
-final readonly class %s implements MigrationInterface
+final class %s implements MigrationInterface
 {
     public function getVersion(): string
     {

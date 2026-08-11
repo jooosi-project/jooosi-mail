@@ -9,7 +9,7 @@ namespace JooosiMail\Discovery\Runtime;
  *
  * @since 0.1.0
  */
-final readonly class DiscoveryManifest
+final class DiscoveryManifest
 {
     /**
      * @param list<class-string> $services
@@ -20,12 +20,12 @@ final readonly class DiscoveryManifest
      * @param list<class-string> $transportFactories
      */
     public function __construct(
-        public array $services,
-        public array $controllers,
-        public array $commands,
-        public array $profiles,
-        public array $messageHandlers,
-        public array $transportFactories,
+        public readonly array $services,
+        public readonly array $controllers,
+        public readonly array $commands,
+        public readonly array $profiles,
+        public readonly array $messageHandlers,
+        public readonly array $transportFactories,
     ) {
     }
 

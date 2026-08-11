@@ -9,11 +9,11 @@ namespace JooosiMail\Bootstrap;
  *
  * @since 0.1.0
  */
-final readonly class Environment
+final class Environment
 {
     public function __construct(
-        public bool $debug,
-        public string $name,
+        public readonly bool $debug,
+        public readonly string $name,
     ) {
     }
 

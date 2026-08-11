@@ -15,11 +15,11 @@ use Throwable;
  * @since 0.1.0
  */
 #[Service]
-final readonly class RateLimitStateRepository
+final class RateLimitStateRepository
 {
     public function __construct(
-        private DbalConnection $connection,
-        private TableNameResolver $tableNameResolver,
+        private readonly DbalConnection $connection,
+        private readonly TableNameResolver $tableNameResolver,
     ) {
     }
 

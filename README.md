@@ -30,19 +30,19 @@
     </picture>
   </a>
   <br />
-  <a href="https://github.com/nabasa-dev/jooosi-mail/releases">
+  <a href="https://github.com/jooosi-project/jooosi-mail/releases">
     <picture>
-      <img src="https://img.shields.io/github/v/release/nabasa-dev/jooosi-mail.svg?logo=github" alt="GitHub Release" />
+      <img src="https://img.shields.io/github/v/release/jooosi-project/jooosi-mail.svg?logo=github" alt="GitHub Release" />
     </picture>
   </a>
-  <a href="https://github.com/nabasa-dev/jooosi-mail">
+  <a href="https://github.com/jooosi-project/jooosi-mail">
     <picture>
-      <img src="https://img.shields.io/github/license/nabasa-dev/jooosi-mail.svg" alt="GPL-3.0-or-later License" />
+      <img src="https://img.shields.io/github/license/jooosi-project/jooosi-mail.svg" alt="GPL-3.0-or-later License" />
     </picture>
   </a>
-  <a href="https://github.com/nabasa-dev/jooosi-mail/actions">
+  <a href="https://github.com/jooosi-project/jooosi-mail/actions">
     <picture>
-      <img src="https://img.shields.io/github/actions/workflow/status/nabasa-dev/jooosi-mail/deploy.yaml" alt="Build Status" />
+      <img src="https://img.shields.io/github/actions/workflow/status/jooosi-project/jooosi-mail/ci.yaml?branch=main" alt="Build Status" />
     </picture>
   </a>
   <br />
@@ -140,13 +140,13 @@ Want to contribute or customize the plugin? Check out the following documentatio
 ## Sponsors
 
 
-If you like this project, please consider supporting us by becoming a sponsor. Your sponsorship helps us maintain and improve **all our free WordPress plugins**, not just Jooosi Mail.
+If you like this project, please consider supporting us by becoming a sponsor. Your sponsorship helps us maintain and improve **all our open-source WordPress plugins**, not just Jooosi Mail.
 
 ### Sponsorship Benefits
 
 As a sponsor, you'll receive benefits across our entire plugin ecosystem:
 
-- 📝 **Your logo and link featured** in the README of **all our current and future free plugins**
+- 📝 **Your logo and link featured** in the README of **all our current and future open-source plugins**
 - ⭐ **Recognition** in the admin area sponsor section across **all our plugins**
 - 💼 **Direct exposure** to thousands of WordPress developers and designers using our plugin ecosystem
 - 🌟 **Unified sponsor listing** - one sponsorship covers your presence in our entire plugin family
@@ -163,7 +163,7 @@ Thank you to our amazing sponsors who support all our plugin development! 🥰�
 <!-- Sponsor logos will be displayed here -->
 
 <p align="center">
-  <a href="https://wind.press" title="WindPress - The Tailwind CSS integration plugin for WordPress"><kbd><img src="./resources/icons/windpress.svg" width="80" height="80" alt="WindPress" /></kbd></a>
+  <a href="https://jooo.si" title="Jooosi - Open-source tools and products for WordPress"><kbd><img src="./resources/icons/jooosi.svg" width="80" height="80" alt="Jooosi" /></kbd></a>
   <a href="https://livecanvas.com" title="LiveCanvas - The Professional Page Builder for WordPress"><kbd><img src="https://livecanvas.com/wp-content/uploads/2022/06/favicon_big.png" width="80" height="80" alt="LiveCanvas" /></kbd></a>
 </p>
 
@@ -173,10 +173,9 @@ Thank you to our amazing sponsors who support all our plugin development! 🥰�
 
 ## Credits
 
-- Built with [Symfony Mailer](https://symfony.com/doc/current/mailer.html)
-- Queueing by [Symfony Messenger](https://symfony.com/doc/current/messenger.html)
+- Built with [Symfony 6.4 Mailer](https://symfony.com/doc/6.4/mailer.html)
+- Queueing by [Symfony 6.4 Messenger](https://symfony.com/doc/6.4/messenger.html)
 - WordPress queue wakeups by [Action Scheduler](https://actionscheduler.org/)
-- Runtime discovery by [Tempest](https://tempestphp.com/docs/framework/discovery/)
 - Database access by [Doctrine DBAL](https://www.doctrine-project.org/projects/dbal.html)
 
 ## Support

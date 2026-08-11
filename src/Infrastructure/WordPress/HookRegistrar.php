@@ -15,11 +15,11 @@ use ReflectionMethod;
  *
  * @since 0.1.0
  */
-final readonly class HookRegistrar
+final class HookRegistrar
 {
     public function __construct(
-        private ContainerInterface $container,
-        private DiscoveryManifest $manifest,
+        private readonly ContainerInterface $container,
+        private readonly DiscoveryManifest $manifest,
     ) {
     }
 

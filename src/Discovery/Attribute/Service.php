@@ -12,10 +12,10 @@ use Attribute;
  * @since 0.1.0
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-final readonly class Service
+final class Service
 {
     public function __construct(
-        public bool $public = true,
+        public readonly bool $public = true,
     ) {
     }
 }

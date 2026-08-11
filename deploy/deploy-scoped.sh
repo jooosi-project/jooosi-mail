@@ -56,6 +56,9 @@ fi
 note "Dumping Composer Autoload"
 composer dump-autoload --working-dir "$RESULT_DIRECTORY" --ansi --no-dev --classmap-authoritative
 
+note "Isolating the scoped Composer file registry"
+php deploy/patch-scoper-autoload.php "$RESULT_DIRECTORY/vendor/scoper-autoload.php"
+
 rm -rf "$DEPLOY_DIRECTORY"
 
 note "Finished"

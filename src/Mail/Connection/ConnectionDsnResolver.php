@@ -15,11 +15,11 @@ use JooosiMail\Mail\Profile\ProfileRegistry;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionDsnResolver
+final class ConnectionDsnResolver
 {
     public function __construct(
-        private ProfileRegistry $profileRegistry,
-        private ProfileMetadataResolver $profileMetadataResolver,
+        private readonly ProfileRegistry $profileRegistry,
+        private readonly ProfileMetadataResolver $profileMetadataResolver,
     ) {
     }
 

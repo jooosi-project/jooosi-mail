@@ -16,10 +16,10 @@ use Throwable;
  * @since 0.1.0
  */
 #[Service]
-final readonly class RetryDecider
+final class RetryDecider
 {
     public function __construct(
-        private RetryPolicy $retryPolicy,
+        private readonly RetryPolicy $retryPolicy,
     ) {
     }
 

@@ -26,7 +26,10 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class EmailitApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'api.emailit.com';
+    /**
+     * @var string
+     */
+    private const HOST = 'api.emailit.com';
 
     public function __construct(
         #[SensitiveParameter] private readonly string $apiKey,

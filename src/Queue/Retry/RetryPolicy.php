@@ -13,10 +13,10 @@ use JooosiMail\Infrastructure\WordPress\OptionStore;
  * @since 0.1.0
  */
 #[Service]
-final readonly class RetryPolicy
+final class RetryPolicy
 {
     public function __construct(
-        private OptionStore $optionStore,
+        private readonly OptionStore $optionStore,
     ) {
     }
 

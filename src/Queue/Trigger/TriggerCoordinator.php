@@ -12,10 +12,10 @@ use JooosiMail\Discovery\Attribute\Service;
  * @since 0.1.0
  */
 #[Service]
-final readonly class TriggerCoordinator
+final class TriggerCoordinator
 {
     public function __construct(
-        private ActionSchedulerTrigger $actionSchedulerTrigger,
+        private readonly ActionSchedulerTrigger $actionSchedulerTrigger,
     ) {
     }
 

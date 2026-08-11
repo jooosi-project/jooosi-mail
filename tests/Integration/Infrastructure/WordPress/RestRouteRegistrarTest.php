@@ -115,7 +115,7 @@ final class RestRouteRegistrarTest extends JooosiMailIntegrationTestCase
  *
  * @since 0.1.0
  */
-final readonly class RoutePermissionTestContainer implements ContainerInterface
+final class RoutePermissionTestContainer implements ContainerInterface
 {
     /**
      * @param array<string, object> $services
@@ -123,7 +123,7 @@ final readonly class RoutePermissionTestContainer implements ContainerInterface
      * @since 0.1.0
      */
     public function __construct(
-        private array $services,
+        private readonly array $services,
     ) {
     }
 

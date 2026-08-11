@@ -17,12 +17,12 @@ use Symfony\Component\Messenger\Middleware\SendMessageMiddleware;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MessageBusFactory
+final class MessageBusFactory
 {
     public function __construct(
-        private MessageRouter $messageRouter,
-        private HandlerLocator $handlerLocator,
-        private EventDispatcherInterface $eventDispatcher,
+        private readonly MessageRouter $messageRouter,
+        private readonly HandlerLocator $handlerLocator,
+        private readonly EventDispatcherInterface $eventDispatcher,
     ) {
     }
 

@@ -32,11 +32,11 @@ use function WP_CLI\Utils\format_items;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MailCommand
+final class MailCommand
 {
     public function __construct(
-        private TestEmailSender $testEmailSender,
-        private MailAttemptRepository $mailAttemptRepository,
+        private readonly TestEmailSender $testEmailSender,
+        private readonly MailAttemptRepository $mailAttemptRepository,
     ) {
     }
 

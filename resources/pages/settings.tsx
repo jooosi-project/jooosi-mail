@@ -1,9 +1,9 @@
-import * as React from "react"
-import Alert02Icon from "~icons/hugeicons/alert-02"
+import * as React from "react";
+import Alert02Icon from "~icons/hugeicons/alert-02";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/reui/alert";
+import { Badge } from "@/components/reui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -11,15 +11,15 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/reui/frame-card";
 import {
   Field,
   FieldContent,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -27,58 +27,58 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAdminQuery } from "@/hooks/use-admin-query"
-import { formatAdminNumber } from "@/lib/admin-format"
-import { getSettings, updateSettings, type AdminSettings } from "@/lib/admin-api"
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAdminQuery } from "@/hooks/use-admin-query";
+import { formatAdminNumber } from "@/lib/admin-format";
+import { getSettings, updateSettings, type AdminSettings } from "@/lib/admin-api";
 
 type SettingsDraft = {
-  interceptEnabled: boolean
+  interceptEnabled: boolean;
   sender: {
-    email: string
-    name: string
-    forceEmail: boolean
-    forceName: boolean
-    returnPathMode: string
-    returnPathEmail: string
-  }
+    email: string;
+    name: string;
+    forceEmail: boolean;
+    forceName: boolean;
+    returnPathMode: string;
+    returnPathEmail: string;
+  };
   logging: {
-    emailEnabled: boolean
-    retentionMode: "forever" | "custom"
-    retentionDays: string
-  }
-  deliveryMode: string
-  routingStrategy: string
+    emailEnabled: boolean;
+    retentionMode: "forever" | "custom";
+    retentionDays: string;
+  };
+  deliveryMode: string;
+  routingStrategy: string;
   rateLimits: {
-    minute: string
-    hour: string
-    day: string
-  }
+    minute: string;
+    hour: string;
+    day: string;
+  };
   circuitBreaker: {
-    threshold: string
-    windowSeconds: string
-    cooldownSeconds: string
-  }
+    threshold: string;
+    windowSeconds: string;
+    cooldownSeconds: string;
+  };
   retry: {
-    maxRetries: string
-    delaySeconds: string
-    multiplier: string
-    maxDelaySeconds: string
-  }
-}
+    maxRetries: string;
+    delaySeconds: string;
+    multiplier: string;
+    maxDelaySeconds: string;
+  };
+};
 
 type SettingsNumberFieldProps = {
-  id: string
-  label: string
-  value: string
-  min: number
-  description?: string
-  onChange: (value: string) => void
-}
+  id: string;
+  label: string;
+  value: string;
+  min: number;
+  description?: string;
+  onChange: (value: string) => void;
+};
 
 function createDraft(settings: AdminSettings): SettingsDraft {
   return {
@@ -114,53 +114,53 @@ function createDraft(settings: AdminSettings): SettingsDraft {
       multiplier: String(settings.queue.retry.multiplier),
       maxDelaySeconds: String(settings.queue.retry.maxDelaySeconds),
     },
-  }
+  };
 }
 
 function toPositiveInteger(value: string, fallback: number, minimum = 0): number {
-  const parsedValue = Number.parseInt(value, 10)
+  const parsedValue = Number.parseInt(value, 10);
 
   if (Number.isNaN(parsedValue)) {
-    return fallback
+    return fallback;
   }
 
-  return Math.max(minimum, parsedValue)
+  return Math.max(minimum, parsedValue);
 }
 
 function formatIntegerValue(value: string): string {
-  const parsedValue = Number.parseInt(value, 10)
+  const parsedValue = Number.parseInt(value, 10);
 
   if (Number.isNaN(parsedValue)) {
-    return "-"
+    return "-";
   }
 
-  return formatAdminNumber(parsedValue)
+  return formatAdminNumber(parsedValue);
 }
 
 function formatDurationValue(value: string): string {
-  const parsedValue = Number.parseInt(value, 10)
+  const parsedValue = Number.parseInt(value, 10);
 
   if (Number.isNaN(parsedValue)) {
-    return "-"
+    return "-";
   }
 
   if (parsedValue >= 60 && parsedValue % 60 === 0) {
-    return `${formatAdminNumber(parsedValue / 60)} min`
+    return `${formatAdminNumber(parsedValue / 60)} min`;
   }
 
-  return `${formatAdminNumber(parsedValue)}s`
+  return `${formatAdminNumber(parsedValue)}s`;
 }
 
 function createRetryTrail(draft: SettingsDraft): string {
-  const firstDelay = toPositiveInteger(draft.retry.delaySeconds, 60, 1)
-  const multiplier = toPositiveInteger(draft.retry.multiplier, 2, 1)
-  const maxDelay = toPositiveInteger(draft.retry.maxDelaySeconds, 900, 1)
-  const secondDelay = Math.min(firstDelay * multiplier, maxDelay)
-  const thirdDelay = Math.min(secondDelay * multiplier, maxDelay)
+  const firstDelay = toPositiveInteger(draft.retry.delaySeconds, 60, 1);
+  const multiplier = toPositiveInteger(draft.retry.multiplier, 2, 1);
+  const maxDelay = toPositiveInteger(draft.retry.maxDelaySeconds, 900, 1);
+  const secondDelay = Math.min(firstDelay * multiplier, maxDelay);
+  const thirdDelay = Math.min(secondDelay * multiplier, maxDelay);
 
   return [firstDelay, secondDelay, thirdDelay]
     .map((delay) => formatDurationValue(String(delay)))
-    .join(" -> ")
+    .join(" -> ");
 }
 
 function SettingsNumberField({
@@ -184,7 +184,7 @@ function SettingsNumberField({
       />
       {description ? <FieldDescription>{description}</FieldDescription> : null}
     </Field>
-  )
+  );
 }
 
 function SettingsLoadingState() {
@@ -206,23 +206,23 @@ function SettingsLoadingState() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
 
 export default function SettingsPage() {
-  const loadSettings = React.useCallback(() => getSettings(), [])
-  const { data, loading, error, refresh } = useAdminQuery(loadSettings)
-  const [draft, setDraft] = React.useState<SettingsDraft | null>(null)
-  const [saveError, setSaveError] = React.useState<string | null>(null)
-  const [saving, setSaving] = React.useState(false)
+  const loadSettings = React.useCallback(() => getSettings(), []);
+  const { data, loading, error, refresh } = useAdminQuery(loadSettings);
+  const [draft, setDraft] = React.useState<SettingsDraft | null>(null);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
     if (!data) {
-      return
+      return;
     }
 
-    setDraft(createDraft(data.settings))
-  }, [data])
+    setDraft(createDraft(data.settings));
+  }, [data]);
 
   const setRateLimit = (key: keyof SettingsDraft["rateLimits"], value: string) => {
     setDraft((currentDraft) =>
@@ -235,13 +235,10 @@ export default function SettingsPage() {
             },
           }
         : currentDraft,
-    )
-  }
+    );
+  };
 
-  const setCircuitBreaker = (
-    key: keyof SettingsDraft["circuitBreaker"],
-    value: string,
-  ) => {
+  const setCircuitBreaker = (key: keyof SettingsDraft["circuitBreaker"], value: string) => {
     setDraft((currentDraft) =>
       currentDraft
         ? {
@@ -252,8 +249,8 @@ export default function SettingsPage() {
             },
           }
         : currentDraft,
-    )
-  }
+    );
+  };
 
   const setRetry = (key: keyof SettingsDraft["retry"], value: string) => {
     setDraft((currentDraft) =>
@@ -266,16 +263,16 @@ export default function SettingsPage() {
             },
           }
         : currentDraft,
-    )
-  }
+    );
+  };
 
   const handleSave = async () => {
     if (!draft || !data) {
-      return
+      return;
     }
 
-    setSaving(true)
-    setSaveError(null)
+    setSaving(true);
+    setSaveError(null);
 
     try {
       const response = await updateSettings({
@@ -295,13 +292,14 @@ export default function SettingsPage() {
         logging: {
           email: {
             enabled: draft.logging.emailEnabled,
-            retentionDays: draft.logging.retentionMode === "forever"
-              ? null
-              : toPositiveInteger(
-                  draft.logging.retentionDays,
-                  data.settings.logging.email.retentionDays ?? 30,
-                  1,
-                ),
+            retentionDays:
+              draft.logging.retentionMode === "forever"
+                ? null
+                : toPositiveInteger(
+                    draft.logging.retentionDays,
+                    data.settings.logging.email.retentionDays ?? 30,
+                    1,
+                  ),
           },
         },
         delivery: {
@@ -310,37 +308,67 @@ export default function SettingsPage() {
         },
         routing: {
           rateLimits: {
-            minute: toPositiveInteger(draft.rateLimits.minute, data.settings.routing.rateLimits.minute),
+            minute: toPositiveInteger(
+              draft.rateLimits.minute,
+              data.settings.routing.rateLimits.minute,
+            ),
             hour: toPositiveInteger(draft.rateLimits.hour, data.settings.routing.rateLimits.hour),
             day: toPositiveInteger(draft.rateLimits.day, data.settings.routing.rateLimits.day),
           },
           circuitBreaker: {
-            threshold: toPositiveInteger(draft.circuitBreaker.threshold, data.settings.routing.circuitBreaker.threshold),
-            windowSeconds: toPositiveInteger(draft.circuitBreaker.windowSeconds, data.settings.routing.circuitBreaker.windowSeconds, 1),
-            cooldownSeconds: toPositiveInteger(draft.circuitBreaker.cooldownSeconds, data.settings.routing.circuitBreaker.cooldownSeconds),
+            threshold: toPositiveInteger(
+              draft.circuitBreaker.threshold,
+              data.settings.routing.circuitBreaker.threshold,
+            ),
+            windowSeconds: toPositiveInteger(
+              draft.circuitBreaker.windowSeconds,
+              data.settings.routing.circuitBreaker.windowSeconds,
+              1,
+            ),
+            cooldownSeconds: toPositiveInteger(
+              draft.circuitBreaker.cooldownSeconds,
+              data.settings.routing.circuitBreaker.cooldownSeconds,
+            ),
           },
         },
         queue: {
           retry: {
-            maxRetries: toPositiveInteger(draft.retry.maxRetries, data.settings.queue.retry.maxRetries),
-            delaySeconds: toPositiveInteger(draft.retry.delaySeconds, data.settings.queue.retry.delaySeconds, 1),
-            multiplier: toPositiveInteger(draft.retry.multiplier, data.settings.queue.retry.multiplier, 1),
-            maxDelaySeconds: toPositiveInteger(draft.retry.maxDelaySeconds, data.settings.queue.retry.maxDelaySeconds, 1),
+            maxRetries: toPositiveInteger(
+              draft.retry.maxRetries,
+              data.settings.queue.retry.maxRetries,
+            ),
+            delaySeconds: toPositiveInteger(
+              draft.retry.delaySeconds,
+              data.settings.queue.retry.delaySeconds,
+              1,
+            ),
+            multiplier: toPositiveInteger(
+              draft.retry.multiplier,
+              data.settings.queue.retry.multiplier,
+              1,
+            ),
+            maxDelaySeconds: toPositiveInteger(
+              draft.retry.maxDelaySeconds,
+              data.settings.queue.retry.maxDelaySeconds,
+              1,
+            ),
           },
         },
-      })
+      });
 
-      setDraft(createDraft(response.settings))
-      await refresh()
+      setDraft(createDraft(response.settings));
+      await refresh();
     } catch (caughtError) {
-      setSaveError(caughtError instanceof Error ? caughtError.message : "The settings could not be saved.")
+      setSaveError(
+        caughtError instanceof Error ? caughtError.message : "The settings could not be saved.",
+      );
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   if (loading && !draft) {
-    return <SettingsLoadingState />
+    return <SettingsLoadingState />;
   }
 
   if (!draft || !data) {
@@ -352,11 +380,13 @@ export default function SettingsPage() {
             <CardDescription>{error ?? "The settings screen could not be loaded."}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => void refresh()}>Try again</Button>
+            <Button type="button" onClick={() => void refresh()}>
+              Try again
+            </Button>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -368,7 +398,7 @@ export default function SettingsPage() {
             Configure delivery policy, routing safeguards, and retry behavior for the whole plugin.
           </p>
         </div>
-        <Button onClick={() => void handleSave()} disabled={saving}>
+        <Button type="button" onClick={() => void handleSave()} disabled={saving}>
           {saving ? "Saving..." : "Save settings"}
         </Button>
       </div>
@@ -376,7 +406,9 @@ export default function SettingsPage() {
       {error || saveError ? (
         <div className="px-4 lg:px-6">
           <Card>
-            <CardContent className="py-4 text-sm text-destructive">{saveError ?? error}</CardContent>
+            <CardContent className="py-4 text-sm text-destructive">
+              {saveError ?? error}
+            </CardContent>
           </Card>
         </div>
       ) : null}
@@ -406,9 +438,12 @@ export default function SettingsPage() {
             <CardContent className="flex flex-col gap-6">
               <Field orientation="horizontal" className="gap-4 rounded-xl border bg-muted/30 p-4">
                 <FieldContent className="gap-1">
-                  <FieldLabel htmlFor="mail-intercept-enabled">Enable wp_mail interception</FieldLabel>
+                  <FieldLabel htmlFor="mail-intercept-enabled">
+                    Enable wp_mail interception
+                  </FieldLabel>
                   <FieldDescription>
-                    When enabled, Jooosi Mail takes over delivery instead of letting WordPress send mail directly.
+                    When enabled, Jooosi Mail takes over delivery instead of letting WordPress send
+                    mail directly.
                   </FieldDescription>
                 </FieldContent>
                 <Switch
@@ -422,7 +457,7 @@ export default function SettingsPage() {
                             interceptEnabled: checked,
                           }
                         : currentDraft,
-                    )
+                    );
                   }}
                 />
               </Field>
@@ -442,7 +477,7 @@ export default function SettingsPage() {
                               deliveryMode: value ?? currentDraft.deliveryMode,
                             }
                           : currentDraft,
-                      )
+                      );
                     }}
                   >
                     <SelectTrigger id="delivery-mode" className="w-full">
@@ -459,7 +494,8 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
                   <FieldDescription>
-                    Async mode places messages in the queue; sync mode sends during the current request.
+                    Async mode places messages in the queue; sync mode sends during the current
+                    request.
                   </FieldDescription>
                 </Field>
 
@@ -475,7 +511,7 @@ export default function SettingsPage() {
                               routingStrategy: value ?? currentDraft.routingStrategy,
                             }
                           : currentDraft,
-                      )
+                      );
                     }}
                   >
                     <SelectTrigger id="routing-strategy" className="w-full">
@@ -505,7 +541,8 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>Email logging</CardTitle>
               <CardDescription>
-                Control whether terminal email logs are kept and how long completed records remain available.
+                Control whether terminal email logs are kept and how long completed records remain
+                available.
               </CardDescription>
               <CardAction>
                 <Badge variant={draft.logging.emailEnabled ? "default" : "outline"}>
@@ -515,11 +552,15 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="grid gap-4 md:grid-cols-2">
-                <Field orientation="horizontal" className="flex-wrap gap-4 rounded-xl border bg-muted/30 p-4">
+                <Field
+                  orientation="horizontal"
+                  className="flex-wrap gap-4 rounded-xl border bg-muted/30 p-4"
+                >
                   <FieldContent className="gap-1">
                     <FieldLabel htmlFor="email-logging-enabled">Keep email logs</FieldLabel>
                     <FieldDescription>
-                      When disabled, Jooosi Mail keeps the internal delivery record only until the email is sent or permanently failed.
+                      When disabled, Jooosi Mail keeps the internal delivery record only until the
+                      email is sent or permanently failed.
                     </FieldDescription>
                   </FieldContent>
                   <Switch
@@ -536,7 +577,7 @@ export default function SettingsPage() {
                               },
                             }
                           : currentDraft,
-                      )
+                      );
                     }}
                   />
                   <Alert className="basis-full border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive">
@@ -545,7 +586,8 @@ export default function SettingsPage() {
                       Warning: Email log deletion
                     </AlertTitle>
                     <AlertDescription className="text-xs text-muted-foreground text-wrap">
-                      Disabling email logging will delete existing sent or permanently failed email logs when you save.
+                      Disabling email logging will delete existing sent or permanently failed email
+                      logs when you save.
                     </AlertDescription>
                   </Alert>
                 </Field>
@@ -566,7 +608,7 @@ export default function SettingsPage() {
                                 },
                               }
                             : currentDraft,
-                        )
+                        );
                       }}
                     >
                       <SelectTrigger id="email-log-retention" className="w-full">
@@ -580,7 +622,8 @@ export default function SettingsPage() {
                       </SelectContent>
                     </Select>
                     <FieldDescription>
-                      Forever is the default. Retention cleanup only deletes sent or permanently failed logs.
+                      Forever is the default. Retention cleanup only deletes sent or permanently
+                      failed logs.
                     </FieldDescription>
                   </Field>
 
@@ -602,13 +645,12 @@ export default function SettingsPage() {
                                 },
                               }
                             : currentDraft,
-                        )
+                        );
                       }}
                     />
                   ) : null}
                 </FieldGroup>
               </div>
-
             </CardContent>
           </Card>
         </TabsContent>
@@ -618,7 +660,8 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>Sender identity</CardTitle>
               <CardDescription>
-                Set the default From address and optional Return-Path policy used when a connection does not override it.
+                Set the default From address and optional Return-Path policy used when a connection
+                does not override it.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
@@ -640,12 +683,13 @@ export default function SettingsPage() {
                               },
                             }
                           : currentDraft,
-                      )
+                      );
                     }}
                     placeholder="Use WordPress admin email"
                   />
                   <FieldDescription>
-                    Used when an email does not specify its own From header, unless a connection overrides it.
+                    Used when an email does not specify its own From header, unless a connection
+                    overrides it.
                   </FieldDescription>
                 </Field>
 
@@ -665,7 +709,7 @@ export default function SettingsPage() {
                               },
                             }
                           : currentDraft,
-                      )
+                      );
                     }}
                     placeholder="Use site name"
                   />
@@ -697,7 +741,7 @@ export default function SettingsPage() {
                               },
                             }
                           : currentDraft,
-                      )
+                      );
                     }}
                   />
                 </Field>
@@ -723,7 +767,7 @@ export default function SettingsPage() {
                               },
                             }
                           : currentDraft,
-                      )
+                      );
                     }}
                   />
                 </Field>
@@ -747,7 +791,7 @@ export default function SettingsPage() {
                               },
                             }
                           : currentDraft,
-                      )
+                      );
                     }}
                   >
                     <SelectTrigger id="return-path-mode" className="w-full">
@@ -764,7 +808,8 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
                   <FieldDescription>
-                    Provider default is safest; matching From Email sets the envelope sender for bounces.
+                    Provider default is safest; matching From Email sets the envelope sender for
+                    bounces.
                   </FieldDescription>
                 </Field>
 
@@ -786,7 +831,7 @@ export default function SettingsPage() {
                                 },
                               }
                             : currentDraft,
-                        )
+                        );
                       }}
                       placeholder="bounces@example.com"
                     />
@@ -954,5 +999,5 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

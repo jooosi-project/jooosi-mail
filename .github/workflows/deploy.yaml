@@ -1,46 +1,33 @@
-# Builds and deploys the plugin
-name: Deploy the Plugin
+name: Deploy the plugin
 
 on:
   push:
     tags:
-      - '*'
+      - "*"
+
+permissions:
+  contents: write
 
 env:
-  # see https://github.com/composer/composer/issues/9368#issuecomment-718112361
-  COMPOSER_ROOT_VERSION: "dev-main"
+  COMPOSER_ROOT_VERSION: dev-main
 
 jobs:
-  build_scoped_jooosi_mail:
-    # Don't run on forks.
-    if: github.repository == 'nabasa-dev/jooosi-mail'
-
+  release:
+    if: github.repository == 'jooosi-project/jooosi-mail'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
         with:
-          node-version: 22
-
-      - uses: pnpm/action-setup@v4
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - uses: actions/cache@v4
-        name: Setup pnpm cache
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          node-version: 24
+          cache: pnpm
 
       - name: Install JavaScript dependencies
         run: pnpm install --frozen-lockfile
@@ -50,120 +37,81 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.5
+          php-version: "8.1"
           coverage: none
-        env:
-          COMPOSER_TOKEN: ${{ secrets.ORG_DEV_PAT }}
+          tools: composer:v2
 
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Extract changelog for version
+      - name: Extract release notes
         id: changelog
+        shell: bash
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          VERSION_NO_V=${VERSION#v}
-          if [ -f "CHANGELOG.md" ]; then
-            CHANGELOG_CONTENT=$(node deploy/extract-changelog.js "$VERSION_NO_V")
-            echo "content<<EOF" >> $GITHUB_OUTPUT
-            echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          else
-            echo "content=Release $VERSION_NO_V" >> $GITHUB_OUTPUT
-          fi
+          version="${GITHUB_REF_NAME#v}"
+          {
+            echo "content<<EOF"
+            node deploy/extract-changelog.mjs "$version"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Update readme.txt changelog
-        run: deno run --allow-read --allow-write deploy/update-readme-changelog.ts
+      - name: Update WordPress.org changelog
+        run: node deploy/update-readme-changelog.mjs
 
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --ansi
 
-      - name: Copy files for scoping
+      - name: Prepare production source
         run: |
           mkdir -p jooosi-mail-deploy
-          rsync -av --exclude jooosi-mail-deploy --exclude .git ./ jooosi-mail-deploy/ --quiet
+          rsync -a --exclude jooosi-mail-deploy --exclude .git ./ jooosi-mail-deploy/
+          composer install --working-dir=jooosi-mail-deploy --no-dev --classmap-authoritative --no-interaction --prefer-dist --ansi
 
-      - name: Install production PHP dependencies for release
-        run: composer install --working-dir=jooosi-mail-deploy --no-dev --classmap-authoritative --no-interaction --prefer-dist --ansi
+      - name: Scope production dependencies
+        run: bash deploy/deploy-scoped.sh jooosi-mail-deploy jooosi-mail-prefixed
 
-      - name: Downgrade release PHP syntax
-        run: vendor/bin/rector process jooosi-mail-deploy/src jooosi-mail-deploy/vendor jooosi-mail-deploy/jooosi-mail.php jooosi-mail-deploy/constant.php --config rector-downgrade.php --clear-cache --no-progress-bar --ansi
-
-      - name: Prepare PHP 8.3 release metadata
-        run: php deploy/prepare-php83-release.php jooosi-mail-deploy
-
-      - name: Scope vendor namespaces
-        run: sh deploy/deploy-scoped.sh jooosi-mail-deploy jooosi-mail-prefixed
-
-      - name: Apply .distignore filter
+      - name: Apply distribution filter
         run: |
           mkdir -p jooosi-mail-final
-          rsync -av --exclude-from=".distignore" jooosi-mail-prefixed/ jooosi-mail-final/ --quiet
+          rsync -a --exclude='.*' --exclude-from=.distignore jooosi-mail-prefixed/ jooosi-mail-final/
           rm -rf jooosi-mail-prefixed
           mv jooosi-mail-final jooosi-mail-prefixed
 
-      - name: Create plugin zip file
+      - name: Create plugin archive
         run: |
           mkdir -p jooosi-mail-zip/jooosi-mail
-          cp -r jooosi-mail-prefixed/* jooosi-mail-zip/jooosi-mail/
+          cp -a jooosi-mail-prefixed/* jooosi-mail-zip/jooosi-mail/
           cd jooosi-mail-zip
-          zip -r "../jooosi-mail-${{ github.ref_name }}.zip" . -x "*.git*" "*.DS_Store*"
-          cd ..
-          ls -la jooosi-mail-*.zip
+          zip -qr "../jooosi-mail-${GITHUB_REF_NAME}.zip" . -x "*.git*" "*.DS_Store*"
 
-      - name: Upload scoped plugin artifact
+      - name: Upload plugin artifact
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: jooosi-mail-${{ github.ref_name }}
           path: jooosi-mail-${{ github.ref_name }}.zip
-          if-no-files-found: ignore
 
-      - name: Checkout or create dist branch
-        if: env.ACT != 'true'
+      - name: Publish scoped build to dist branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          git clone https://x-access-token:${{ secrets.ORG_DEV_PAT }}@github.com/${{ github.repository }}.git dist-branch
+          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" dist-branch
           cd dist-branch
           git fetch origin dist || true
           git checkout dist 2>/dev/null || git checkout --orphan dist
           git rm -rf . 2>/dev/null || true
           git clean -fxd
-
-      - name: Copy scoped plugin to dist branch
-        if: env.ACT != 'true'
-        run: cp -a jooosi-mail-prefixed/. dist-branch
-
-      - name: Configure git author
-        if: env.ACT != 'true'
-        working-directory: dist-branch
-        run: |
-          git config user.name "Joshua Gugun Siagian"
-          git config user.email suabahasa@gmail.com
-
-      - name: Get Git log
-        if: env.ACT != 'true'
-        id: git-log
-        run: |
-          echo "log<<EOF" >> $GITHUB_OUTPUT
-          echo "$(git log ${{ github.event.before }}..${{ github.event.after }} --reverse --pretty='https://github.com/nabasa-dev/jooosi-mail/commit/%H %s')" >> $GITHUB_OUTPUT
-          echo 'EOF' >> $GITHUB_OUTPUT
-
-      - name: Commit prefixed build
-        working-directory: dist-branch
-        if: startsWith(github.ref, 'refs/tags/') && env.ACT != 'true'
-        env:
-          INPUT_LOG: ${{ steps.git-log.outputs.log }}
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          VERSION_NO_V=${VERSION#v}
+          cp -a ../jooosi-mail-prefixed/* .
           git add --all
-          git commit -m "Jooosi Mail $VERSION_NO_V" -m "$INPUT_LOG"
-          git push --quiet origin dist
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: WordPress Plugin Deploy
+          if git diff --cached --quiet; then
+            echo "The dist branch already matches ${GITHUB_REF_NAME}."
+          else
+            git commit -m "Build ${GITHUB_REF_NAME}"
+            git push origin dist
+          fi
+
+      - name: Publish WordPress.org release
+        if: vars.WORDPRESS_ORG_DEPLOY == 'true'
         uses: 10up/action-wordpress-plugin-deploy@stable
-        if: env.ACT != 'true'
         env:
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
@@ -172,15 +120,11 @@ jobs:
           VERSION: ${{ github.ref_name }}
           ASSETS_DIR: .wordpress-org
 
-      - name: Create GitHub Release
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') && env.ACT != 'true'
         with:
-          name: "${{ github.ref_name }}"
+          name: ${{ github.ref_name }}
           body: ${{ steps.changelog.outputs.content }}
-          files: |
-            jooosi-mail-${{ github.ref_name }}.zip
+          files: jooosi-mail-${{ github.ref_name }}.zip
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.ORG_DEV_PAT }}

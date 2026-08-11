@@ -16,11 +16,11 @@ use Symfony\Component\Mailer\Mailer;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MailerFactory
+final class MailerFactory
 {
     public function __construct(
-        private ConnectionDsnResolver $connectionDsnResolver,
-        private TransportRegistry $transportRegistry,
+        private readonly ConnectionDsnResolver $connectionDsnResolver,
+        private readonly TransportRegistry $transportRegistry,
     ) {
     }
 

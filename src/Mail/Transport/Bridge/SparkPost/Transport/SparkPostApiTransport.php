@@ -27,7 +27,10 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class SparkPostApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'api.sparkpost.com';
+    /**
+     * @var string
+     */
+    private const HOST = 'api.sparkpost.com';
 
     public function __construct(
         #[SensitiveParameter] private readonly string $apiKey,

@@ -8,15 +8,8 @@ use Doctrine\DBAL\Connection;
 use JooosiMail\Bootstrap\Environment;
 use JooosiMail\Bootstrap\LifecycleManager;
 use JooosiMail\Bootstrap\Paths;
-use JooosiMail\Discovery\Discovery\CommandDiscovery;
-use JooosiMail\Discovery\Discovery\ControllerDiscovery;
-use JooosiMail\Discovery\Discovery\MailProfileDiscovery;
-use JooosiMail\Discovery\Discovery\MessageHandlerDiscovery;
-use JooosiMail\Discovery\Discovery\ServiceDiscovery;
-use JooosiMail\Discovery\Discovery\TransportFactoryDiscovery;
+use JooosiMail\Discovery\Runtime\AttributeDiscovery;
 use JooosiMail\Discovery\Runtime\DiscoveryManifest;
-use JooosiMail\Discovery\Runtime\DiscoveryState;
-use JooosiMail\Discovery\Runtime\NullDiscoveryContainer;
 use JooosiMail\Infrastructure\Database\DatabaseConnectionFactory;
 use JooosiMail\Infrastructure\Database\TableNameResolver;
 use JooosiMail\Infrastructure\Event\EventPublisherInterface;
@@ -32,34 +25,29 @@ use JooosiMail\Webhook\Event\WebhookHealthPenaltyProvider;
 use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use ReflectionClass;
 use Throwable;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\Serialization\PhpSerializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use Symfony\Component\HttpClient\HttpClient;
-use Psr\Log\NullLogger;
-use Tempest\Discovery\BootDiscovery;
-use Tempest\Discovery\DiscoveryCache;
-use Tempest\Discovery\DiscoveryCacheStrategy;
-use Tempest\Discovery\DiscoveryConfig;
-use Tempest\Discovery\DiscoveryLocation;
 
 /**
  * Builds the Jooosi Mail Symfony container.
  *
  * @since 0.1.0
  */
-final readonly class ContainerFactory
+final class ContainerFactory
 {
     public function __construct(
-        private Paths $paths,
-        private Environment $environment,
+        private readonly Paths $paths,
+        private readonly Environment $environment,
     ) {
     }
 
@@ -105,28 +93,7 @@ final readonly class ContainerFactory
      */
     private function discover(): DiscoveryManifest
     {
-        DiscoveryState::reset();
-
-        $config = new DiscoveryConfig([
-            new DiscoveryLocation('JooosiMail', $this->paths->srcDir),
-        ]);
-        $config->classes = [
-            ServiceDiscovery::class,
-            ControllerDiscovery::class,
-            CommandDiscovery::class,
-            MailProfileDiscovery::class,
-            TransportFactoryDiscovery::class,
-            MessageHandlerDiscovery::class,
-        ];
-
-        $bootDiscovery = new BootDiscovery(
-            new NullDiscoveryContainer(),
-            $config,
-            new DiscoveryCache(DiscoveryCacheStrategy::NONE),
-        );
-        $bootDiscovery($config->classes, $config->locations);
-
-        return DiscoveryState::export();
+        return (new AttributeDiscovery('JooosiMail', $this->paths->srcDir))->discover();
     }
 
     /**

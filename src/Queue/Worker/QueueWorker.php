@@ -24,16 +24,16 @@ use Throwable;
  * @since 0.1.0
  */
 #[Service]
-final readonly class QueueWorker
+final class QueueWorker
 {
     public function __construct(
-        private DatabaseReceiver $databaseReceiver,
-        private MessageBusInterface $messageBus,
-        private RetryDecider $retryDecider,
-        private MailLogRepository $mailLogRepository,
-        private EventPublisherInterface $eventPublisher,
-        private QueueMaintenanceService $queueMaintenanceService,
-        private MailLogRetentionService $mailLogRetentionService,
+        private readonly DatabaseReceiver $databaseReceiver,
+        private readonly MessageBusInterface $messageBus,
+        private readonly RetryDecider $retryDecider,
+        private readonly MailLogRepository $mailLogRepository,
+        private readonly EventPublisherInterface $eventPublisher,
+        private readonly QueueMaintenanceService $queueMaintenanceService,
+        private readonly MailLogRetentionService $mailLogRetentionService,
     ) {
     }
 

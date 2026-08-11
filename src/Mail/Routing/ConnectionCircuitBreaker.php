@@ -17,18 +17,27 @@ use Throwable;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionCircuitBreaker
+final class ConnectionCircuitBreaker
 {
-    private const int DEFAULT_THRESHOLD = 5;
+    /**
+     * @var int
+     */
+    private const DEFAULT_THRESHOLD = 5;
 
-    private const int DEFAULT_WINDOW = 300;
+    /**
+     * @var int
+     */
+    private const DEFAULT_WINDOW = 300;
 
-    private const int DEFAULT_COOLDOWN = 300;
+    /**
+     * @var int
+     */
+    private const DEFAULT_COOLDOWN = 300;
 
     public function __construct(
-        private CircuitBreakerStateRepository $circuitBreakerStateRepository,
-        private OptionStore $optionStore,
-        private EventPublisherInterface $eventPublisher,
+        private readonly CircuitBreakerStateRepository $circuitBreakerStateRepository,
+        private readonly OptionStore $optionStore,
+        private readonly EventPublisherInterface $eventPublisher,
     ) {
     }
 

@@ -15,14 +15,14 @@ use JooosiMail\Mail\Profile\ProfileRegistry;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionManager
+final class ConnectionManager
 {
     public function __construct(
-        private ConnectionRepository $connectionRepository,
-        private ProfileRegistry $profileRegistry,
-        private ProfileMetadataResolver $profileMetadataResolver,
-        private ConnectionInputResolver $connectionInputResolver,
-        private ConnectionConfigurationValidator $connectionConfigurationValidator,
+        private readonly ConnectionRepository $connectionRepository,
+        private readonly ProfileRegistry $profileRegistry,
+        private readonly ProfileMetadataResolver $profileMetadataResolver,
+        private readonly ConnectionInputResolver $connectionInputResolver,
+        private readonly ConnectionConfigurationValidator $connectionConfigurationValidator,
     ) {
     }
 
@@ -200,7 +200,7 @@ final readonly class ConnectionManager
         }
 
         $activeConnections = $this->connectionRepository->findActive();
-        $nextDefault = array_first($activeConnections);
+        $nextDefault = $activeConnections === [] ? null : $activeConnections[array_key_first($activeConnections)];
 
         if (! $nextDefault instanceof Connection || $nextDefault->id === null) {
             return;

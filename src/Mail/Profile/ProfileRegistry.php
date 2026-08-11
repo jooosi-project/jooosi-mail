@@ -14,12 +14,12 @@ use Psr\Container\ContainerInterface;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ProfileRegistry
+final class ProfileRegistry
 {
     public function __construct(
-        private DiscoveryManifest $manifest,
-        private ContainerInterface $container,
-        private ProfileMetadataResolver $profileMetadataResolver,
+        private readonly DiscoveryManifest $manifest,
+        private readonly ContainerInterface $container,
+        private readonly ProfileMetadataResolver $profileMetadataResolver,
     ) {
     }
 
@@ -48,9 +48,12 @@ final readonly class ProfileRegistry
      */
     public function get(string $key): ?MailProfileInterface
     {
-        return array_find(
-            $this->all(),
-            fn (MailProfileInterface $profile): bool => $this->profileMetadataResolver->getKey($profile) === $key,
-        );
+        foreach ($this->all() as $profile) {
+            if ($this->profileMetadataResolver->getKey($profile) === $key) {
+                return $profile;
+            }
+        }
+
+        return null;
     }
 }

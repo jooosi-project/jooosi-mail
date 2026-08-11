@@ -12,7 +12,7 @@ use SensitiveParameter;
  *
  * @since 0.1.0
  */
-final readonly class SecretCipher
+final class SecretCipher
 {
     /**
      * Encrypt a secret payload.

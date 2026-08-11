@@ -12,20 +12,20 @@ use Attribute;
  * @since 0.1.0
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-final readonly class MailProfile
+final class MailProfile
 {
     /**
      * @param list<string>                            $useCases
      * @param array<string, scalar|list<scalar>|null> $extra
      */
     public function __construct(
-        public string $key,
-        public ?string $label = null,
-        public ?string $description = null,
-        public ?string $website = null,
-        public ?string $docsUrl = null,
-        public array $useCases = [],
-        public array $extra = [],
+        public readonly string $key,
+        public readonly ?string $label = null,
+        public readonly ?string $description = null,
+        public readonly ?string $website = null,
+        public readonly ?string $docsUrl = null,
+        public readonly array $useCases = [],
+        public readonly array $extra = [],
     ) {
     }
 }

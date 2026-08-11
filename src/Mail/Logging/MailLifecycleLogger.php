@@ -14,10 +14,10 @@ use JooosiMail\Mail\ValueObject\MailRequest;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MailLifecycleLogger
+final class MailLifecycleLogger
 {
     public function __construct(
-        private MailLogRepository $mailLogRepository,
+        private readonly MailLogRepository $mailLogRepository,
     ) {
     }
 

@@ -14,7 +14,7 @@ use function do_action;
  *
  * @since 0.1.0
  */
-final readonly class WordPressEventPublisher implements EventPublisherInterface
+final class WordPressEventPublisher implements EventPublisherInterface
 {
     /**
      * @since 0.1.0

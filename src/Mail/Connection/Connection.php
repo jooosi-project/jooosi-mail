@@ -13,24 +13,24 @@ namespace JooosiMail\Mail\Connection;
  *
  * @since 0.1.0
  */
-final readonly class Connection
+final class Connection
 {
     /**
      * @param array<string, mixed> $settings
      * @param array<string, mixed> $secrets
      */
     public function __construct(
-        public ?int $id,
-        public string $profileKey,
-        public string $name,
-        public ?string $dsn = null,
-        public array $settings = [],
-        public array $secrets = [],
-        public bool $enabled = true,
-        public bool $default = false,
-        public int $priority = 10,
-        public int $weight = 1,
-        public bool $webhookEnabled = false,
+        public readonly ?int $id,
+        public readonly string $profileKey,
+        public readonly string $name,
+        public readonly ?string $dsn = null,
+        public readonly array $settings = [],
+        public readonly array $secrets = [],
+        public readonly bool $enabled = true,
+        public readonly bool $default = false,
+        public readonly int $priority = 10,
+        public readonly int $weight = 1,
+        public readonly bool $webhookEnabled = false,
     ) {
     }
 

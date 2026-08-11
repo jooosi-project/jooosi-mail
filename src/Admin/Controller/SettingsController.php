@@ -22,14 +22,14 @@ use WP_REST_Response;
  * @since 0.1.0
  */
 #[Controller(namespace: 'jooosi-mail/v1', prefix: 'admin/settings')]
-final readonly class SettingsController
+final class SettingsController
 {
     /**
      * @since 0.1.0
      */
     public function __construct(
-        private OptionStore $optionStore,
-        private MailLogRetentionService $mailLogRetentionService,
+        private readonly OptionStore $optionStore,
+        private readonly MailLogRetentionService $mailLogRetentionService,
     ) {
     }
 

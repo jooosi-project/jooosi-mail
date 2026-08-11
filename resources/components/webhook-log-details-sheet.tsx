@@ -1,44 +1,38 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 
-import { buildAdminHashHref } from "@/admin/routes"
-import type { WebhookLogTableRow } from "@/components/webhook-log-table-types"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
+import { buildAdminHashHref } from "@/admin/routes";
+import type { WebhookLogTableRow } from "@/components/webhook-log-table-types";
+import { Badge } from "@/components/reui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { formatAdminDateTime, titleCase } from "@/lib/admin-format"
-import { highlightCode } from "@/lib/admin-shiki"
-import { getWebhookEventVariant } from "@/lib/admin-log-helpers"
-import DatabaseIcon from "~icons/tabler/database"
+} from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatAdminDateTime, titleCase } from "@/lib/admin-format";
+import { highlightCode } from "@/lib/admin-shiki";
+import { getWebhookEventVariant } from "@/lib/admin-log-helpers";
+import DatabaseIcon from "~icons/tabler/database";
 
 type WebhookLogDetailsSheetProps = {
-  event: WebhookLogTableRow | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
+  event: WebhookLogTableRow | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
 
-function MetaRow({
-  label,
-  value,
-}: {
-  label: string
-  value: React.ReactNode
-}) {
+function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 text-sm">
       <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</dt>
       <dd className="min-w-0 leading-5 break-words">{value}</dd>
     </div>
-  )
+  );
 }
 
 function BadgeWithTooltip({
@@ -46,28 +40,28 @@ function BadgeWithTooltip({
   variant = "outline",
   children,
 }: {
-  tooltip: string
-  variant?: React.ComponentProps<typeof Badge>["variant"]
-  children: React.ReactNode
+  tooltip: string;
+  variant?: React.ComponentProps<typeof Badge>["variant"];
+  children: React.ReactNode;
 }) {
   return (
     <Tooltip>
       <TooltipTrigger render={<Badge variant={variant} />}>{children}</TooltipTrigger>
       <TooltipContent>{tooltip}</TooltipContent>
     </Tooltip>
-  )
+  );
 }
 
 function ConnectionValue({ event }: { event: WebhookLogTableRow }) {
   const openConnection = React.useCallback(() => {
     if (typeof window === "undefined" || event.connectionId === null) {
-      return
+      return;
     }
 
     window.location.hash = buildAdminHashHref("/connections", {
       id: event.connectionId,
-    }).slice(1)
-  }, [event.connectionId])
+    }).slice(1);
+  }, [event.connectionId]);
 
   return (
     <Button
@@ -79,46 +73,42 @@ function ConnectionValue({ event }: { event: WebhookLogTableRow }) {
       <DatabaseIcon data-icon="inline-start" />
       {event.connectionLabel}
     </Button>
-  )
+  );
 }
 
 function useHighlightedJson(code: string | null) {
-  const [highlightedCode, setHighlightedCode] = React.useState<string | null>(null)
+  const [highlightedCode, setHighlightedCode] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    let active = true
+    let active = true;
 
     if (!code) {
-      setHighlightedCode(null)
-      return
+      setHighlightedCode(null);
+      return;
     }
 
     void highlightCode(code, "json")
       .then((html) => {
         if (active) {
-          setHighlightedCode(html)
+          setHighlightedCode(html);
         }
       })
       .catch(() => {
         if (active) {
-          setHighlightedCode(null)
+          setHighlightedCode(null);
         }
-      })
+      });
 
     return () => {
-      active = false
-    }
-  }, [code])
+      active = false;
+    };
+  }, [code]);
 
-  return highlightedCode
+  return highlightedCode;
 }
 
-export function WebhookLogDetailsSheet({
-  event,
-  open,
-  onOpenChange,
-}: WebhookLogDetailsSheetProps) {
-  const highlightedJson = useHighlightedJson(event?.payloadJson ?? null)
+export function WebhookLogDetailsSheet({ event, open, onOpenChange }: WebhookLogDetailsSheetProps) {
+  const highlightedJson = useHighlightedJson(event?.payloadJson ?? null);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -196,7 +186,7 @@ export function WebhookLogDetailsSheet({
         ) : null}
       </SheetContent>
     </Sheet>
-  )
+  );
 }
 
-export default WebhookLogDetailsSheet
+export default WebhookLogDetailsSheet;

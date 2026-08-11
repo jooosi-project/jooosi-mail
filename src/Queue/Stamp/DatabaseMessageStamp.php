@@ -11,14 +11,14 @@ use Symfony\Component\Messenger\Stamp\StampInterface;
  *
  * @since 0.1.0
  */
-final readonly class DatabaseMessageStamp implements StampInterface
+final class DatabaseMessageStamp implements StampInterface
 {
     public function __construct(
-        public int $messageId,
-        public int $attemptCount,
-        public int $maxAttempts,
-        public string $queueName,
-        public string $claimedBy,
+        public readonly int $messageId,
+        public readonly int $attemptCount,
+        public readonly int $maxAttempts,
+        public readonly string $queueName,
+        public readonly string $claimedBy,
     ) {
     }
 }

@@ -14,14 +14,14 @@ use JooosiMail\Mail\Connection\ConnectionRepository;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionResolver
+final class ConnectionResolver
 {
     public function __construct(
-        private ConnectionRepository $connectionRepository,
-        private ConnectionAvailabilityDecider $connectionAvailabilityDecider,
-        private ConnectionHealthScorer $connectionHealthScorer,
-        private WeightedRoundRobinSelector $weightedRoundRobinSelector,
-        private WeightedRandomSelector $weightedRandomSelector,
+        private readonly ConnectionRepository $connectionRepository,
+        private readonly ConnectionAvailabilityDecider $connectionAvailabilityDecider,
+        private readonly ConnectionHealthScorer $connectionHealthScorer,
+        private readonly WeightedRoundRobinSelector $weightedRoundRobinSelector,
+        private readonly WeightedRandomSelector $weightedRandomSelector,
     ) {
     }
 
@@ -81,7 +81,7 @@ final readonly class ConnectionResolver
             preferredConnectionId: $preferredConnectionId,
         );
 
-        $primaryConnection = array_first($orderedConnections);
+        $primaryConnection = $orderedConnections === [] ? null : $orderedConnections[array_key_first($orderedConnections)];
 
         return $primaryConnection instanceof Connection ? [$primaryConnection] : [];
     }

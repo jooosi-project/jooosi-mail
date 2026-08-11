@@ -27,8 +27,14 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class PepipostApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'emailapi.netcorecloud.net';
-    private const string EU_HOST = 'apieu.netcorecloud.net';
+    /**
+     * @var string
+     */
+    private const HOST = 'emailapi.netcorecloud.net';
+    /**
+     * @var string
+     */
+    private const EU_HOST = 'apieu.netcorecloud.net';
 
     public function __construct(
         #[SensitiveParameter] private readonly string $apiKey,

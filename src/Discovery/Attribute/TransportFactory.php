@@ -12,6 +12,6 @@ use Attribute;
  * @since 0.1.0
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-final readonly class TransportFactory
+final class TransportFactory
 {
 }

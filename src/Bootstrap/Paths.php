@@ -9,14 +9,14 @@ namespace JooosiMail\Bootstrap;
  *
  * @since 0.1.0
  */
-final readonly class Paths
+final class Paths
 {
     public function __construct(
-        public string $pluginFile,
-        public string $rootDir,
-        public string $srcDir,
-        public string $cacheDir,
-        public string $documentationDir,
+        public readonly string $pluginFile,
+        public readonly string $rootDir,
+        public readonly string $srcDir,
+        public readonly string $cacheDir,
+        public readonly string $documentationDir,
     ) {
     }
 

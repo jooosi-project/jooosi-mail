@@ -1,61 +1,56 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 
-import { buildAdminHashHref } from "@/admin/routes"
-import type { MailLogTableRow } from "@/components/mail-log-table-types"
-import { formatAddressList } from "@/components/mail-log-table-types"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { formatAdminDateTime, titleCase } from "@/lib/admin-format"
-import { highlightCode } from "@/lib/admin-shiki"
-import { getLogStatusVariant } from "@/lib/admin-log-helpers"
-import DatabaseIcon from "~icons/tabler/database"
+import { buildAdminHashHref } from "@/admin/routes";
+import type { MailLogTableRow } from "@/components/mail-log-table-types";
+import { formatAddressList } from "@/components/mail-log-table-types";
+import { Badge } from "@/components/reui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatAdminDateTime, titleCase } from "@/lib/admin-format";
+import { highlightCode } from "@/lib/admin-shiki";
+import { getLogStatusVariant } from "@/lib/admin-log-helpers";
+import DatabaseIcon from "~icons/tabler/database";
 
 type MailLogDetailsDialogProps = {
-  log: MailLogTableRow | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
+  log: MailLogTableRow | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
 
 function useHighlightedHtml(code: string | null) {
-  const [highlightedCode, setHighlightedCode] = React.useState<string | null>(null)
+  const [highlightedCode, setHighlightedCode] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    let active = true
+    let active = true;
 
     if (!code) {
-      setHighlightedCode(null)
-      return
+      setHighlightedCode(null);
+      return;
     }
 
     void highlightCode(code, "html")
       .then((html) => {
         if (active) {
-          setHighlightedCode(html)
+          setHighlightedCode(html);
         }
       })
       .catch(() => {
         if (active) {
-          setHighlightedCode(null)
+          setHighlightedCode(null);
         }
-      })
+      });
 
     return () => {
-      active = false
-    }
-  }, [code])
+      active = false;
+    };
+  }, [code]);
 
-  return highlightedCode
+  return highlightedCode;
 }
 
 function buildHtmlPreviewDocument(html: string): string {
@@ -81,22 +76,16 @@ function buildHtmlPreviewDocument(html: string): string {
     </style>
   </head>
   <body>${html}</body>
-</html>`
+</html>`;
 }
 
-function MetaRow({
-  label,
-  value,
-}: {
-  label: string
-  value: React.ReactNode
-}) {
+function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 text-sm">
       <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</dt>
       <dd className="min-w-0 leading-5 break-words">{value}</dd>
     </div>
-  )
+  );
 }
 
 function BadgeWithTooltip({
@@ -104,41 +93,39 @@ function BadgeWithTooltip({
   variant = "outline",
   children,
 }: {
-  tooltip: string
-  variant?: React.ComponentProps<typeof Badge>["variant"]
-  children: React.ReactNode
+  tooltip: string;
+  variant?: React.ComponentProps<typeof Badge>["variant"];
+  children: React.ReactNode;
 }) {
   return (
     <Tooltip>
       <TooltipTrigger render={<Badge variant={variant} />}>{children}</TooltipTrigger>
       <TooltipContent>{tooltip}</TooltipContent>
     </Tooltip>
-  )
+  );
 }
 
 type DetailTooltipEntry = {
-  key: string
-  label: string
-  value: string
-}
+  key: string;
+  label: string;
+  value: string;
+};
 
 function DetailValueWithTooltip({
   value,
   entries,
 }: {
-  value: string
-  entries: DetailTooltipEntry[]
+  value: string;
+  entries: DetailTooltipEntry[];
 }) {
   if (entries.length === 0) {
-    return value
+    return value;
   }
 
   return (
     <Tooltip>
       <TooltipTrigger
-        render={
-          <span className="cursor-help underline decoration-dotted underline-offset-2" />
-        }
+        render={<span className="cursor-help underline decoration-dotted underline-offset-2" />}
       >
         {value}
       </TooltipTrigger>
@@ -153,7 +140,7 @@ function DetailValueWithTooltip({
         </div>
       </TooltipContent>
     </Tooltip>
-  )
+  );
 }
 
 function getMailLogDateEntries(log: MailLogTableRow): DetailTooltipEntry[] {
@@ -162,38 +149,39 @@ function getMailLogDateEntries(log: MailLogTableRow): DetailTooltipEntry[] {
     { key: "queued", label: "Queued", value: formatAdminDateTime(log.queuedAt) },
     { key: "created", label: "Created", value: formatAdminDateTime(log.createdAt) },
     { key: "updated", label: "Updated", value: formatAdminDateTime(log.updatedAt) },
-  ]
+  ];
 
-  return dateEntries.filter((entry) => entry.value !== "-")
+  return dateEntries.filter((entry) => entry.value !== "-");
 }
 
 function buildRecipientTooltipEntries(
   entries: Array<{
-    key: string
-    label: string
-    addresses: string[]
+    key: string;
+    label: string;
+    addresses: string[];
   }>,
 ): DetailTooltipEntry[] {
   return entries.map((entry) => ({
     key: entry.key,
     label: entry.label,
     value: formatAddressList(entry.addresses),
-  }))
+  }));
 }
 
 function DateValueWithTooltip({ log }: { log: MailLogTableRow }) {
-  const dateEntries = getMailLogDateEntries(log)
-  const primaryValue = formatAdminDateTime(log.dateTime)
-  const primaryDate = dateEntries.find((entry) => entry.value === primaryValue) ?? dateEntries[0] ?? null
+  const dateEntries = getMailLogDateEntries(log);
+  const primaryValue = formatAdminDateTime(log.dateTime);
+  const primaryDate =
+    dateEntries.find((entry) => entry.value === primaryValue) ?? dateEntries[0] ?? null;
   const secondaryDates = primaryDate
     ? dateEntries.filter((entry) => entry.key !== primaryDate.key)
-    : []
+    : [];
 
   if (primaryDate === null) {
-    return primaryValue
+    return primaryValue;
   }
 
-  return <DetailValueWithTooltip value={primaryValue} entries={secondaryDates} />
+  return <DetailValueWithTooltip value={primaryValue} entries={secondaryDates} />;
 }
 
 function ToValueWithTooltip({ log }: { log: MailLogTableRow }) {
@@ -205,7 +193,7 @@ function ToValueWithTooltip({ log }: { log: MailLogTableRow }) {
         { key: "bcc", label: "BCC", addresses: log.bccAddresses },
       ])}
     />
-  )
+  );
 }
 
 function FromValueWithTooltip({ log }: { log: MailLogTableRow }) {
@@ -216,7 +204,7 @@ function FromValueWithTooltip({ log }: { log: MailLogTableRow }) {
         { key: "reply-to", label: "Reply-To", addresses: log.replyToAddresses },
       ])}
     />
-  )
+  );
 }
 
 function MiscValueWithTooltip({ log }: { log: MailLogTableRow }) {
@@ -225,22 +213,26 @@ function MiscValueWithTooltip({ log }: { log: MailLogTableRow }) {
       value="View details"
       entries={[
         { key: "source", label: "Source", value: titleCase(log.source) },
-        { key: "transport-message", label: "Transport Message", value: log.transportMessageId ?? "-" },
+        {
+          key: "transport-message",
+          label: "Transport Message",
+          value: log.transportMessageId ?? "-",
+        },
       ]}
     />
-  )
+  );
 }
 
 function ConnectionValue({ log }: { log: MailLogTableRow }) {
   const openConnection = React.useCallback(() => {
     if (typeof window === "undefined" || log.finalConnectionId === null) {
-      return
+      return;
     }
 
     window.location.hash = buildAdminHashHref("/connections", {
       id: log.finalConnectionId,
-    }).slice(1)
-  }, [log.finalConnectionId])
+    }).slice(1);
+  }, [log.finalConnectionId]);
 
   return (
     <Button
@@ -252,19 +244,15 @@ function ConnectionValue({ log }: { log: MailLogTableRow }) {
       <DatabaseIcon data-icon="inline-start" />
       {log.connectionLabel}
     </Button>
-  )
+  );
 }
 
-export function MailLogDetailsDialog({
-  log,
-  open,
-  onOpenChange,
-}: MailLogDetailsDialogProps) {
-  const highlightedHtml = useHighlightedHtml(log?.htmlBody ?? null)
+export function MailLogDetailsDialog({ log, open, onOpenChange }: MailLogDetailsDialogProps) {
+  const highlightedHtml = useHighlightedHtml(log?.htmlBody ?? null);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="min-h-0 max-h-[min(calc(100dvh-3rem),48rem)] w-[min(calc(100vw-var(--wp-admin--sidebar-width)-2rem),72rem)] max-w-[min(calc(100vw-var(--wp-admin--sidebar-width)-2rem),72rem)] gap-0 overflow-hidden p-0">
+      <DialogContent className="min-h-0 max-h-[min(calc(100dvh-3rem),48rem)] w-[min(calc(100vw-var(--wp-admin--sidebar-width)-2rem),72rem)] max-w-[min(calc(100vw-var(--wp-admin--sidebar-width)-2rem),72rem)] gap-0 overflow-hidden p-0 sm:max-w-[min(calc(100vw-var(--wp-admin--sidebar-width)-2rem),72rem)]">
         {log ? (
           <>
             <DialogHeader className="gap-4 border-b px-6 py-5 pr-14">
@@ -297,10 +285,7 @@ export function MailLogDetailsDialog({
                       <h3 className="text-sm font-semibold">Details</h3>
                     </div>
                     <dl className="flex flex-col gap-3">
-                      <MetaRow
-                        label="Connection"
-                        value={<ConnectionValue log={log} />}
-                      />
+                      <MetaRow label="Connection" value={<ConnectionValue log={log} />} />
                       <MetaRow label="Date" value={<DateValueWithTooltip log={log} />} />
                       <MetaRow label="Misc" value={<MiscValueWithTooltip log={log} />} />
                     </dl>
@@ -329,10 +314,7 @@ export function MailLogDetailsDialog({
                   <div>
                     <h3 className="text-sm font-semibold">Message</h3>
                   </div>
-                  <Tabs
-                    defaultValue={log.textBody ? "text" : "html-rendered"}
-                    className="gap-4"
-                  >
+                  <Tabs defaultValue={log.textBody ? "text" : "html-rendered"} className="gap-4">
                     <TabsList>
                       <TabsTrigger value="text">Text</TabsTrigger>
                       <TabsTrigger value="html-rendered">HTML</TabsTrigger>
@@ -388,7 +370,7 @@ export function MailLogDetailsDialog({
         ) : null}
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
-export default MailLogDetailsDialog
+export default MailLogDetailsDialog;

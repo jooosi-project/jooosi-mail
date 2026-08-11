@@ -15,17 +15,35 @@ use JooosiMail\Discovery\Attribute\Service;
 #[Service]
 final class ActionSchedulerTrigger
 {
-    public const string RUN_HOOK = 'jooosi_mail_queue_process_async';
+    /**
+     * @var string
+     */
+    public const RUN_HOOK = 'jooosi_mail_queue_process_async';
 
-    public const string RECURRING_HOOK = 'jooosi_mail_queue_process_fallback';
+    /**
+     * @var string
+     */
+    public const RECURRING_HOOK = 'jooosi_mail_queue_process_fallback';
 
-    public const string ASYNC_RUNNER_ACTION = 'as_async_request_queue_runner';
+    /**
+     * @var string
+     */
+    public const ASYNC_RUNNER_ACTION = 'as_async_request_queue_runner';
 
-    public const string GROUP = 'jooosi-mail';
+    /**
+     * @var string
+     */
+    public const GROUP = 'jooosi-mail';
 
-    public const string SCHEDULE_LOCK_OPTION = 'jooosi_mail_queue_schedule_lock';
+    /**
+     * @var string
+     */
+    public const SCHEDULE_LOCK_OPTION = 'jooosi_mail_queue_schedule_lock';
 
-    private const int SCHEDULE_LOCK_TTL = 15;
+    /**
+     * @var int
+     */
+    private const SCHEDULE_LOCK_TTL = 15;
 
     /**
      * @since 0.1.0

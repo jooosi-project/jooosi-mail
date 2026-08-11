@@ -25,19 +25,19 @@ use WP_REST_Response;
  * @since 0.1.0
  */
 #[Controller(namespace: 'jooosi-mail/v1', prefix: 'admin/logs')]
-final readonly class OverviewController
+final class OverviewController
 {
     /**
      * @since 0.1.0
      */
     public function __construct(
-        private DbalConnection $connection,
-        private TableNameResolver $tableNameResolver,
-        private MailAttemptRepository $mailAttemptRepository,
-        private WebhookEventRepository $webhookEventRepository,
-        private FailedMessageRepository $failedMessageRepository,
-        private QueueMessageQuery $queueMessageQuery,
-        private SerializerInterface $serializer,
+        private readonly DbalConnection $connection,
+        private readonly TableNameResolver $tableNameResolver,
+        private readonly MailAttemptRepository $mailAttemptRepository,
+        private readonly WebhookEventRepository $webhookEventRepository,
+        private readonly FailedMessageRepository $failedMessageRepository,
+        private readonly QueueMessageQuery $queueMessageQuery,
+        private readonly SerializerInterface $serializer,
     ) {
     }
 

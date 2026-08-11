@@ -1,25 +1,25 @@
-import * as React from "react"
+import * as React from "react";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { useLogsData } from "@/hooks/use-logs-data"
-import { WebhookLogDataTable } from "@/components/webhook-log-data-table"
-import RefreshIcon from "~icons/tabler/refresh"
+} from "@/components/reui/frame-card";
+import { useLogsData } from "@/hooks/use-logs-data";
+import { WebhookLogDataTable } from "@/components/webhook-log-data-table";
+import RefreshIcon from "~icons/tabler/refresh";
 
 export default function WebhookLogsPage() {
-  const { data, loading, refreshing, error, refresh } = useLogsData()
-  const [webhookLogRefreshToken, setWebhookLogRefreshToken] = React.useState(0)
+  const { data, loading, refreshing, error, refresh } = useLogsData();
+  const [webhookLogRefreshToken, setWebhookLogRefreshToken] = React.useState(0);
 
   const handleRefresh = React.useCallback(() => {
-    setWebhookLogRefreshToken((currentValue) => currentValue + 1)
-    void refresh()
-  }, [refresh])
+    setWebhookLogRefreshToken((currentValue) => currentValue + 1);
+    void refresh();
+  }, [refresh]);
 
   if (loading && !data) {
     return (
@@ -31,7 +31,7 @@ export default function WebhookLogsPage() {
           </CardHeader>
         </Card>
       </div>
-    )
+    );
   }
 
   if (!data) {
@@ -40,14 +40,18 @@ export default function WebhookLogsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Webhook logs unavailable</CardTitle>
-            <CardDescription>{error ?? "The webhook log view could not be loaded."}</CardDescription>
+            <CardDescription>
+              {error ?? "The webhook log view could not be loaded."}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => void refresh()}>Try again</Button>
+            <Button type="button" onClick={() => void refresh()}>
+              Try again
+            </Button>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -59,23 +63,18 @@ export default function WebhookLogsPage() {
             Review webhook activity and related emails.
           </p>
         </div>
-        <Button variant="outline" onClick={handleRefresh}>
-          <RefreshIcon data-icon="inline-start" className={refreshing ? "animate-spin" : undefined} />
+        <Button type="button" variant="outline" onClick={handleRefresh}>
+          <RefreshIcon
+            data-icon="inline-start"
+            className={refreshing ? "animate-spin" : undefined}
+          />
           {refreshing ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
-
-      {error ? (
-        <div className="px-4 lg:px-6">
-          <Card>
-            <CardContent className="py-4 text-sm text-destructive">{error}</CardContent>
-          </Card>
-        </div>
-      ) : null}
 
       <div className="px-4 lg:px-6">
         <WebhookLogDataTable refreshToken={webhookLogRefreshToken} />
       </div>
     </div>
-  )
+  );
 }

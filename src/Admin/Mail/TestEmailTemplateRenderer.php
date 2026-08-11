@@ -12,7 +12,7 @@ use JooosiMail\Discovery\Attribute\Service;
  * @since 0.1.0
  */
 #[Service]
-final readonly class TestEmailTemplateRenderer
+final class TestEmailTemplateRenderer
 {
     /**
      * @return array{textBody: string, htmlBody: string}
