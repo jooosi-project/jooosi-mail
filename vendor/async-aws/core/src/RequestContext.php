@@ -42,10 +42,10 @@ final class RequestContext
     private $exceptionMapping = [];
     /**
      * @param array{
-     *  operation?: string|null,
-     *  region?: string|null,
-     *  expirationDate?: \DateTimeImmutable|null,
-     *  currentDate?: \DateTimeImmutable|null,
+     *  operation?: null|string,
+     *  region?: null|string,
+     *  expirationDate?: null|\DateTimeImmutable,
+     *  currentDate?: null|\DateTimeImmutable,
      *  exceptionMapping?: array<string, class-string<HttpException>>,
      *  usesEndpointDiscovery?: bool,
      *  requiresEndpointDiscovery?: bool,

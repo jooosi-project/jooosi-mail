@@ -3,7 +3,6 @@
 declare (strict_types=1);
 namespace JooosiMailDeps\AsyncAws\Core\Test;
 
-use JooosiMailDeps\AsyncAws\Core\Exception\RuntimeException;
 use JooosiMailDeps\AsyncAws\Core\Stream\ResultStream;
 /**
  * Simple streamable body used for testing.
@@ -31,9 +30,6 @@ class SimpleResultStream implements ResultStream
     public function getContentAsResource()
     {
         $resource = fopen('php://temp', 'rw+');
-        if (\false === $resource) {
-            throw new RuntimeException('Unable to create a temporary stream.');
-        }
         try {
             fwrite($resource, $this->data);
             // Rewind

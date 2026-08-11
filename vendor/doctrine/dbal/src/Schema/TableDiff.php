@@ -3,16 +3,12 @@
 declare (strict_types=1);
 namespace JooosiMailDeps\Doctrine\DBAL\Schema;
 
-use JooosiMailDeps\Doctrine\DBAL\Schema\Exception\InvalidState;
-use JooosiMailDeps\Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use JooosiMailDeps\Doctrine\Deprecations\Deprecation;
 use function array_filter;
 use function array_values;
 use function count;
 /**
  * Table Diff.
- *
- * @final
  */
 class TableDiff
 {
@@ -34,19 +30,6 @@ class TableDiff
      */
     public function __construct(private readonly Table $oldTable, private readonly array $addedColumns = [], private readonly array $changedColumns = [], private readonly array $droppedColumns = [], private array $addedIndexes = [], private readonly array $modifiedIndexes = [], private array $droppedIndexes = [], private readonly array $renamedIndexes = [], private readonly array $addedForeignKeys = [], private readonly array $modifiedForeignKeys = [], private readonly array $droppedForeignKeys = [])
     {
-        if (count($this->modifiedIndexes) !== 0) {
-            Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6831', 'Passing a non-empty $modifiedIndexes value to %s() is deprecated. Instead, pass dropped' . ' indexes via $droppedIndexes and added indexes via $addedIndexes.', __METHOD__);
-        }
-        foreach ($droppedForeignKeys as $droppedForeignKey) {
-            if ($droppedForeignKey->getName() === '') {
-                Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/7143', 'Dropping a foreign key constraints without specifying its name is deprecated.');
-                break;
-            }
-        }
-        if (count($modifiedForeignKeys) === 0) {
-            return;
-        }
-        Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6827', 'Passing a non-empty $modifiedForeignKeys value to %s() is deprecated. Instead, pass dropped' . ' constraints via $droppedForeignKeys and added constraints via $addedForeignKeys.', __METHOD__);
     }
     public function getOldTable(): Table
     {
@@ -110,14 +93,9 @@ class TableDiff
             return $addedIndex !== $index;
         });
     }
-    /**
-     * @deprecated Use {@see getAddedIndexes()} and {@see getDroppedIndexes()} instead.
-     *
-     * @return array<Index>
-     */
+    /** @return array<Index> */
     public function getModifiedIndexes(): array
     {
-        Deprecation::triggerIfCalledFromOutside('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6831', '%s() is deprecated, use getAddedIndexes() and getDroppedIndexes() instead.', __METHOD__);
         return $this->modifiedIndexes;
     }
     /** @return array<Index> */
@@ -145,37 +123,15 @@ class TableDiff
     {
         return $this->addedForeignKeys;
     }
-    /**
-     * @deprecated Use {@see getAddedForeignKeys()} and {@see getDroppedForeignKeys()} instead.
-     *
-     * @return array<ForeignKeyConstraint>
-     */
+    /** @return array<ForeignKeyConstraint> */
     public function getModifiedForeignKeys(): array
     {
-        Deprecation::triggerIfCalledFromOutside('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6827', '%s() is deprecated, use getDroppedForeignKeys() and getAddedForeignKeys() instead.', __METHOD__);
         return $this->modifiedForeignKeys;
     }
-    /**
-     * @deprecated Use {@see getDroppedForeignKeyConstraintNames()}.
-     *
-     * @return array<ForeignKeyConstraint>
-     */
+    /** @return array<ForeignKeyConstraint> */
     public function getDroppedForeignKeys(): array
     {
         return $this->droppedForeignKeys;
-    }
-    /** @return array<UnqualifiedName> */
-    public function getDroppedForeignKeyConstraintNames(): array
-    {
-        $names = [];
-        foreach ($this->droppedForeignKeys as $constraint) {
-            $name = $constraint->getObjectName();
-            if ($name === null) {
-                throw InvalidState::tableDiffContainsUnnamedDroppedForeignKeyConstraints();
-            }
-            $names[] = $name;
-        }
-        return $names;
     }
     /**
      * Returns whether the diff is empty (contains no changes).

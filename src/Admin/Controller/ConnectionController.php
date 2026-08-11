@@ -20,12 +20,12 @@ use WP_REST_Response;
  * @since 0.1.0
  */
 #[Controller(namespace: 'jooosi-mail/v1', prefix: 'admin/connections')]
-final readonly class ConnectionController
+final class ConnectionController
 {
     /**
      * @since 0.1.0
      */
-    public function __construct(private ConnectionRepository $connectionRepository, private ConnectionManager $connectionManager, private ConnectionStatusReporter $connectionStatusReporter, private AdminConnectionPayloadFactory $connectionPayloadFactory)
+    public function __construct(private readonly ConnectionRepository $connectionRepository, private readonly ConnectionManager $connectionManager, private readonly ConnectionStatusReporter $connectionStatusReporter, private readonly AdminConnectionPayloadFactory $connectionPayloadFactory)
     {
     }
     /**

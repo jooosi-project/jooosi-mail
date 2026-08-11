@@ -5,9 +5,9 @@ namespace JooosiMailDeps\Doctrine\DBAL\Query;
 
 use JooosiMailDeps\Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
 /** @internal */
-final readonly class ForUpdate
+final class ForUpdate
 {
-    public function __construct(private ConflictResolutionMode $conflictResolutionMode)
+    public function __construct(private readonly ConflictResolutionMode $conflictResolutionMode)
     {
     }
     public function getConflictResolutionMode(): ConflictResolutionMode

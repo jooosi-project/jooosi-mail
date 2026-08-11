@@ -17,8 +17,10 @@ namespace JooosiMailDeps\Symfony\Component\Messenger\Stamp;
  */
 final class BusNameStamp implements StampInterface
 {
-    public function __construct(private string $busName)
+    private string $busName;
+    public function __construct(string $busName)
     {
+        $this->busName = $busName;
     }
     public function getBusName(): string
     {

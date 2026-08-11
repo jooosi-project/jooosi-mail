@@ -4,9 +4,7 @@ declare (strict_types=1);
 namespace JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords;
 
 /**
- * Db2 Keywords.
- *
- * @deprecated
+ * DB2 Keywords.
  */
 class DB2Keywords extends KeywordList
 {

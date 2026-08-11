@@ -28,14 +28,10 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\ResponseInterface;
 final class MailPaceApiTransport extends AbstractApiTransport
 {
     private const HOST = 'app.mailpace.com/api/v1';
-    public function __construct(
-        #[\SensitiveParameter]
-        private string $key,
-        ?HttpClientInterface $client = null,
-        ?EventDispatcherInterface $dispatcher = null,
-        ?LoggerInterface $logger = null
-    )
+    private string $key;
+    public function __construct(string $key, ?HttpClientInterface $client = null, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
     {
+        $this->key = $key;
         parent::__construct($client, $dispatcher, $logger);
     }
     public function __toString(): string
@@ -75,8 +71,9 @@ final class MailPaceApiTransport extends AbstractApiTransport
     private function getPayload(Email $email, Envelope $envelope): array
     {
         $payload = ['from' => $envelope->getSender()->toString(), 'to' => implode(',', $this->stringifyAddresses($this->getRecipients($email, $envelope))), 'cc' => implode(',', $this->stringifyAddresses($email->getCc())), 'bcc' => implode(',', $this->stringifyAddresses($email->getBcc())), 'replyto' => implode(',', $this->stringifyAddresses($email->getReplyTo())), 'subject' => $email->getSubject(), 'textbody' => $email->getTextBody(), 'htmlbody' => $email->getHtmlBody(), 'attachments' => $this->getAttachments($email), 'tags' => []];
+        $headersToBypass = ['from', 'to', 'cc', 'bcc', 'subject', 'content-type', 'sender', 'reply-to'];
         foreach ($email->getHeaders()->all() as $name => $header) {
-            if (\in_array($name, ['from', 'to', 'cc', 'bcc', 'subject', 'content-type', 'sender', 'reply-to'], \true)) {
+            if (\in_array($name, $headersToBypass, \true)) {
                 continue;
             }
             if ($header instanceof TagHeader) {

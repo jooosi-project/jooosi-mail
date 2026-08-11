@@ -10,9 +10,9 @@ use Attribute;
  * @since 0.1.0
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-final readonly class Controller
+final class Controller
 {
-    public function __construct(public string $namespace = 'jooosi-mail/v1', public string $prefix = '')
+    public function __construct(public readonly string $namespace = 'jooosi-mail/v1', public readonly string $prefix = '')
     {
     }
 }

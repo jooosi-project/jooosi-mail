@@ -18,8 +18,12 @@ use JooosiMailDeps\Symfony\Component\Messenger\Worker;
  */
 final class WorkerRunningEvent
 {
-    public function __construct(private Worker $worker, private bool $isWorkerIdle)
+    private Worker $worker;
+    private bool $isWorkerIdle;
+    public function __construct(Worker $worker, bool $isWorkerIdle)
     {
+        $this->worker = $worker;
+        $this->isWorkerIdle = $isWorkerIdle;
     }
     public function getWorker(): Worker
     {

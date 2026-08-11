@@ -15,8 +15,24 @@ namespace JooosiMailDeps\Symfony\Component\Messenger\Stamp;
  */
 class RouterContextStamp implements StampInterface
 {
-    public function __construct(private string $baseUrl, private string $method, private string $host, private string $scheme, private int $httpPort, private int $httpsPort, private string $pathInfo, private string $queryString)
+    private string $baseUrl;
+    private string $method;
+    private string $host;
+    private string $scheme;
+    private int $httpPort;
+    private int $httpsPort;
+    private string $pathInfo;
+    private string $queryString;
+    public function __construct(string $baseUrl, string $method, string $host, string $scheme, int $httpPort, int $httpsPort, string $pathInfo, string $queryString)
     {
+        $this->baseUrl = $baseUrl;
+        $this->method = $method;
+        $this->host = $host;
+        $this->scheme = $scheme;
+        $this->httpPort = $httpPort;
+        $this->httpsPort = $httpsPort;
+        $this->pathInfo = $pathInfo;
+        $this->queryString = $queryString;
     }
     public function getBaseUrl(): string
     {

@@ -24,7 +24,7 @@ final class ListManagementOptions
     /**
      * @param array{
      *   ContactListName: string,
-     *   TopicName?: string|null,
+     *   TopicName?: null|string,
      * } $input
      */
     public function __construct(array $input)
@@ -35,7 +35,7 @@ final class ListManagementOptions
     /**
      * @param array{
      *   ContactListName: string,
-     *   TopicName?: string|null,
+     *   TopicName?: null|string,
      * }|ListManagementOptions $input
      */
     public static function create($input): self

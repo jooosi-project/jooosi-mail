@@ -4,7 +4,6 @@ namespace JooosiMailDeps\AsyncAws\Ses\Result;
 
 use JooosiMailDeps\AsyncAws\Core\Response;
 use JooosiMailDeps\AsyncAws\Core\Result;
-use JooosiMailDeps\AsyncAws\Ses\Enum\SuppressionListReason;
 use JooosiMailDeps\AsyncAws\Ses\ValueObject\SuppressedDestination;
 use JooosiMailDeps\AsyncAws\Ses\ValueObject\SuppressedDestinationAttributes;
 /**
@@ -30,7 +29,7 @@ class GetSuppressedDestinationResponse extends Result
     }
     private function populateResultSuppressedDestination(array $json): SuppressedDestination
     {
-        return new SuppressedDestination(['EmailAddress' => (string) $json['EmailAddress'], 'Reason' => !SuppressionListReason::exists((string) $json['Reason']) ? SuppressionListReason::UNKNOWN_TO_SDK : (string) $json['Reason'], 'LastUpdateTime' => $d = \DateTimeImmutable::createFromFormat('U.u', \sprintf('%.6F', $json['LastUpdateTime'])), 'Attributes' => empty($json['Attributes']) ? null : $this->populateResultSuppressedDestinationAttributes($json['Attributes']), 'TenantName' => isset($json['TenantName']) ? (string) $json['TenantName'] : null]);
+        return new SuppressedDestination(['EmailAddress' => (string) $json['EmailAddress'], 'Reason' => (string) $json['Reason'], 'LastUpdateTime' => $d = \DateTimeImmutable::createFromFormat('U.u', \sprintf('%.6F', $json['LastUpdateTime'])), 'Attributes' => empty($json['Attributes']) ? null : $this->populateResultSuppressedDestinationAttributes($json['Attributes'])]);
     }
     private function populateResultSuppressedDestinationAttributes(array $json): SuppressedDestinationAttributes
     {

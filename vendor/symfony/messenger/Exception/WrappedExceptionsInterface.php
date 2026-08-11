@@ -15,16 +15,10 @@ namespace JooosiMailDeps\Symfony\Component\Messenger\Exception;
  *
  * @author Jeroen <https://github.com/Jeroeny>
  */
-interface WrappedExceptionsInterface extends \Throwable
+interface WrappedExceptionsInterface
 {
     /**
-     * @template TException of \Throwable
-     *
-     * @param class-string<TException>|null $class
-     *
      * @return \Throwable[]
-     *
-     * @psalm-return ($class is null ? \Throwable[] : TException[])
      */
     public function getWrappedExceptions(?string $class = null, bool $recursive = \false): array;
 }

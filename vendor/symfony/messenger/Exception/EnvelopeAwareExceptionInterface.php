@@ -11,6 +11,9 @@
 namespace JooosiMailDeps\Symfony\Component\Messenger\Exception;
 
 use JooosiMailDeps\Symfony\Component\Messenger\Envelope;
+/**
+ * @internal
+ */
 interface EnvelopeAwareExceptionInterface
 {
     public function getEnvelope(): ?Envelope;

@@ -29,9 +29,11 @@ final class EventSourceHttpClient implements HttpClientInterface, ResetInterface
     use AsyncDecoratorTrait, HttpClientTrait {
         AsyncDecoratorTrait::withOptions insteadof HttpClientTrait;
     }
-    public function __construct(?HttpClientInterface $client = null, private float $reconnectionTime = 10.0)
+    private float $reconnectionTime;
+    public function __construct(?HttpClientInterface $client = null, float $reconnectionTime = 10.0)
     {
         $this->client = $client ?? HttpClient::create();
+        $this->reconnectionTime = $reconnectionTime;
     }
     public function connect(string $url, array $options = [], string $method = 'GET'): ResponseInterface
     {
@@ -45,6 +47,7 @@ final class EventSourceHttpClient implements HttpClientInterface, ResetInterface
             public ?string $lastEventId = null;
             public float $reconnectionTime;
             public ?float $lastError = null;
+            public bool $firstChunkSeen = \false;
         };
         $state->reconnectionTime = $this->reconnectionTime;
         if ($accept = self::normalizeHeaders($options['headers'] ?? [])['accept'] ?? []) {
@@ -92,7 +95,10 @@ final class EventSourceHttpClient implements HttpClientInterface, ResetInterface
                 } else {
                     $context->passthru();
                 }
-                yield $chunk;
+                if (!$state->firstChunkSeen) {
+                    $state->firstChunkSeen = \true;
+                    yield $chunk;
+                }
                 return;
             }
             if ($chunk->isLast()) {

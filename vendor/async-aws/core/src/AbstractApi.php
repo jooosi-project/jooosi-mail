@@ -14,7 +14,6 @@ use JooosiMailDeps\AsyncAws\Core\Exception\InvalidArgument;
 use JooosiMailDeps\AsyncAws\Core\Exception\LogicException;
 use JooosiMailDeps\AsyncAws\Core\Exception\RuntimeException;
 use JooosiMailDeps\AsyncAws\Core\HttpClient\AwsRetryStrategy;
-use JooosiMailDeps\AsyncAws\Core\HttpClient\BuildHttpQueryTrait;
 use JooosiMailDeps\AsyncAws\Core\Signer\Signer;
 use JooosiMailDeps\AsyncAws\Core\Signer\SignerV4;
 use JooosiMailDeps\AsyncAws\Core\Stream\StringStream;
@@ -31,7 +30,6 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 abstract class AbstractApi
 {
-    use BuildHttpQueryTrait;
     /**
      * @var HttpClientInterface
      */
@@ -126,7 +124,7 @@ abstract class AbstractApi
         }
         $length = $request->getBody()->length();
         if (null !== $length && !$request->hasHeader('content-length')) {
-            $request->setHeader('Content-Length', (string) $length);
+            $request->setHeader('content-length', (string) $length);
         }
         // Some servers (like testing Docker Images) does not support `Transfer-Encoding: chunked` requests.
         // The body is converted into string to prevent curl using `Transfer-Encoding: chunked` unless it really has to.
@@ -176,9 +174,9 @@ abstract class AbstractApi
     /**
      * Build the endpoint full uri.
      *
-     * @param string                         $uri    or path
-     * @param array<string, string|string[]> $query  parameters that should go in the query string
-     * @param ?string                        $region region provided by the user in the `@region` parameter of the Input
+     * @param string                $uri    or path
+     * @param array<string, string> $query  parameters that should go in the query string
+     * @param ?string               $region region provided by the user in the `@region` parameter of the Input
      */
     protected function getEndpoint(string $uri, array $query, ?string $region): string
     {
@@ -199,7 +197,7 @@ abstract class AbstractApi
         if ([] === $query) {
             return $endpoint;
         }
-        return $endpoint . (\false === strpos($endpoint, '?') ? '?' : '&') . $this->buildHttpQuery($query);
+        return $endpoint . (\false === strpos($endpoint, '?') ? '?' : '&') . http_build_query($query, '', '&', \PHP_QUERY_RFC3986);
     }
     /**
      * @return EndpointInterface[]
@@ -209,7 +207,7 @@ abstract class AbstractApi
         throw new LogicException(\sprintf('The Client "%s" must implement the "%s" method.', \get_class($this), 'discoverEndpoints'));
     }
     /**
-     * @param array<string, string|string[]> $query
+     * @param array<string, string> $query
      *
      * @return string
      */
@@ -245,21 +243,21 @@ abstract class AbstractApi
         if (empty($query)) {
             return $endpoint;
         }
-        return $endpoint . (\false === strpos($endpoint, '?') ? '?' : '&') . $this->buildHttpQuery($query);
+        return $endpoint . (\false === strpos($endpoint, '?') ? '?' : '&') . http_build_query($query);
     }
     /**
      * @param ?string $region region provided by the user in the `@region` parameter of the Input
      */
     private function getSigner(?string $region): Signer
     {
+        /** @var string $region */
         $region = $region ?? ($this->configuration->isDefault('region') ? null : $this->configuration->get('region'));
-        if (!isset($this->signers[$region ?? ''])) {
+        if (!isset($this->signers[$region])) {
             $factories = $this->getSignerFactories();
             $factory = null;
             if ($this->configuration->isDefault('endpoint') || $this->configuration->isDefault('region')) {
                 $metadata = $this->getEndpointMetadata($region);
             } else {
-                \assert(null !== $region);
                 // Allow non-aws region with custom endpoint
                 $metadata = $this->getEndpointMetadata(Configuration::DEFAULT_REGION);
                 $metadata['signRegion'] = $region;
@@ -273,8 +271,9 @@ abstract class AbstractApi
             if (null === $factory) {
                 throw new InvalidArgument(\sprintf('None of the signatures "%s" is implemented.', implode(', ', $metadata['signVersions'])));
             }
-            $this->signers[$region ?? ''] = $factory($metadata['signService'], $metadata['signRegion']);
+            $this->signers[$region] = $factory($metadata['signService'], $metadata['signRegion']);
         }
-        return $this->signers[$region ?? ''];
+        /** @psalm-suppress PossiblyNullArrayOffset */
+        return $this->signers[$region];
     }
 }

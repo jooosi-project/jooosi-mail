@@ -14,8 +14,6 @@ use JooosiMailDeps\Composer\Autoload\ClassLoader;
 use JooosiMailDeps\Symfony\Component\Config\Resource\FileResource;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\AbstractArgument;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\ArgumentInterface;
-use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\EnvClosure;
-use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\EnvClosureArgument;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\LazyClosure;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\ServiceClosureArgument;
@@ -101,8 +99,10 @@ class PhpDumper extends Dumper
     }
     /**
      * Sets the dumper to be used when dumping proxies in the generated container.
+     *
+     * @return void
      */
-    public function setProxyDumper(DumperInterface $proxyDumper): void
+    public function setProxyDumper(DumperInterface $proxyDumper)
     {
         $this->proxyDumper = $proxyDumper;
         $this->hasProxyDumper = !$proxyDumper instanceof NullDumper;
@@ -128,7 +128,24 @@ class PhpDumper extends Dumper
         $this->inlinedRequires = [];
         $this->exportedVariables = [];
         $this->dynamicParameters = [];
-        $options = array_merge(['class' => 'ProjectServiceContainer', 'base_class' => 'Container', 'namespace' => '', 'as_files' => \false, 'debug' => \true, 'hot_path_tag' => 'container.hot_path', 'preload_tags' => ['container.preload', 'container.no_preload'], 'inline_factories' => null, 'inline_class_loader' => null, 'preload_classes' => [], 'service_locator_tag' => 'container.service_locator', 'build_time' => filter_var($_SERVER['SOURCE_DATE_EPOCH'] ?? null, \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE) ?? time()], $options);
+        $options = array_merge([
+            'class' => 'ProjectServiceContainer',
+            'base_class' => 'Container',
+            'namespace' => '',
+            'as_files' => \false,
+            'debug' => \true,
+            'hot_path_tag' => 'container.hot_path',
+            'preload_tags' => ['container.preload', 'container.no_preload'],
+            'inline_factories_parameter' => 'container.dumper.inline_factories',
+            // @deprecated since Symfony 6.3
+            'inline_class_loader_parameter' => 'container.dumper.inline_class_loader',
+            // @deprecated since Symfony 6.3
+            'inline_factories' => null,
+            'inline_class_loader' => null,
+            'preload_classes' => [],
+            'service_locator_tag' => 'container.service_locator',
+            'build_time' => time(),
+        ], $options);
         $this->addGetService = \false;
         $this->namespace = $options['namespace'];
         $this->asFiles = $options['as_files'];
@@ -137,10 +154,21 @@ class PhpDumper extends Dumper
         $this->inlineFactories = \false;
         if (isset($options['inline_factories'])) {
             $this->inlineFactories = $this->asFiles && $options['inline_factories'];
+        } elseif (!$options['inline_factories_parameter']) {
+            trigger_deprecation('symfony/dependency-injection', '6.3', 'Option "inline_factories_parameter" passed to "%s()" is deprecated, use option "inline_factories" instead.', __METHOD__);
+        } elseif ($this->container->hasParameter($options['inline_factories_parameter'])) {
+            trigger_deprecation('symfony/dependency-injection', '6.3', 'Option "inline_factories_parameter" passed to "%s()" is deprecated, use option "inline_factories" instead.', __METHOD__);
+            $this->inlineFactories = $this->asFiles && $this->container->getParameter($options['inline_factories_parameter']);
         }
         $this->inlineRequires = $options['debug'];
         if (isset($options['inline_class_loader'])) {
             $this->inlineRequires = $options['inline_class_loader'];
+        } elseif (!$options['inline_class_loader_parameter']) {
+            trigger_deprecation('symfony/dependency-injection', '6.3', 'Option "inline_class_loader_parameter" passed to "%s()" is deprecated, use option "inline_class_loader" instead.', __METHOD__);
+            $this->inlineRequires = \false;
+        } elseif ($this->container->hasParameter($options['inline_class_loader_parameter'])) {
+            trigger_deprecation('symfony/dependency-injection', '6.3', 'Option "inline_class_loader_parameter" passed to "%s()" is deprecated, use option "inline_class_loader" instead.', __METHOD__);
+            $this->inlineRequires = $this->container->getParameter($options['inline_class_loader_parameter']);
         }
         $this->serviceLocatorTag = $options['service_locator_tag'];
         $this->class = $options['class'];
@@ -207,7 +235,7 @@ EOF;
             $preloadedFiles = [];
             $ids = $this->container->getRemovedIds();
             foreach ($this->container->getDefinitions() as $id => $definition) {
-                if (!$definition->isPublic() && '.' !== ($id[0] ?? '-')) {
+                if (!$definition->isPublic()) {
                     $ids[$id] = \true;
                 }
             }
@@ -636,17 +664,6 @@ EOF;
         }
         return \true;
     }
-    private function getResetMethodsCode(Definition $definition): ?string
-    {
-        if (!$resetTags = $definition->getTag('container.tracked_for_reset')) {
-            return null;
-        }
-        $methods = [];
-        foreach ($resetTags as $tag) {
-            $methods[] = $this->export($tag['method']);
-        }
-        return implode(', ', $methods);
-    }
     private function addServiceMethodCalls(Definition $definition, string $variableName, ?string $sharedNonLazyId): string
     {
         $lastWitherIndex = null;
@@ -861,7 +878,7 @@ EOF;
         if (!$hasSelfRef || !$forConstructor) {
             return $code;
         }
-        return $code . \sprintf(<<<'EOTXT'
+        $code .= \sprintf(<<<'EOTXT'
 
         if (isset($container->%s[%s])) {
             return $container->%1$s[%2$s];
@@ -869,6 +886,7 @@ EOF;
 
 EOTXT
 , $this->container->getDefinition($id)->isPublic() ? 'services' : 'privates', $this->doExport($id));
+        return $code;
     }
     private function addInlineService(string $id, Definition $definition, ?Definition $inlineDef = null, bool $forConstructor = \true): string
     {
@@ -886,8 +904,6 @@ EOTXT
         $arguments = [$inlineDef->getArguments(), $inlineDef->getFactory()];
         $code .= $this->addInlineVariables($id, $definition, $arguments, $forConstructor);
         if ($arguments = array_filter([$inlineDef->getProperties(), $inlineDef->getMethodCalls(), $inlineDef->getConfigurator()])) {
-            $isSimpleInstance = \false;
-        } elseif ($isRootInstance && $this->container->hasDefinition($id) && $this->container->getDefinition($id)->hasTag('container.tracked_for_reset')) {
             $isSimpleInstance = \false;
         } elseif ($definition !== $inlineDef && 2 > $this->inlinedDefinitions[$inlineDef]) {
             return $code;
@@ -916,9 +932,6 @@ EOTXT
         }
         if (!$isRootInstance || $isSimpleInstance) {
             return $code;
-        }
-        if ($this->container->hasDefinition($id) && $methodsCode = $this->getResetMethodsCode($this->container->getDefinition($id))) {
-            $code .= \sprintf("\n        \$container->trackForReset(\$instance, [%s]);\n", $methodsCode);
         }
         return $code . "\n        return \$instance;\n";
     }
@@ -962,13 +975,14 @@ EOTXT
     private function addNewInstance(Definition $definition, string $return = '', ?string $id = null, bool $asGhostObject = \false): string
     {
         $tail = $return ? str_repeat(')', substr_count($return, '(') - substr_count($return, ')')) . ";\n" : '';
-        $arguments = [];
         if (BaseServiceLocator::class === $definition->getClass() && $definition->hasTag($this->serviceLocatorTag)) {
+            $arguments = [];
             foreach ($definition->getArgument(0) as $k => $argument) {
                 $arguments[$k] = $argument->getValues()[0];
             }
             return $return . $this->dumpValue(new ServiceLocatorArgument($arguments)) . $tail;
         }
+        $arguments = [];
         foreach ($definition->getArguments() as $i => $value) {
             $arguments[] = (\is_string($i) ? $i . ': ' : '') . $this->dumpValue($value);
         }
@@ -1049,8 +1063,6 @@ class {$class} extends {$baseClass}
 {
     private const DEPRECATED_PARAMETERS = [];
 
-    private const NONEMPTY_PARAMETERS = [];
-
     protected \$parameters = [];
 
     public function __construct()
@@ -1058,7 +1070,6 @@ class {$class} extends {$baseClass}
 
 EOF;
         $code = str_replace("    private const DEPRECATED_PARAMETERS = [];\n\n", $this->addDeprecatedParameters(), $code);
-        $code = str_replace("    private const NONEMPTY_PARAMETERS = [];\n\n", $this->addNonEmptyParameters(), $code);
         if ($this->asFiles) {
             $code = str_replace('__construct()', '__construct(private array $buildParameters = [], protected string $containerDir = __DIR__)', $code);
             if (null !== $this->targetDirRegex) {
@@ -1153,7 +1164,7 @@ EOF;
     {
         $ids = $this->container->getRemovedIds();
         foreach ($this->container->getDefinitions() as $id => $definition) {
-            if (!$definition->isPublic() && '.' !== ($id[0] ?? '-')) {
+            if (!$definition->isPublic()) {
                 $ids[$id] = \true;
             }
         }
@@ -1197,21 +1208,6 @@ EOF;
             $code .= '        ' . $this->doExport($param) . ' => [' . implode(', ', array_map($this->doExport(...), $deprecation)) . "],\n";
         }
         return "    private const DEPRECATED_PARAMETERS = [\n{$code}    ];\n\n";
-    }
-    private function addNonEmptyParameters(): string
-    {
-        if (!($bag = $this->container->getParameterBag()) instanceof ParameterBag) {
-            return '';
-        }
-        if (!$nonEmpty = $bag->allNonEmpty()) {
-            return '';
-        }
-        $code = '';
-        ksort($nonEmpty);
-        foreach ($nonEmpty as $param => $message) {
-            $code .= '        ' . $this->doExport($param) . ' => ' . $this->doExport($message) . ",\n";
-        }
-        return "    private const NONEMPTY_PARAMETERS = [\n{$code}    ];\n\n";
     }
     private function addMethodMap(): string
     {
@@ -1331,24 +1327,23 @@ EOF;
             return \false;
         }
         $r = $this->container->getReflectionClass($this->baseClass, \false);
-        return null !== $r && null !== ($constructor = $r->getConstructor()) && 0 === $constructor->getNumberOfRequiredParameters() && Container::class !== $constructor->class;
+        return null !== $r && null !== ($constructor = $r->getConstructor()) && 0 === $constructor->getNumberOfRequiredParameters() && Container::class !== $constructor->getDeclaringClass()->name;
     }
     private function addDefaultParametersMethod(): string
     {
-        $bag = $this->container->getParameterBag();
-        if (!$bag->all() && (!$bag instanceof ParameterBag || !$bag->allNonEmpty()) && !$this->needsUnsetParameterBag()) {
+        if (!$this->container->getParameterBag()->all() && !$this->needsUnsetParameterBag()) {
             return '';
         }
         $php = [];
         $dynamicPhp = [];
-        foreach ($bag->all() as $key => $value) {
+        foreach ($this->container->getParameterBag()->all() as $key => $value) {
             if ($key !== $resolvedKey = $this->container->resolveEnvPlaceholders($key)) {
                 throw new InvalidArgumentException(\sprintf('Parameter name cannot use env parameters: "%s".', $resolvedKey));
             }
             $hasEnum = \false;
             $export = $this->exportParameters([$value], '', 12, $hasEnum);
             $export = explode('0 => ', substr(rtrim($export, " ]\n"), 2, -1), 2);
-            if ($hasEnum || preg_match("/\\\$container->(?:getEnv\\('(?:[-.\\w\\\\]*+:)*+[\\w.]*+'\\)|targetDir\\.'')/", $export[1])) {
+            if ($hasEnum || preg_match("/\\\$container->(?:getEnv\\('(?:[-.\\w\\\\]*+:)*+\\w*+'\\)|targetDir\\.'')/", $export[1])) {
                 $dynamicPhp[$key] = \sprintf('%s%s => %s,', $export[0], $this->export($key), $export[1]);
                 $this->dynamicParameters[$key] = \true;
             } else {
@@ -1369,18 +1364,14 @@ EOF;
         }
 
         if (isset($this->loadedDynamicParameters[$name])) {
-            $value = $this->loadedDynamicParameters[$name] ? $this->dynamicParameters[$name] : $this->getDynamicParameter($name);
-        } elseif (\array_key_exists($name, $this->parameters) && '.' !== ($name[0] ?? '')) {
-            $value = $this->parameters[$name];
-        } else {
-            throw new ParameterNotFoundException($name, extraMessage: self::NONEMPTY_PARAMETERS[$name] ?? null);
+            return $this->loadedDynamicParameters[$name] ? $this->dynamicParameters[$name] : $this->getDynamicParameter($name);
         }
 
-        if (isset(self::NONEMPTY_PARAMETERS[$name]) && (null === $value || '' === $value || [] === $value)) {
-            throw new \Symfony\Component\DependencyInjection\Exception\EmptyParameterValueException(self::NONEMPTY_PARAMETERS[$name]);
+        if (!\array_key_exists($name, $this->parameters) || '.' === ($name[0] ?? '')) {
+            throw new ParameterNotFoundException($name);
         }
 
-        return $value;
+        return $this->parameters[$name];
     }
 
     public function hasParameter(string $name): bool
@@ -1407,7 +1398,7 @@ EOF;
             foreach ($this->buildParameters as $name => $value) {
                 $parameters[$name] = $value;
             }
-            $this->parameterBag = new FrozenParameterBag($parameters, self::DEPRECATED_PARAMETERS, self::NONEMPTY_PARAMETERS);
+            $this->parameterBag = new FrozenParameterBag($parameters, self::DEPRECATED_PARAMETERS);
         }
 
         return $this->parameterBag;
@@ -1417,14 +1408,9 @@ EOF;
         if (!$this->asFiles) {
             $code = preg_replace('/^.*buildParameters.*\n.*\n.*\n\n?/m', '', $code);
         }
-        if (!$bag instanceof ParameterBag || !$bag->allDeprecated()) {
+        if (!($bag = $this->container->getParameterBag()) instanceof ParameterBag || !$bag->allDeprecated()) {
             $code = preg_replace("/\n.*DEPRECATED_PARAMETERS.*\n.*\n.*\n/m", '', $code, 1);
-            $code = str_replace(', self::DEPRECATED_PARAMETERS', ', []', $code);
-        }
-        if (!$bag instanceof ParameterBag || !$bag->allNonEmpty()) {
-            $code = str_replace(', extraMessage: self::NONEMPTY_PARAMETERS[$name] ?? null', '', $code);
-            $code = str_replace(', self::NONEMPTY_PARAMETERS', '', $code);
-            $code = preg_replace("/\n.*NONEMPTY_PARAMETERS.*\n.*\n.*\n/m", '', $code, 1);
+            $code = str_replace(', self::DEPRECATED_PARAMETERS', '', $code);
         }
         if ($dynamicPhp) {
             $loadedDynamicParameters = $this->exportParameters(array_combine(array_keys($dynamicPhp), array_fill(0, \count($dynamicPhp), \false)), '', 8);
@@ -1443,7 +1429,7 @@ EOF;
             $loadedDynamicParameters = '[]';
             $getDynamicParameter = str_repeat(' ', 8) . 'throw new ParameterNotFoundException($name);';
         }
-        return $code . <<<EOF
+        $code .= <<<EOF
 
     private \$loadedDynamicParameters = {$loadedDynamicParameters};
     private \$dynamicParameters = [];
@@ -1459,6 +1445,7 @@ EOF;
     }
 
 EOF;
+        return $code;
     }
     /**
      * @throws InvalidArgumentException
@@ -1598,11 +1585,6 @@ EOF;
                     }
                     return \sprintf('%sfn ()%s => %s', $attribute, $returnedType, $code);
                 }
-                if ($value instanceof EnvClosureArgument) {
-                    $closure = \sprintf('fn () => %s', $this->export($value->getValue()));
-                    $code = \sprintf('new \%s(%s, %s)', EnvClosure::class, $closure, $this->export($value->getDefault()));
-                    return $value->isStringable() ? $code : (null !== $value->getDefault() ? $code . '->__invoke(...)' : $closure);
-                }
                 if ($value instanceof IteratorArgument) {
                     if (!$values = $value->getValues()) {
                         return 'new RewindableGenerator(fn () => new \EmptyIterator(), 0)';
@@ -1663,11 +1645,7 @@ EOF;
             if (null !== $value->getConfigurator()) {
                 throw new RuntimeException('Cannot dump definitions which have a configurator.');
             }
-            $code = $this->addNewInstance($value);
-            if ($methodsCode = $this->getResetMethodsCode($value)) {
-                return \sprintf('$container->trackForReset(%s, [%s])', $code, $methodsCode);
-            }
-            return $code;
+            return $this->addNewInstance($value);
         } elseif ($value instanceof Variable) {
             return '$' . $value;
         } elseif ($value instanceof Reference) {
@@ -1690,7 +1668,8 @@ EOF;
                 return $this->dumpParameter($match[1]);
             }
             $replaceParameters = fn($match) => "'." . $this->dumpParameter($match[2]) . ".'";
-            return str_replace('%%', '%', preg_replace_callback('/(?<!%)(%)([^%]+)\1/', $replaceParameters, $this->export($value)));
+            $code = str_replace('%%', '%', preg_replace_callback('/(?<!%)(%)([^%]+)\1/', $replaceParameters, $this->export($value)));
+            return $code;
         } elseif ($value instanceof \UnitEnum) {
             return \sprintf('\%s::%s', $value::class, $value->name);
         } elseif ($value instanceof AbstractArgument) {
@@ -1744,7 +1723,7 @@ EOF;
                 if (!$definition->isShared()) {
                     return $code;
                 }
-            } elseif ($this->isTrivialInstance($definition) && ($definition->isShared() || !$definition->hasTag('container.tracked_for_reset'))) {
+            } elseif ($this->isTrivialInstance($definition)) {
                 if ($definition->hasErrors() && $e = $definition->getErrors()) {
                     return \sprintf('throw new RuntimeException(%s)', $this->export(reset($e)));
                 }
@@ -1819,8 +1798,10 @@ EOF;
         while (\true) {
             $name = '';
             $i = $this->variableCount;
-            $name .= $firstChars[$i % $firstCharsLength];
-            $i = (int) ($i / $firstCharsLength);
+            if ('' === $name) {
+                $name .= $firstChars[$i % $firstCharsLength];
+                $i = (int) ($i / $firstCharsLength);
+            }
             while ($i > 0) {
                 --$i;
                 $name .= $nonFirstChars[$i % $nonFirstCharsLength];
@@ -2036,7 +2017,7 @@ EOF;
                 }
                 // replace multiple new lines with a single newline
                 $rawChunk .= preg_replace(['/\n{2,}/S'], "\n", $token[1]);
-            } elseif (\in_array($token[0], [\T_COMMENT, \T_DOC_COMMENT], \true)) {
+            } elseif (\in_array($token[0], [\T_COMMENT, \T_DOC_COMMENT])) {
                 if (!\in_array($rawChunk[\strlen($rawChunk) - 1], [' ', "\n", "\r", "\t"], \true)) {
                     $rawChunk .= ' ';
                 }

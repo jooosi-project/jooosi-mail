@@ -13,7 +13,6 @@ namespace JooosiMailDeps\Symfony\Component\DependencyInjection\Dumper;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Alias;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\AbstractArgument;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\ArgumentInterface;
-use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\EnvClosureArgument;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\ServiceClosureArgument;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\ServiceLocatorArgument;
@@ -124,7 +123,7 @@ class YamlDumper extends Dumper
                 $code .= \sprintf("        decoration_priority: %s\n", $priority);
             }
             $decorationOnInvalid = $decoratedService[3] ?? ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE;
-            if (\in_array($decorationOnInvalid, [ContainerInterface::IGNORE_ON_INVALID_REFERENCE, ContainerInterface::NULL_ON_INVALID_REFERENCE], \true)) {
+            if (\in_array($decorationOnInvalid, [ContainerInterface::IGNORE_ON_INVALID_REFERENCE, ContainerInterface::NULL_ON_INVALID_REFERENCE])) {
                 $invalidBehavior = ContainerInterface::NULL_ON_INVALID_REFERENCE === $decorationOnInvalid ? 'null' : 'ignore';
                 $code .= \sprintf("        decoration_on_invalid: %s\n", $invalidBehavior);
             }
@@ -211,14 +210,6 @@ class YamlDumper extends Dumper
             $value = $value->getValues()[0];
             return new TaggedValue('service_closure', $this->dumpValue($value));
         }
-        if ($value instanceof EnvClosureArgument) {
-            $envExpr = $this->container->resolveEnvPlaceholders($value->getValue());
-            $default = $value->getDefault();
-            if (!$value->isStringable()) {
-                return new TaggedValue('env_closure', null === $default ? $envExpr : [$envExpr, $default, \false]);
-            }
-            return new TaggedValue('env_closure', [$envExpr, $default]);
-        }
         if ($value instanceof ArgumentInterface) {
             $tag = $value;
             if ($value instanceof TaggedIteratorArgument || $value instanceof ServiceLocatorArgument && $tag = $value->getTaggedIteratorArgument()) {
@@ -226,12 +217,11 @@ class YamlDumper extends Dumper
                     $content = $tag->getTag();
                 } else {
                     $content = ['tag' => $tag->getTag(), 'index_by' => $tag->getIndexAttribute()];
-                    $defaultPrefix = 'getDefault' . str_replace(' ', '', ucwords(preg_replace('/[^a-zA-Z0-9\x7f-\xff]++/', ' ', $tag->getIndexAttribute())));
-                    if (!\in_array($tag->getDefaultIndexMethod(\false), [null, $defaultPrefix . 'Name'], \true)) {
-                        $content['default_index_method'] = $tag->getDefaultIndexMethod(\false);
+                    if (null !== $tag->getDefaultIndexMethod()) {
+                        $content['default_index_method'] = $tag->getDefaultIndexMethod();
                     }
-                    if (!\in_array($tag->getDefaultPriorityMethod(\false), [null, $defaultPrefix . 'Priority'], \true)) {
-                        $content['default_priority_method'] = $tag->getDefaultPriorityMethod(\false);
+                    if (null !== $tag->getDefaultPriorityMethod()) {
+                        $content['default_priority_method'] = $tag->getDefaultPriorityMethod();
                     }
                 }
                 if ($excludes = $tag->getExclude()) {
@@ -269,7 +259,7 @@ class YamlDumper extends Dumper
         } elseif ($value instanceof Definition) {
             return new TaggedValue('service', (new Parser())->parse("_:\n" . $this->addService('_', $value), Yaml::PARSE_CUSTOM_TAGS)['_']['_']);
         } elseif ($value instanceof \UnitEnum) {
-            return new TaggedValue('php/enum', \sprintf('%s::%s', $value::class, $value->name));
+            return new TaggedValue('php/const', \sprintf('%s::%s', $value::class, $value->name));
         } elseif ($value instanceof AbstractArgument) {
             return new TaggedValue('abstract', $value->getText());
         } elseif (\is_object($value) || \is_resource($value)) {

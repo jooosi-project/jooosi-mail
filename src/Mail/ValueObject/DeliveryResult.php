@@ -8,9 +8,9 @@ namespace JooosiMail\Mail\ValueObject;
  *
  * @since 0.1.0
  */
-final readonly class DeliveryResult
+final class DeliveryResult
 {
-    public function __construct(public bool $successful, public ?int $connectionId = null, public ?string $transportMessageId = null, public ?string $debug = null, public ?string $error = null, public bool $temporaryFailure = \false, public ?int $retryAfterSeconds = null)
+    public function __construct(public readonly bool $successful, public readonly ?int $connectionId = null, public readonly ?string $transportMessageId = null, public readonly ?string $debug = null, public readonly ?string $error = null, public readonly bool $temporaryFailure = \false, public readonly ?int $retryAfterSeconds = null)
     {
     }
 }

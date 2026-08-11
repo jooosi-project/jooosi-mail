@@ -18,8 +18,10 @@ use JooosiMailDeps\Symfony\Component\Messenger\Worker;
  */
 final class WorkerStoppedEvent
 {
-    public function __construct(private Worker $worker)
+    private Worker $worker;
+    public function __construct(Worker $worker)
     {
+        $this->worker = $worker;
     }
     public function getWorker(): Worker
     {

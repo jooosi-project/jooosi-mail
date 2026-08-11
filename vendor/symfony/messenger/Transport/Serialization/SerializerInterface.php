@@ -27,14 +27,6 @@ interface SerializerInterface
      * - `body` (string) - the message body
      * - `headers` (string<string>) - a key/value pair of headers
      *
-     * On failure, implementations SHOULD return an Envelope wrapping a
-     * MessageDecodingFailedException instead of throwing, so that the worker
-     * can route the failure through the normal retry/DLQ path. Throwing a
-     * MessageDecodingFailedException is still supported for BC with custom
-     * serializers; transports will wrap the exception as a fallback.
-     *
-     * @param array{body: string, headers?: array<string, string>} $encodedEnvelope
-     *
      * @throws MessageDecodingFailedException
      */
     public function decode(array $encodedEnvelope): Envelope;
@@ -48,8 +40,6 @@ interface SerializerInterface
      * The most common keys of the encoded array are:
      * - `body` (string) - the message body
      * - `headers` (string<string>) - a key/value pair of headers
-     *
-     * @return array{body: string, headers?: array<string, string>}
      */
     public function encode(Envelope $envelope): array;
 }

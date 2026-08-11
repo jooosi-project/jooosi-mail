@@ -18,9 +18,9 @@ use Throwable;
  *
  * @since 0.1.0
  */
-final readonly class ContainerCache
+final class ContainerCache
 {
-    public function __construct(private Paths $paths, private Environment $environment)
+    public function __construct(private readonly Paths $paths, private readonly Environment $environment)
     {
     }
     /**

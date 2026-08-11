@@ -4,7 +4,7 @@ declare (strict_types=1);
 namespace JooosiMailDeps;
 
 \defined('ABSPATH') || exit;
-\define('JOOOSI_MAIL_VERSION', '1.0.7');
+\define('JOOOSI_MAIL_VERSION', '1.0.8');
 \define('JOOOSI_MAIL_PLUGIN_FILE', __DIR__ . '/jooosi-mail.php');
 \define('JOOOSI_MAIL_PLUGIN_BASENAME', \plugin_basename(\JOOOSI_MAIL_PLUGIN_FILE));
 \define('JOOOSI_MAIL_PLUGIN_DIR', __DIR__);

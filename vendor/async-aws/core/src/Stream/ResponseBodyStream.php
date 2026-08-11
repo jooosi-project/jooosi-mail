@@ -4,7 +4,6 @@ declare (strict_types=1);
 namespace JooosiMailDeps\AsyncAws\Core\Stream;
 
 use JooosiMailDeps\AsyncAws\Core\Exception\LogicException;
-use JooosiMailDeps\AsyncAws\Core\Exception\RuntimeException;
 use JooosiMailDeps\Symfony\Contracts\HttpClient\ResponseStreamInterface;
 /**
  * Stream a HTTP response body.
@@ -50,9 +49,6 @@ class ResponseBodyStream implements ResultStream
             throw new LogicException(\sprintf('You can not call "%s". Another process doesn\'t reading "getChunks" till the end.', __METHOD__));
         }
         $resource = fopen('php://temp', 'rb+');
-        if (\false === $resource) {
-            throw new RuntimeException('Unable to create a temporary stream.');
-        }
         foreach ($this->responseStream as $chunk) {
             $this->partialRead = \true;
             $chunkContent = $chunk->getContent();

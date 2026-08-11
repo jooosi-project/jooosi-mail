@@ -4,9 +4,9 @@ declare (strict_types=1);
 namespace JooosiMailDeps\Doctrine\DBAL\Query;
 
 /** @internal */
-final readonly class Join
+final class Join
 {
-    private function __construct(public string $type, public string $table, public string $alias, public ?string $condition)
+    private function __construct(public readonly string $type, public readonly string $table, public readonly string $alias, public readonly ?string $condition)
     {
     }
     public static function inner(string $table, string $alias, ?string $condition): Join

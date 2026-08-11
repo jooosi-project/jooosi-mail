@@ -10,16 +10,13 @@
  */
 namespace JooosiMailDeps\Symfony\Component\VarExporter;
 
-use JooosiMailDeps\Symfony\Component\VarExporter\Exception\ClassNotFoundException;
 use JooosiMailDeps\Symfony\Component\VarExporter\Exception\ExceptionInterface;
 use JooosiMailDeps\Symfony\Component\VarExporter\Exception\NotInstantiableTypeException;
-trigger_deprecation('symfony/var-exporter', '8.1', 'The "%s" class is deprecated, use "deepclone_hydrate()" from the deepclone extension instead.', Instantiator::class);
+use JooosiMailDeps\Symfony\Component\VarExporter\Internal\Registry;
 /**
  * A utility class to create objects without calling their constructor.
  *
  * @author Nicolas Grekas <p@tchwork.com>
- *
- * @deprecated since Symfony 8.1, use deepclone_hydrate() from the deepclone extension instead
  */
 final class Instantiator
 {
@@ -30,46 +27,29 @@ final class Instantiator
      *
      * @template T of object
      *
-     * @param class-string<T>                           $class       The class of the instance to create
-     * @param array<string, mixed>                      $mangledVars The properties to set on the instance
-     * @param array<class-string, array<string, mixed>> $scopedVars  The properties to set on the instance,
-     *                                                               keyed by their declaring class
+     * @param class-string<T>                           $class            The class of the instance to create
+     * @param array<string, mixed>                      $properties       The properties to set on the instance
+     * @param array<class-string, array<string, mixed>> $scopedProperties The properties to set on the instance,
+     *                                                                    keyed by their declaring class
      *
      * @return T
      *
      * @throws ExceptionInterface When the instance cannot be created
      */
-    public static function instantiate(string $class, array $mangledVars = [], array $scopedVars = []): object
+    public static function instantiate(string $class, array $properties = [], array $scopedProperties = []): object
     {
-        if ($scopedVars) {
-            foreach ($scopedVars as $scope => $props) {
-                $isOwnScope = $scope === $class || 'stdClass' === $scope;
-                foreach ($props as $name => &$value) {
-                    $mangledVars[$isOwnScope ? $name : "\x00{$scope}\x00{$name}"] =& $value;
-                }
-            }
-            unset($value);
+        $reflector = Registry::$reflectors[$class] ??= Registry::getClassReflector($class);
+        if (Registry::$cloneable[$class]) {
+            $instance = clone Registry::$prototypes[$class];
+        } elseif (Registry::$instantiableWithoutConstructor[$class]) {
+            $instance = $reflector->newInstanceWithoutConstructor();
+        } elseif (null === Registry::$prototypes[$class]) {
+            throw new NotInstantiableTypeException($class);
+        } elseif ($reflector->implementsInterface('Serializable') && !method_exists($class, '__unserialize')) {
+            $instance = unserialize('C:' . \strlen($class) . ':"' . $class . '":0:{}', ['allowed_classes' => \true]);
+        } else {
+            $instance = unserialize('O:' . \strlen($class) . ':"' . $class . '":0:{}', ['allowed_classes' => \true]);
         }
-        if (\is_array($splState = $mangledVars["\x00"] ?? null)) {
-            unset($mangledVars["\x00"]);
-        }
-        try {
-            $instance = deepclone_hydrate($class, $mangledVars, \JooosiMailDeps\DEEPCLONE_HYDRATE_PRESERVE_REFS);
-        } catch (\JooosiMailDeps\DeepClone\ClassNotFoundException $e) {
-            throw new ClassNotFoundException($e);
-        } catch (\JooosiMailDeps\DeepClone\NotInstantiableException $e) {
-            throw new NotInstantiableTypeException($e);
-        }
-        if (!\is_array($splState)) {
-            return $instance;
-        }
-        if ($instance instanceof \SplObjectStorage) {
-            $instance->__unserialize([$splState, []]);
-        } elseif ($instance instanceof \ArrayObject) {
-            $instance->__unserialize([$splState[1] ?? 0, $splState[0] ?? [], [], $splState[2] ?? \ArrayIterator::class]);
-        } elseif ($instance instanceof \ArrayIterator) {
-            $instance->__unserialize([$splState[1] ?? 0, $splState[0] ?? [], []]);
-        }
-        return $instance;
+        return $properties || $scopedProperties ? Hydrator::hydrate($instance, $properties, $scopedProperties) : $instance;
     }
 }

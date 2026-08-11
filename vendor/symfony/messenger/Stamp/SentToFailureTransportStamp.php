@@ -17,8 +17,10 @@ namespace JooosiMailDeps\Symfony\Component\Messenger\Stamp;
  */
 final class SentToFailureTransportStamp implements StampInterface
 {
-    public function __construct(private string $originalReceiverName)
+    private string $originalReceiverName;
+    public function __construct(string $originalReceiverName)
     {
+        $this->originalReceiverName = $originalReceiverName;
     }
     public function getOriginalReceiverName(): string
     {

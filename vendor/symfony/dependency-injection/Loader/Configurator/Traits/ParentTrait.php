@@ -33,7 +33,7 @@ trait ParentTrait
             $definition = serialize($this->definition);
             $definition = substr_replace($definition, '68', 2, 2);
             $definition = substr_replace($definition, 'Child', 59, 0);
-            $definition = unserialize($definition);
+            $definition = unserialize($definition, ['allowed_classes' => \true]);
             $this->definition = $definition->setParent($parent);
         }
         return $this;

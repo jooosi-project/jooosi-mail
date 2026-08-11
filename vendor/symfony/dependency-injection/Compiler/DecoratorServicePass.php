@@ -26,7 +26,10 @@ use JooosiMailDeps\Symfony\Component\DependencyInjection\Reference;
 class DecoratorServicePass extends AbstractRecursivePass
 {
     protected bool $skipScalars = \true;
-    public function process(ContainerBuilder $container): void
+    /**
+     * @return void
+     */
+    public function process(ContainerBuilder $container)
     {
         $definitions = new \SplPriorityQueue();
         $order = \PHP_INT_MAX;
@@ -52,7 +55,6 @@ class DecoratorServicePass extends AbstractRecursivePass
             $this->processValue($definition);
             $definition->innerServiceId = $renamedId;
             $definition->decorationOnInvalid = $invalidBehavior;
-            $definition->decorationPriority = $decoratedService[2];
             // we create a new alias/service for the service we are replacing
             // to be able to reference it in the new one
             if ($container->hasAlias($inner)) {

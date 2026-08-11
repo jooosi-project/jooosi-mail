@@ -7,15 +7,8 @@ use JooosiMailDeps\Doctrine\DBAL\Connection;
 use JooosiMail\Bootstrap\Environment;
 use JooosiMail\Bootstrap\LifecycleManager;
 use JooosiMail\Bootstrap\Paths;
-use JooosiMail\Discovery\Discovery\CommandDiscovery;
-use JooosiMail\Discovery\Discovery\ControllerDiscovery;
-use JooosiMail\Discovery\Discovery\MailProfileDiscovery;
-use JooosiMail\Discovery\Discovery\MessageHandlerDiscovery;
-use JooosiMail\Discovery\Discovery\ServiceDiscovery;
-use JooosiMail\Discovery\Discovery\TransportFactoryDiscovery;
+use JooosiMail\Discovery\Runtime\AttributeDiscovery;
 use JooosiMail\Discovery\Runtime\DiscoveryManifest;
-use JooosiMail\Discovery\Runtime\DiscoveryState;
-use JooosiMail\Discovery\Runtime\NullDiscoveryContainer;
 use JooosiMail\Infrastructure\Database\DatabaseConnectionFactory;
 use JooosiMail\Infrastructure\Database\TableNameResolver;
 use JooosiMail\Infrastructure\Event\EventPublisherInterface;
@@ -31,31 +24,26 @@ use JooosiMail\Webhook\Event\WebhookHealthPenaltyProvider;
 use JooosiMailDeps\Psr\Container\ContainerInterface;
 use JooosiMailDeps\Psr\EventDispatcher\EventDispatcherInterface;
 use JooosiMailDeps\Psr\Log\LoggerInterface;
+use JooosiMailDeps\Psr\Log\NullLogger;
 use ReflectionClass;
 use Throwable;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\ContainerBuilder;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Definition;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Reference;
 use JooosiMailDeps\Symfony\Component\EventDispatcher\EventDispatcher;
+use JooosiMailDeps\Symfony\Component\HttpClient\HttpClient;
 use JooosiMailDeps\Symfony\Component\Messenger\MessageBusInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Transport\Serialization\PhpSerializer;
 use JooosiMailDeps\Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use JooosiMailDeps\Symfony\Contracts\HttpClient\HttpClientInterface;
-use JooosiMailDeps\Symfony\Component\HttpClient\HttpClient;
-use JooosiMailDeps\Psr\Log\NullLogger;
-use JooosiMailDeps\Tempest\Discovery\BootDiscovery;
-use JooosiMailDeps\Tempest\Discovery\DiscoveryCache;
-use JooosiMailDeps\Tempest\Discovery\DiscoveryCacheStrategy;
-use JooosiMailDeps\Tempest\Discovery\DiscoveryConfig;
-use JooosiMailDeps\Tempest\Discovery\DiscoveryLocation;
 /**
  * Builds the Jooosi Mail Symfony container.
  *
  * @since 0.1.0
  */
-final readonly class ContainerFactory
+final class ContainerFactory
 {
-    public function __construct(private Paths $paths, private Environment $environment)
+    public function __construct(private readonly Paths $paths, private readonly Environment $environment)
     {
     }
     /**
@@ -93,12 +81,7 @@ final readonly class ContainerFactory
      */
     private function discover(): DiscoveryManifest
     {
-        DiscoveryState::reset();
-        $config = new DiscoveryConfig([new DiscoveryLocation('JooosiMail', $this->paths->srcDir)]);
-        $config->classes = [ServiceDiscovery::class, ControllerDiscovery::class, CommandDiscovery::class, MailProfileDiscovery::class, TransportFactoryDiscovery::class, MessageHandlerDiscovery::class];
-        $bootDiscovery = new BootDiscovery(new NullDiscoveryContainer(), $config, new DiscoveryCache(DiscoveryCacheStrategy::NONE));
-        $bootDiscovery($config->classes, $config->locations);
-        return DiscoveryState::export();
+        return (new AttributeDiscovery('JooosiMail', $this->paths->srcDir))->discover();
     }
     /**
      * @since 0.1.0

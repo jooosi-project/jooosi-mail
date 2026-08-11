@@ -13,21 +13,18 @@ use JooosiMailDeps\Doctrine\DBAL\Platforms\MySQL\CollationMetadataProvider\Cachi
 use JooosiMailDeps\Doctrine\DBAL\Platforms\MySQL\CollationMetadataProvider\ConnectionCollationMetadataProvider;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\MySQL\DefaultTableOptions;
 use JooosiMailDeps\Doctrine\DBAL\Result;
-use JooosiMailDeps\Doctrine\DBAL\Schema\DefaultExpression\CurrentDate;
-use JooosiMailDeps\Doctrine\DBAL\Schema\DefaultExpression\CurrentTime;
-use JooosiMailDeps\Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp;
 use JooosiMailDeps\Doctrine\DBAL\Types\Type;
 use function array_change_key_case;
 use function array_map;
 use function assert;
 use function explode;
-use function func_get_arg;
-use function func_num_args;
 use function implode;
+use function is_string;
 use function preg_match;
 use function preg_match_all;
-use function sprintf;
 use function str_contains;
+use function strtok;
+use function strtolower;
 use function strtr;
 use const CASE_LOWER;
 /**
@@ -55,8 +52,6 @@ class MySQLSchemaManager extends AbstractSchemaManager
     ];
     private ?DefaultTableOptions $defaultTableOptions = null;
     /**
-     * @deprecated Use the schema name and the unqualified table name separately instead.
-     *
      * {@inheritDoc}
      */
     protected function _getPortableTableDefinition(array $table): string
@@ -73,23 +68,27 @@ class MySQLSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableIndexesList(array $rows, string $tableName): array
+    protected function _getPortableTableIndexesList(array $tableIndexes, string $tableName): array
     {
-        foreach ($rows as $i => $row) {
-            $row = array_change_key_case($row, CASE_LOWER);
-            $row['primary'] = $row['key_name'] === 'PRIMARY';
-            if (str_contains($row['index_type'], 'FULLTEXT')) {
-                $row['flags'] = ['FULLTEXT'];
-            } elseif (str_contains($row['index_type'], 'SPATIAL')) {
-                $row['flags'] = ['SPATIAL'];
+        foreach ($tableIndexes as $k => $v) {
+            $v = array_change_key_case($v, CASE_LOWER);
+            if ($v['key_name'] === 'PRIMARY') {
+                $v['primary'] = \true;
+            } else {
+                $v['primary'] = \false;
+            }
+            if (str_contains($v['index_type'], 'FULLTEXT')) {
+                $v['flags'] = ['FULLTEXT'];
+            } elseif (str_contains($v['index_type'], 'SPATIAL')) {
+                $v['flags'] = ['SPATIAL'];
             }
             // Ignore prohibited prefix `length` for spatial index
-            if (!str_contains($row['index_type'], 'SPATIAL')) {
-                $row['length'] = isset($row['sub_part']) ? (int) $row['sub_part'] : null;
+            if (!str_contains($v['index_type'], 'SPATIAL')) {
+                $v['length'] = isset($v['sub_part']) ? (int) $v['sub_part'] : null;
             }
-            $rows[$i] = $row;
+            $tableIndexes[$k] = $v;
         }
-        return parent::_getPortableTableIndexesList($rows, $tableName);
+        return parent::_getPortableTableIndexesList($tableIndexes, $tableName);
     }
     /**
      * {@inheritDoc}
@@ -104,21 +103,33 @@ class MySQLSchemaManager extends AbstractSchemaManager
     protected function _getPortableTableColumnDefinition(array $tableColumn): Column
     {
         $tableColumn = array_change_key_case($tableColumn, CASE_LOWER);
-        $dbType = $tableColumn['type'];
-        $length = null;
+        $dbType = strtolower($tableColumn['type']);
+        $dbType = strtok($dbType, '(), ');
+        assert(is_string($dbType));
+        $length = $tableColumn['length'] ?? strtok('(), ');
+        $fixed = \false;
+        if (!isset($tableColumn['name'])) {
+            $tableColumn['name'] = '';
+        }
         $scale = 0;
         $precision = null;
-        $fixed = \false;
-        $values = [];
         $type = $this->platform->getDoctrineTypeMapping($dbType);
+        $values = [];
         switch ($dbType) {
             case 'char':
-            case 'varchar':
-                $length = (int) $tableColumn['character_maximum_length'];
-                break;
             case 'binary':
-            case 'varbinary':
-                $length = (int) $tableColumn['character_octet_length'];
+                $fixed = \true;
+                break;
+            case 'float':
+            case 'double':
+            case 'real':
+            case 'numeric':
+            case 'decimal':
+                if (preg_match('([A-Za-z]+\(([0-9]+),([0-9]+)\))', $tableColumn['type'], $match) === 1) {
+                    $precision = (int) $match[1];
+                    $scale = (int) $match[2];
+                    $length = null;
+                }
                 break;
             case 'tinytext':
                 $length = AbstractMySQLPlatform::LENGTH_LIMIT_TINYTEXT;
@@ -138,40 +149,35 @@ class MySQLSchemaManager extends AbstractSchemaManager
             case 'mediumblob':
                 $length = AbstractMySQLPlatform::LENGTH_LIMIT_MEDIUMBLOB;
                 break;
-            case 'float':
-            case 'double':
-            case 'real':
-            case 'numeric':
-            case 'decimal':
-                $precision = (int) $tableColumn['numeric_precision'];
-                if (isset($tableColumn['numeric_scale'])) {
-                    $scale = (int) $tableColumn['numeric_scale'];
-                }
-                break;
-        }
-        switch ($dbType) {
-            case 'char':
-            case 'binary':
-                $fixed = \true;
+            case 'tinyint':
+            case 'smallint':
+            case 'mediumint':
+            case 'int':
+            case 'integer':
+            case 'bigint':
+            case 'year':
+                $length = null;
                 break;
             case 'enum':
-                $values = $this->parseEnumExpression($tableColumn['column_type']);
+                $values = $this->parseEnumExpression($tableColumn['type']);
                 break;
         }
-        if ($tableColumn['default'] === null) {
-            $columnDefault = null;
-        } elseif ($this->platform instanceof MariaDBPlatform) {
-            $columnDefault = $this->parseMariaDBColumnDefault($tableColumn['default']);
+        if ($this->platform instanceof MariaDBPlatform) {
+            $columnDefault = $this->getMariaDBColumnDefault($this->platform, $tableColumn['default']);
         } else {
-            $columnDefault = $this->parseMySQLColumnDefault($dbType, $tableColumn['default']);
+            $columnDefault = $tableColumn['default'];
         }
-        $options = ['length' => $length, 'unsigned' => str_contains($tableColumn['column_type'], 'unsigned'), 'fixed' => $fixed, 'default' => $columnDefault, 'notnull' => $tableColumn['null'] !== 'YES', 'scale' => $scale, 'precision' => $precision, 'autoincrement' => str_contains($tableColumn['extra'], 'auto_increment'), 'values' => $values];
-        if ($tableColumn['comment'] !== null) {
+        $options = ['length' => $length !== null ? (int) $length : null, 'unsigned' => str_contains($tableColumn['type'], 'unsigned'), 'fixed' => $fixed, 'default' => $columnDefault, 'notnull' => $tableColumn['null'] !== 'YES', 'scale' => $scale, 'precision' => $precision, 'autoincrement' => str_contains($tableColumn['extra'], 'auto_increment'), 'values' => $values];
+        if (isset($tableColumn['comment'])) {
             $options['comment'] = $tableColumn['comment'];
         }
         $column = new Column($tableColumn['field'], Type::getType($type), $options);
-        $column->setPlatformOption('charset', $tableColumn['characterset']);
-        $column->setPlatformOption('collation', $tableColumn['collation']);
+        if (isset($tableColumn['characterset'])) {
+            $column->setPlatformOption('charset', $tableColumn['characterset']);
+        }
+        if (isset($tableColumn['collation'])) {
+            $column->setPlatformOption('collation', $tableColumn['collation']);
+        }
         return $column;
     }
     /** @return list<string> */
@@ -180,17 +186,6 @@ class MySQLSchemaManager extends AbstractSchemaManager
         $result = preg_match_all("/'([^']*(?:''[^']*)*)'/", $expression, $matches);
         assert($result !== \false);
         return array_map(static fn(string $match): string => strtr($match, ["''" => "'"]), $matches[1]);
-    }
-    /** @link https://dev.mysql.com/doc/refman/8.4/en/timestamp-initialization.html */
-    private function parseMySQLColumnDefault(string $type, string $default): string|DefaultExpression
-    {
-        // There is no way to tell whether the "CURRENT_TIMESTAMP" value represents a string or an expression in MySQL
-        // schema introspection results. We rely on the fact that the "CURRENT_TIMESTAMP" expression is only supported
-        // for the "DATETIME" and "TIMESTAMP" data types and represent this value as an expression only in these cases.
-        if (($type === 'datetime' || $type === 'timestamp') && $default === 'CURRENT_TIMESTAMP') {
-            return new CurrentTimestamp();
-        }
-        return $default;
     }
     /**
      * Return Doctrine/Mysql-compatible column default values for MariaDB 10.2.7+ servers.
@@ -206,42 +201,42 @@ class MySQLSchemaManager extends AbstractSchemaManager
      * @link https://mariadb.com/kb/en/library/information-schema-columns-table/
      * @link https://jira.mariadb.org/browse/MDEV-13132
      *
-     * @param string $columnDefault default value as stored in information_schema for MariaDB >= 10.2.7
+     * @param string|null $columnDefault default value as stored in information_schema for MariaDB >= 10.2.7
      */
-    private function parseMariaDBColumnDefault(string $columnDefault): string|DefaultExpression|null
+    private function getMariaDBColumnDefault(MariaDBPlatform $platform, ?string $columnDefault): ?string
     {
-        if ($columnDefault === 'NULL') {
+        if ($columnDefault === 'NULL' || $columnDefault === null) {
             return null;
         }
         if (preg_match('/^\'(.*)\'$/', $columnDefault, $matches) === 1) {
             return strtr($matches[1], self::MARIADB_ESCAPE_SEQUENCES);
         }
         return match ($columnDefault) {
-            'current_timestamp()' => new CurrentTimestamp(),
-            'curdate()' => new CurrentDate(),
-            'curtime()' => new CurrentTime(),
+            'current_timestamp()' => $platform->getCurrentTimestampSQL(),
+            'curdate()' => $platform->getCurrentDateSQL(),
+            'curtime()' => $platform->getCurrentTimeSQL(),
             default => $columnDefault,
         };
     }
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableForeignKeysList(array $rows): array
+    protected function _getPortableTableForeignKeysList(array $tableForeignKeys): array
     {
         $list = [];
-        foreach ($rows as $row) {
-            $row = array_change_key_case($row, CASE_LOWER);
-            if (!isset($list[$row['constraint_name']])) {
-                if (!isset($row['delete_rule']) || $row['delete_rule'] === 'RESTRICT') {
-                    $row['delete_rule'] = null;
+        foreach ($tableForeignKeys as $value) {
+            $value = array_change_key_case($value, CASE_LOWER);
+            if (!isset($list[$value['constraint_name']])) {
+                if (!isset($value['delete_rule']) || $value['delete_rule'] === 'RESTRICT') {
+                    $value['delete_rule'] = null;
                 }
-                if (!isset($row['update_rule']) || $row['update_rule'] === 'RESTRICT') {
-                    $row['update_rule'] = null;
+                if (!isset($value['update_rule']) || $value['update_rule'] === 'RESTRICT') {
+                    $value['update_rule'] = null;
                 }
-                $list[$row['constraint_name']] = ['name' => $this->getQuotedIdentifierName($row['constraint_name']), 'local' => [], 'foreign' => [], 'foreignTable' => $row['referenced_table_name'], 'onDelete' => $row['delete_rule'], 'onUpdate' => $row['update_rule']];
+                $list[$value['constraint_name']] = ['name' => $value['constraint_name'], 'local' => [], 'foreign' => [], 'foreignTable' => $value['referenced_table_name'], 'onDelete' => $value['delete_rule'], 'onUpdate' => $value['update_rule']];
             }
-            $list[$row['constraint_name']]['local'][] = $row['column_name'];
-            $list[$row['constraint_name']]['foreign'][] = $row['referenced_column_name'];
+            $list[$value['constraint_name']]['local'][] = $value['column_name'];
+            $list[$value['constraint_name']]['foreign'][] = $value['referenced_column_name'];
         }
         return parent::_getPortableTableForeignKeysList($list);
     }
@@ -255,7 +250,7 @@ class MySQLSchemaManager extends AbstractSchemaManager
     /** @throws Exception */
     public function createComparator(): Comparator
     {
-        return new MySQL\Comparator($this->platform, new CachingCharsetMetadataProvider(new ConnectionCharsetMetadataProvider($this->connection)), new CachingCollationMetadataProvider(new ConnectionCollationMetadataProvider($this->connection)), $this->getDefaultTableOptions(), func_num_args() > 0 ? func_get_arg(0) : new ComparatorConfig());
+        return new MySQL\Comparator($this->platform, new CachingCharsetMetadataProvider(new ConnectionCharsetMetadataProvider($this->connection)), new CachingCollationMetadataProvider(new ConnectionCollationMetadataProvider($this->connection)), $this->getDefaultTableOptions());
     }
     protected function selectTableNames(string $databaseName): Result
     {
@@ -270,25 +265,14 @@ SQL;
     }
     protected function selectTableColumns(string $databaseName, ?string $tableName = null): Result
     {
-        // The schema name is passed multiple times as a literal in the WHERE clause instead of using a JOIN condition
-        // in order to avoid performance issues on MySQL older than 8.0 and the corresponding MariaDB versions
-        // caused by https://bugs.mysql.com/bug.php?id=81347
-        $conditions = ['c.TABLE_SCHEMA = ?', 't.TABLE_SCHEMA = ?'];
-        $params = [$databaseName, $databaseName];
-        if ($tableName !== null) {
-            $conditions[] = 't.TABLE_NAME = ?';
-            $params[] = $tableName;
+        $columnTypeSQL = $this->platform->getColumnTypeSQLSnippet('c', $databaseName);
+        $sql = 'SELECT';
+        if ($tableName === null) {
+            $sql .= ' c.TABLE_NAME,';
         }
-        $sql = sprintf(<<<'SQL'
-SELECT
-       c.TABLE_NAME,
+        $sql .= <<<SQL
        c.COLUMN_NAME        AS field,
-       %s                   AS type,
-       c.COLUMN_TYPE,
-       c.CHARACTER_MAXIMUM_LENGTH,
-       c.CHARACTER_OCTET_LENGTH,
-       c.NUMERIC_PRECISION,
-       c.NUMERIC_SCALE,
+       {$columnTypeSQL}       AS type,
        c.IS_NULLABLE        AS `null`,
        c.COLUMN_KEY         AS `key`,
        c.COLUMN_DEFAULT     AS `default`,
@@ -299,52 +283,49 @@ SELECT
 FROM information_schema.COLUMNS c
     INNER JOIN information_schema.TABLES t
         ON t.TABLE_NAME = c.TABLE_NAME
- WHERE %s
-   AND t.TABLE_TYPE = 'BASE TABLE'
-ORDER BY c.TABLE_NAME,
-         c.ORDINAL_POSITION
-SQL
-, $this->platform->getColumnTypeSQLSnippet('c', $databaseName), implode(' AND ', $conditions));
+SQL;
+        // The schema name is passed multiple times as a literal in the WHERE clause instead of using a JOIN condition
+        // in order to avoid performance issues on MySQL older than 8.0 and the corresponding MariaDB versions
+        // caused by https://bugs.mysql.com/bug.php?id=81347
+        $conditions = ['c.TABLE_SCHEMA = ?', 't.TABLE_SCHEMA = ?', "t.TABLE_TYPE = 'BASE TABLE'"];
+        $params = [$databaseName, $databaseName];
+        if ($tableName !== null) {
+            $conditions[] = 't.TABLE_NAME = ?';
+            $params[] = $tableName;
+        }
+        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ' ORDER BY ORDINAL_POSITION';
         return $this->connection->executeQuery($sql, $params);
     }
     protected function selectIndexColumns(string $databaseName, ?string $tableName = null): Result
     {
-        $conditions = ['TABLE_SCHEMA = ?'];
-        $params = [$databaseName];
-        if ($tableName !== null) {
-            $conditions[] = 'TABLE_NAME = ?';
-            $params[] = $tableName;
+        $sql = 'SELECT';
+        if ($tableName === null) {
+            $sql .= ' TABLE_NAME,';
         }
-        $sql = sprintf(<<<'SQL'
-SELECT
-        TABLE_NAME,
+        $sql .= <<<'SQL'
         NON_UNIQUE  AS Non_Unique,
         INDEX_NAME  AS Key_name,
         COLUMN_NAME AS Column_Name,
         SUB_PART    AS Sub_Part,
         INDEX_TYPE  AS Index_Type
 FROM information_schema.STATISTICS
-WHERE %s
-ORDER BY TABLE_NAME,
-         SEQ_IN_INDEX
-SQL
-, implode(' AND ', $conditions));
+SQL;
+        $conditions = ['TABLE_SCHEMA = ?'];
+        $params = [$databaseName];
+        if ($tableName !== null) {
+            $conditions[] = 'TABLE_NAME = ?';
+            $params[] = $tableName;
+        }
+        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ' ORDER BY SEQ_IN_INDEX';
         return $this->connection->executeQuery($sql, $params);
     }
     protected function selectForeignKeyColumns(string $databaseName, ?string $tableName = null): Result
     {
-        // The schema name is passed multiple times in the WHERE clause instead of using a JOIN condition
-        // in order to avoid performance issues on MySQL older than 8.0 and the corresponding MariaDB versions
-        // caused by https://bugs.mysql.com/bug.php?id=81347
-        $conditions = ['k.TABLE_SCHEMA = ?', 'c.CONSTRAINT_SCHEMA = ?'];
-        $params = [$databaseName, $databaseName];
-        if ($tableName !== null) {
-            $conditions[] = 'k.TABLE_NAME = ?';
-            $params[] = $tableName;
+        $sql = 'SELECT DISTINCT';
+        if ($tableName === null) {
+            $sql .= ' k.TABLE_NAME,';
         }
-        $sql = sprintf(<<<'SQL'
-SELECT
-            k.TABLE_NAME,
+        $sql .= <<<'SQL'
             k.CONSTRAINT_NAME,
             k.COLUMN_NAME,
             k.REFERENCED_TABLE_NAME,
@@ -356,13 +337,20 @@ FROM information_schema.key_column_usage k
 INNER JOIN information_schema.referential_constraints c
 ON c.CONSTRAINT_NAME = k.CONSTRAINT_NAME
 AND c.TABLE_NAME = k.TABLE_NAME
-WHERE %s
-AND k.REFERENCED_COLUMN_NAME IS NOT NULL
-ORDER BY k.TABLE_NAME,
-         k.CONSTRAINT_NAME,
-         k.ORDINAL_POSITION
-SQL
-, implode(' AND ', $conditions));
+SQL;
+        $conditions = ['k.TABLE_SCHEMA = ?'];
+        $params = [$databaseName];
+        if ($tableName !== null) {
+            $conditions[] = 'k.TABLE_NAME = ?';
+            $params[] = $tableName;
+        }
+        // The schema name is passed multiple times in the WHERE clause instead of using a JOIN condition
+        // in order to avoid performance issues on MySQL older than 8.0 and the corresponding MariaDB versions
+        // caused by https://bugs.mysql.com/bug.php?id=81347
+        $conditions[] = 'c.CONSTRAINT_SCHEMA = ?';
+        $params[] = $databaseName;
+        $conditions[] = 'k.REFERENCED_COLUMN_NAME IS NOT NULL';
+        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ' ORDER BY k.ORDINAL_POSITION';
         return $this->connection->executeQuery($sql, $params);
     }
     /**
@@ -375,7 +363,7 @@ SQL
         if ($tableName !== null) {
             $params[] = $tableName;
         }
-        /** @var array<non-empty-string,array<string,mixed>> $metadata */
+        /** @var array<string,array<string,mixed>> $metadata */
         $metadata = $this->connection->executeQuery($sql, $params)->fetchAllAssociativeIndexed();
         $tableOptions = [];
         foreach ($metadata as $table => $data) {
@@ -406,13 +394,5 @@ SQL
             $this->defaultTableOptions = new DefaultTableOptions(...$row);
         }
         return $this->defaultTableOptions;
-    }
-    /** Returns the quoted representation of the given identifier name. */
-    private function getQuotedIdentifierName(?string $identifier): ?string
-    {
-        if ($identifier === null) {
-            return null;
-        }
-        return $this->platform->quoteSingleIdentifier($identifier);
     }
 }

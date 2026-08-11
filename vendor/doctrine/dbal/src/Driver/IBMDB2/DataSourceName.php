@@ -8,7 +8,7 @@ use function implode;
 use function sprintf;
 use function str_contains;
 /**
- * Db2 DSN
+ * IBM DB2 DSN
  */
 final class DataSourceName
 {

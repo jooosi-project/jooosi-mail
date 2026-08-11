@@ -27,9 +27,9 @@ final class EmailTemplateContent
     private $html;
     /**
      * @param array{
-     *   Subject?: string|null,
-     *   Text?: string|null,
-     *   Html?: string|null,
+     *   Subject?: null|string,
+     *   Text?: null|string,
+     *   Html?: null|string,
      * } $input
      */
     public function __construct(array $input)
@@ -40,9 +40,9 @@ final class EmailTemplateContent
     }
     /**
      * @param array{
-     *   Subject?: string|null,
-     *   Text?: string|null,
-     *   Html?: string|null,
+     *   Subject?: null|string,
+     *   Text?: null|string,
+     *   Html?: null|string,
      * }|EmailTemplateContent $input
      */
     public static function create($input): self

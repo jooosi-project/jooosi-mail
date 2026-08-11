@@ -19,7 +19,6 @@ use JooosiMailDeps\Doctrine\DBAL\Exception\DeadlockException;
 use JooosiMailDeps\Doctrine\DBAL\Exception\DriverException;
 use JooosiMailDeps\Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use JooosiMailDeps\Doctrine\DBAL\Exception\NoActiveTransaction;
-use JooosiMailDeps\Doctrine\DBAL\Exception\ParseError;
 use JooosiMailDeps\Doctrine\DBAL\Exception\SavepointsNotSupported;
 use JooosiMailDeps\Doctrine\DBAL\Exception\TransactionRolledBack;
 use JooosiMailDeps\Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -38,6 +37,7 @@ use Throwable;
 use Traversable;
 use function array_key_exists;
 use function array_merge;
+use function assert;
 use function count;
 use function implode;
 use function is_array;
@@ -131,9 +131,9 @@ class Connection implements ServerVersionProvider
     /**
      * Gets the name of the currently selected database.
      *
-     * @return ?non-empty-string The name of the database or NULL if a database is not selected.
-     *                           The platforms which don't support the concept of a database (e.g. embedded databases)
-     *                           must always return a string as an indicator of an implicitly selected database.
+     * @return string|null The name of the database or NULL if a database is not selected.
+     *                     The platforms which don't support the concept of a database (e.g. embedded databases)
+     *                     must always return a string as an indicator of an implicitly selected database.
      *
      * @throws Exception
      */
@@ -141,7 +141,9 @@ class Connection implements ServerVersionProvider
     {
         $platform = $this->getDatabasePlatform();
         $query = $platform->getDummySelectSQL($platform->getCurrentDatabaseExpression());
-        return $this->fetchOne($query);
+        $database = $this->fetchOne($query);
+        assert(is_string($database) || $database === null);
+        return $database;
     }
     /**
      * Gets the DBAL driver instance.
@@ -234,7 +236,8 @@ class Connection implements ServerVersionProvider
      *
      * @see isAutoCommit
      *
-     * @throws Exception
+     * @throws ConnectionException
+     * @throws DriverException
      */
     public function setAutoCommit(bool $autoCommit): void
     {
@@ -472,37 +475,17 @@ class Connection implements ServerVersionProvider
      * you SHOULD use them. In general, they end up causing way more
      * problems than they solve.
      *
-     * @deprecated Use {@link quoteSingleIdentifier()} individually for each part of a qualified name instead.
-     *
      * @param string $identifier The identifier to be quoted.
      *
      * @return string The quoted identifier.
-     *
-     * @throws Exception
      */
     public function quoteIdentifier(string $identifier): string
     {
-        Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6590', <<<'DEPRECATION'
-Method %s is deprecated and will be removed in 5.0.
-Use quoteSingleIdentifier() individually for each part of a qualified name instead.
-DEPRECATION
-, __METHOD__);
         return $this->getDatabasePlatform()->quoteIdentifier($identifier);
-    }
-    /**
-     * Quotes a string so that it can be safely used as an identifier in SQL.
-     *
-     * @throws Exception
-     */
-    public function quoteSingleIdentifier(string $identifier): string
-    {
-        return $this->getDatabasePlatform()->quoteSingleIdentifier($identifier);
     }
     /**
      * The usage of this method is discouraged. Use prepared statements
      * or {@see AbstractPlatform::quoteStringLiteral()} instead.
-     *
-     * @throws Exception
      */
     public function quote(string $value): string
     {
@@ -720,7 +703,6 @@ DEPRECATION
         $connectionParams = $this->params;
         unset($connectionParams['password']);
         [$cacheKey, $realKey] = $qcp->generateCacheKeys($sql, $params, $types, $connectionParams);
-        // @phpstan-ignore missingType.checkedException
         $item = $resultCache->getItem($cacheKey);
         if ($item->isHit()) {
             $value = $item->get();
@@ -829,11 +811,8 @@ DEPRECATION
         try {
             $res = $func($this);
             $successful = \true;
-        } catch (ConnectionLost $connectionLost) {
-            // Catching here only to be able to prevent a rollback attempt
-            throw $connectionLost;
         } finally {
-            if (!isset($connectionLost) && !$successful) {
+            if (!$successful) {
                 $this->rollBack();
             }
         }
@@ -842,7 +821,7 @@ DEPRECATION
             $this->commit();
             $shouldRollback = \false;
         } catch (TheDriverException $t) {
-            $shouldRollback = !($t instanceof TransactionRolledBack || $t instanceof UniqueConstraintViolationException || $t instanceof ForeignKeyConstraintViolationException || $t instanceof DeadlockException || $t instanceof ConnectionLost);
+            $shouldRollback = !($t instanceof TransactionRolledBack || $t instanceof UniqueConstraintViolationException || $t instanceof ForeignKeyConstraintViolationException || $t instanceof DeadlockException);
             throw $t;
         } finally {
             if ($shouldRollback) {
@@ -921,7 +900,6 @@ DEPRECATION
             $this->updateTransactionStateAfterCommit();
         }
     }
-    /** @throws Exception */
     private function updateTransactionStateAfterCommit(): void
     {
         if ($this->transactionNestingLevel !== 0) {
@@ -1118,11 +1096,7 @@ DEPRECATION
                 } else {
                     $bindingType = ParameterType::STRING;
                 }
-                try {
-                    $stmt->bindValue($bindIndex, $value, $bindingType);
-                } catch (Driver\Exception $e) {
-                    throw $this->convertException($e);
-                }
+                $stmt->bindValue($bindIndex, $value, $bindingType);
                 ++$bindIndex;
             }
         } else {
@@ -1134,11 +1108,7 @@ DEPRECATION
                 } else {
                     $bindingType = ParameterType::STRING;
                 }
-                try {
-                    $stmt->bindValue($name, $value, $bindingType);
-                } catch (Driver\Exception $e) {
-                    throw $this->convertException($e);
-                }
+                $stmt->bindValue($name, $value, $bindingType);
             }
         }
     }
@@ -1196,8 +1166,6 @@ DEPRECATION
      *     list<mixed>|array<string, mixed>,
      *     array<int<0, max>, string|ParameterType|Type>|array<string, string|ParameterType|Type>
      * }
-     *
-     * @throws Exception
      */
     private function expandArrayParameters(string $sql, array $params, array $types): array
     {
@@ -1219,11 +1187,7 @@ DEPRECATION
         }
         $this->parser ??= $this->getDatabasePlatform()->createSQLParser();
         $visitor = new ExpandArrayParameters($params, $types);
-        try {
-            $this->parser->parse($sql, $visitor);
-        } catch (Parser\Exception $e) {
-            throw ParseError::fromParserException($e);
-        }
+        $this->parser->parse($sql, $visitor);
         return [$visitor->getSQL(), $visitor->getParameters(), $visitor->getTypes()];
     }
     private function handleDriverException(Driver\Exception $driverException, ?Query $query): DriverException

@@ -12,7 +12,7 @@ use JooosiMail\Queue\Transport\DatabaseTransport;
  *
  * @since 0.1.0
  */
-final readonly class Version202603190001CreateCoreTables implements MigrationInterface
+final class Version202603190001CreateCoreTables implements MigrationInterface
 {
     public function getVersion(): string
     {

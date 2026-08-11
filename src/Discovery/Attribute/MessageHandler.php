@@ -10,9 +10,9 @@ use Attribute;
  * @since 0.1.0
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-final readonly class MessageHandler
+final class MessageHandler
 {
-    public function __construct(public string $messageClass, public ?string $transport = null)
+    public function __construct(public readonly string $messageClass, public readonly ?string $transport = null)
     {
     }
 }

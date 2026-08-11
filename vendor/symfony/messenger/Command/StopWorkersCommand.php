@@ -23,8 +23,10 @@ use JooosiMailDeps\Symfony\Component\Messenger\EventListener\StopWorkerOnRestart
 #[AsCommand(name: 'messenger:stop-workers', description: 'Stop workers after their current message')]
 class StopWorkersCommand extends Command
 {
-    public function __construct(private CacheItemPoolInterface $restartSignalCachePool)
+    private CacheItemPoolInterface $restartSignalCachePool;
+    public function __construct(CacheItemPoolInterface $restartSignalCachePool)
     {
+        $this->restartSignalCachePool = $restartSignalCachePool;
         parent::__construct();
     }
     protected function configure(): void

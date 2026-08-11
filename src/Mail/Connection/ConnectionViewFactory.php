@@ -13,9 +13,9 @@ use JooosiMail\Mail\Profile\ProfileRegistry;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionViewFactory
+final class ConnectionViewFactory
 {
-    public function __construct(private ProfileRegistry $profileRegistry, private ProfileMetadataResolver $profileMetadataResolver)
+    public function __construct(private readonly ProfileRegistry $profileRegistry, private readonly ProfileMetadataResolver $profileMetadataResolver)
     {
     }
     /**

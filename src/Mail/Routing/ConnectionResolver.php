@@ -12,9 +12,9 @@ use JooosiMail\Mail\Connection\ConnectionRepository;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionResolver
+final class ConnectionResolver
 {
-    public function __construct(private ConnectionRepository $connectionRepository, private \JooosiMail\Mail\Routing\ConnectionAvailabilityDecider $connectionAvailabilityDecider, private \JooosiMail\Mail\Routing\ConnectionHealthScorer $connectionHealthScorer, private \JooosiMail\Mail\Routing\WeightedRoundRobinSelector $weightedRoundRobinSelector, private \JooosiMail\Mail\Routing\WeightedRandomSelector $weightedRandomSelector)
+    public function __construct(private readonly ConnectionRepository $connectionRepository, private readonly \JooosiMail\Mail\Routing\ConnectionAvailabilityDecider $connectionAvailabilityDecider, private readonly \JooosiMail\Mail\Routing\ConnectionHealthScorer $connectionHealthScorer, private readonly \JooosiMail\Mail\Routing\WeightedRoundRobinSelector $weightedRoundRobinSelector, private readonly \JooosiMail\Mail\Routing\WeightedRandomSelector $weightedRandomSelector)
     {
     }
     /**
@@ -46,7 +46,7 @@ final readonly class ConnectionResolver
     private function resolveSingleConnection(array $connections, array $healthScores, ?int $preferredConnectionId): array
     {
         $orderedConnections = $this->orderConnections(connections: $connections, healthScores: $healthScores, preferredConnectionId: $preferredConnectionId);
-        $primaryConnection = $orderedConnections[array_key_first($orderedConnections)];
+        $primaryConnection = $orderedConnections === [] ? null : $orderedConnections[array_key_first($orderedConnections)];
         return $primaryConnection instanceof Connection ? [$primaryConnection] : [];
     }
     /**

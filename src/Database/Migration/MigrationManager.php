@@ -14,9 +14,9 @@ use Throwable;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MigrationManager
+final class MigrationManager
 {
-    public function __construct(private Connection $connection, private \JooosiMail\Database\Migration\MigrationRegistry $migrationRegistry, private \JooosiMail\Database\Migration\MigrationRepository $migrationRepository, private TableNameResolver $tableNameResolver)
+    public function __construct(private readonly Connection $connection, private readonly \JooosiMail\Database\Migration\MigrationRegistry $migrationRegistry, private readonly \JooosiMail\Database\Migration\MigrationRepository $migrationRepository, private readonly TableNameResolver $tableNameResolver)
     {
     }
     /**

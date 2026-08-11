@@ -15,8 +15,10 @@ namespace JooosiMailDeps\Symfony\Component\Messenger\Stamp;
  */
 final class SerializerStamp implements StampInterface
 {
-    public function __construct(private array $context)
+    private array $context;
+    public function __construct(array $context)
     {
+        $this->context = $context;
     }
     public function getContext(): array
     {

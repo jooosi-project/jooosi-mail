@@ -12,9 +12,9 @@ use JooosiMail\Mail\Logging\MailAttemptRepository;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionHealthScorer
+final class ConnectionHealthScorer
 {
-    public function __construct(private MailAttemptRepository $mailAttemptRepository, private \JooosiMail\Mail\Routing\ConnectionHealthPenaltyProviderInterface $healthPenaltyProvider)
+    public function __construct(private readonly MailAttemptRepository $mailAttemptRepository, private readonly \JooosiMail\Mail\Routing\ConnectionHealthPenaltyProviderInterface $healthPenaltyProvider)
     {
     }
     /**

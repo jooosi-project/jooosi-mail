@@ -26,6 +26,20 @@ abstract class Extension implements ExtensionInterface, ConfigurationExtensionIn
 {
     private array $processedConfigs = [];
     /**
+     * @return string|false
+     */
+    public function getXsdValidationBasePath()
+    {
+        return \false;
+    }
+    /**
+     * @return string
+     */
+    public function getNamespace()
+    {
+        return 'http://example.org/schema/dic/' . $this->getAlias();
+    }
+    /**
      * Returns the recommended alias to use in XML.
      *
      * This alias is also the mandatory prefix to use when using YAML.
@@ -52,7 +66,10 @@ abstract class Extension implements ExtensionInterface, ConfigurationExtensionIn
         $classBaseName = substr(strrchr($className, '\\'), 1, -9);
         return Container::underscore($classBaseName);
     }
-    public function getConfiguration(array $config, ContainerBuilder $container): ?ConfigurationInterface
+    /**
+     * @return ConfigurationInterface|null
+     */
+    public function getConfiguration(array $config, ContainerBuilder $container)
     {
         $class = static::class;
         if (str_contains($class, "\x00")) {

@@ -64,7 +64,6 @@ final class Result implements ResultInterface
             throw Exception::new($exception);
         }
     }
-    /** @throws Exception */
     public function getColumnName(int $index): string
     {
         try {

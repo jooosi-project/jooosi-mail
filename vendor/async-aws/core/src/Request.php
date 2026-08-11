@@ -4,7 +4,6 @@ namespace JooosiMailDeps\AsyncAws\Core;
 
 use JooosiMailDeps\AsyncAws\Core\Exception\InvalidArgument;
 use JooosiMailDeps\AsyncAws\Core\Exception\LogicException;
-use JooosiMailDeps\AsyncAws\Core\HttpClient\BuildHttpQueryTrait;
 use JooosiMailDeps\AsyncAws\Core\Stream\RequestStream;
 /**
  * Representation of an HTTP Request.
@@ -13,9 +12,6 @@ use JooosiMailDeps\AsyncAws\Core\Stream\RequestStream;
  */
 final class Request
 {
-    use BuildHttpQueryTrait;
-    private const UPPER = '_ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    private const LOWER = '-abcdefghijklmnopqrstuvwxyz';
     /**
      * @var string
      */
@@ -29,10 +25,6 @@ final class Request
      */
     private $headers;
     /**
-     * @var array<string, string> Map of lowercase header name => original name at registration
-     */
-    private $headerNames = [];
-    /**
      * @var RequestStream
      */
     private $body;
@@ -41,7 +33,7 @@ final class Request
      */
     private $queryString;
     /**
-     * @var array<string, string|string[]>
+     * @var array<string, string>
      */
     private $query;
     /**
@@ -57,18 +49,16 @@ final class Request
      */
     private $parsed;
     /**
-     * @param array<string, string|string[]> $query
-     * @param array<string, string>          $headers
+     * @param array<string, string> $query
+     * @param array<string, string> $headers
      */
     public function __construct(string $method, string $uri, array $query, array $headers, RequestStream $body, string $hostPrefix = '')
     {
         $this->method = $method;
         $this->uri = $uri;
         $this->headers = [];
-        foreach ($headers as $name => $value) {
-            $normalized = strtr($name, self::UPPER, self::LOWER);
-            $this->headerNames[$normalized] = $name;
-            $this->headers[$name] = (string) $value;
+        foreach ($headers as $key => $value) {
+            $this->headers[strtolower($key)] = (string) $value;
         }
         $this->body = $body;
         $this->query = $query;
@@ -89,17 +79,11 @@ final class Request
     }
     public function hasHeader(string $name): bool
     {
-        $normalized = strtr($name, self::UPPER, self::LOWER);
-        return isset($this->headerNames[$normalized]);
+        return \array_key_exists(strtolower($name), $this->headers);
     }
     public function setHeader(string $name, string $value): void
     {
-        $normalized = strtr($name, self::UPPER, self::LOWER);
-        if (isset($this->headerNames[$normalized])) {
-            unset($this->headers[$this->headerNames[$normalized]]);
-        }
-        $this->headerNames[$normalized] = $name;
-        $this->headers[$name] = $value;
+        $this->headers[strtolower($name)] = $value;
     }
     /**
      * @return array<string, string>
@@ -110,21 +94,11 @@ final class Request
     }
     public function getHeader(string $name): ?string
     {
-        $normalized = strtr($name, self::UPPER, self::LOWER);
-        if (!isset($this->headerNames[$normalized])) {
-            return null;
-        }
-        $name = $this->headerNames[$normalized];
-        return $this->headers[$name] ?? null;
+        return $this->headers[strtolower($name)] ?? null;
     }
     public function removeHeader(string $name): void
     {
-        $normalized = strtr($name, self::UPPER, self::LOWER);
-        if (!isset($this->headerNames[$normalized])) {
-            return;
-        }
-        $name = $this->headerNames[$normalized];
-        unset($this->headers[$name], $this->headerNames[$normalized]);
+        unset($this->headers[strtolower($name)]);
     }
     public function getBody(): RequestStream
     {
@@ -144,24 +118,18 @@ final class Request
         $this->queryString = null;
         $this->endpoint = '';
     }
-    /**
-     * @param string|string[] $value
-     */
-    public function setQueryAttribute(string $name, string|array $value): void
+    public function setQueryAttribute(string $name, string $value): void
     {
         $this->query[$name] = $value;
         $this->queryString = null;
         $this->endpoint = '';
     }
-    /**
-     * @return string|string[]|null
-     */
-    public function getQueryAttribute(string $name): string|array|null
+    public function getQueryAttribute(string $name): ?string
     {
         return $this->query[$name] ?? null;
     }
     /**
-     * @return array<string, string|string[]>
+     * @return array<string, string>
      */
     public function getQuery(): array
     {
@@ -203,7 +171,7 @@ final class Request
     private function getQueryString(): string
     {
         if (null === $this->queryString) {
-            $this->queryString = $this->buildHttpQuery($this->query);
+            $this->queryString = http_build_query($this->query, '', '&', \PHP_QUERY_RFC3986);
         }
         return $this->queryString;
     }

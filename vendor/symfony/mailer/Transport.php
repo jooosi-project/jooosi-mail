@@ -12,9 +12,7 @@ namespace JooosiMailDeps\Symfony\Component\Mailer;
 
 use JooosiMailDeps\Psr\EventDispatcher\EventDispatcherInterface;
 use JooosiMailDeps\Psr\Log\LoggerInterface;
-use JooosiMailDeps\Symfony\Component\Mailer\Bridge\AhaSend\Transport\AhaSendTransportFactory;
 use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Amazon\Transport\SesTransportFactory;
-use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Azure\Transport\AzureTransportFactory;
 use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
 use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Google\Transport\GmailTransportFactory;
 use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Infobip\Transport\InfobipTransportFactory;
@@ -22,15 +20,12 @@ use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Mailchimp\Transport\MandrillT
 use JooosiMailDeps\Symfony\Component\Mailer\Bridge\MailerSend\Transport\MailerSendTransportFactory;
 use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Mailgun\Transport\MailgunTransportFactory;
 use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Mailjet\Transport\MailjetTransportFactory;
-use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Mailomat\Transport\MailomatTransportFactory;
 use JooosiMailDeps\Symfony\Component\Mailer\Bridge\MailPace\Transport\MailPaceTransportFactory;
-use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Mailtrap\Transport\MailtrapTransportFactory;
-use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Postal\Transport\PostalTransportFactory;
+use JooosiMailDeps\Symfony\Component\Mailer\Bridge\OhMySmtp\Transport\OhMySmtpTransportFactory;
 use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Postmark\Transport\PostmarkTransportFactory;
-use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Resend\Transport\ResendTransportFactory;
 use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Scaleway\Transport\ScalewayTransportFactory;
 use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Sendgrid\Transport\SendgridTransportFactory;
-use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Sweego\Transport\SweegoTransportFactory;
+use JooosiMailDeps\Symfony\Component\Mailer\Bridge\Sendinblue\Transport\SendinblueTransportFactory;
 use JooosiMailDeps\Symfony\Component\Mailer\Exception\InvalidArgumentException;
 use JooosiMailDeps\Symfony\Component\Mailer\Exception\UnsupportedSchemeException;
 use JooosiMailDeps\Symfony\Component\Mailer\Transport\Dsn;
@@ -50,7 +45,8 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 final class Transport
 {
-    private const FACTORY_CLASSES = [AhaSendTransportFactory::class, AzureTransportFactory::class, BrevoTransportFactory::class, GmailTransportFactory::class, InfobipTransportFactory::class, MailerSendTransportFactory::class, MailgunTransportFactory::class, MailjetTransportFactory::class, MailomatTransportFactory::class, MailPaceTransportFactory::class, MandrillTransportFactory::class, PostalTransportFactory::class, PostmarkTransportFactory::class, MailtrapTransportFactory::class, ResendTransportFactory::class, ScalewayTransportFactory::class, SendgridTransportFactory::class, SesTransportFactory::class, SweegoTransportFactory::class];
+    private const FACTORY_CLASSES = [BrevoTransportFactory::class, GmailTransportFactory::class, InfobipTransportFactory::class, MailerSendTransportFactory::class, MailgunTransportFactory::class, MailjetTransportFactory::class, MailPaceTransportFactory::class, MandrillTransportFactory::class, OhMySmtpTransportFactory::class, PostmarkTransportFactory::class, ScalewayTransportFactory::class, SendgridTransportFactory::class, SendinblueTransportFactory::class, SesTransportFactory::class];
+    private iterable $factories;
     public static function fromDsn(
         #[\SensitiveParameter]
         string $dsn,
@@ -76,8 +72,9 @@ final class Transport
     /**
      * @param TransportFactoryInterface[] $factories
      */
-    public function __construct(private iterable $factories)
+    public function __construct(iterable $factories)
     {
+        $this->factories = $factories;
     }
     public function fromStrings(
         #[\SensitiveParameter]
@@ -129,10 +126,6 @@ final class Transport
                         if (')' === $dsn[$offset - 1]) {
                             break;
                         }
-                    }
-                    parse_str(substr($dsn, $offset + 1), $query);
-                    if ($period = $query['retry_period'] ?? 0) {
-                        return [new $class($args, (int) $period), $offset + \strlen('retry_period=' . $period) + 1];
                     }
                     return [new $class($args), $offset];
                 }

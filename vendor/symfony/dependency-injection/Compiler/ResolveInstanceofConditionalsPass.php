@@ -15,7 +15,6 @@ use JooosiMailDeps\Symfony\Component\DependencyInjection\ContainerBuilder;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Definition;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Exception\RuntimeException;
-use JooosiMailDeps\Symfony\Component\VarExporter\DeepCloner;
 /**
  * Applies instanceof conditionals to definitions.
  *
@@ -23,7 +22,10 @@ use JooosiMailDeps\Symfony\Component\VarExporter\DeepCloner;
  */
 class ResolveInstanceofConditionalsPass implements CompilerPassInterface
 {
-    public function process(ContainerBuilder $container): void
+    /**
+     * @return void
+     */
+    public function process(ContainerBuilder $container)
     {
         foreach ($container->getAutoconfiguredInstanceof() as $interface => $definition) {
             if ($definition->getArguments()) {
@@ -89,7 +91,14 @@ class ResolveInstanceofConditionalsPass implements CompilerPassInterface
             $bindings = $definition->getBindings();
             $abstract = $container->setDefinition('.abstract.instanceof.' . $id, $definition);
             $definition->setBindings([]);
-            $definition = (new DeepCloner($definition))->cloneAs(ChildDefinition::class);
+            $definition = serialize($definition);
+            if (Definition::class === $abstract::class) {
+                // cast Definition to ChildDefinition
+                $definition = substr_replace($definition, '53', 2, 2);
+                $definition = substr_replace($definition, 'Child', 44, 0);
+            }
+            /** @var ChildDefinition $definition */
+            $definition = unserialize($definition, ['allowed_classes' => \true]);
             $definition->setParent($parent);
             if (null !== $shared && !isset($definition->getChanges()['shared'])) {
                 $definition->setShared($shared);
@@ -101,7 +110,7 @@ class ResolveInstanceofConditionalsPass implements CompilerPassInterface
                 foreach ($tags as $k => $v) {
                     if (null === $definition->getDecoratedService() || $interface === $definition->getClass() || \in_array($k, $tagsToKeep, \true)) {
                         foreach ($v as $v) {
-                            if ($definition->hasTag($k) && \in_array($v, $definition->getTag($k), \true)) {
+                            if ($definition->hasTag($k) && \in_array($v, $definition->getTag($k))) {
                                 continue;
                             }
                             $definition->addTag($k, $v);
@@ -113,10 +122,6 @@ class ResolveInstanceofConditionalsPass implements CompilerPassInterface
             $definition->setBindings($bindings + $instanceofBindings);
             // reset fields with "merge" behavior
             $abstract->setBindings([])->setArguments([])->setMethodCalls([])->setDecoratedService(null)->setTags([])->setAbstract(\true);
-        }
-        if ($definition->isSynthetic()) {
-            // Ignore container.excluded tag on synthetic services
-            $definition->clearTag('container.excluded');
         }
         return $definition;
     }

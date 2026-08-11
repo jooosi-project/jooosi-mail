@@ -11,14 +11,12 @@
 namespace JooosiMailDeps\Symfony\Component\Cache\Adapter;
 
 use JooosiMailDeps\Psr\Cache\CacheItemInterface;
-use JooosiMailDeps\Psr\Clock\ClockInterface;
 use JooosiMailDeps\Psr\Log\LoggerAwareInterface;
 use JooosiMailDeps\Psr\Log\LoggerAwareTrait;
 use JooosiMailDeps\Symfony\Component\Cache\CacheItem;
 use JooosiMailDeps\Symfony\Component\Cache\Exception\InvalidArgumentException;
 use JooosiMailDeps\Symfony\Component\Cache\ResettableInterface;
 use JooosiMailDeps\Symfony\Contracts\Cache\CacheInterface;
-use JooosiMailDeps\Symfony\Contracts\Cache\NamespacedPoolInterface;
 /**
  * An in-memory cache storage.
  *
@@ -26,19 +24,22 @@ use JooosiMailDeps\Symfony\Contracts\Cache\NamespacedPoolInterface;
  *
  * @author Nicolas Grekas <p@tchwork.com>
  */
-class ArrayAdapter implements AdapterInterface, CacheInterface, NamespacedPoolInterface, LoggerAwareInterface, ResettableInterface
+class ArrayAdapter implements AdapterInterface, CacheInterface, LoggerAwareInterface, ResettableInterface
 {
     use LoggerAwareTrait;
+    private bool $storeSerialized;
     private array $values = [];
     private array $tags = [];
     private array $expiries = [];
-    private array $subPools = [];
     private array $explicitExpiries = [];
+    private int $defaultLifetime;
+    private float $maxLifetime;
+    private int $maxItems;
     private static \Closure $createCacheItem;
     /**
      * @param bool $storeSerialized Disabling serialization can lead to cache corruptions when storing mutable values but increases performance otherwise
      */
-    public function __construct(private int $defaultLifetime = 0, private bool $storeSerialized = \true, private float $maxLifetime = 0, private int $maxItems = 0, private ?ClockInterface $clock = null)
+    public function __construct(int $defaultLifetime = 0, bool $storeSerialized = \true, float $maxLifetime = 0, int $maxItems = 0)
     {
         if (0 > $maxLifetime) {
             throw new InvalidArgumentException(\sprintf('Argument $maxLifetime must be positive, %F passed.', $maxLifetime));
@@ -46,6 +47,10 @@ class ArrayAdapter implements AdapterInterface, CacheInterface, NamespacedPoolIn
         if (0 > $maxItems) {
             throw new InvalidArgumentException(\sprintf('Argument $maxItems must be a positive integer, %d passed.', $maxItems));
         }
+        $this->defaultLifetime = $defaultLifetime;
+        $this->storeSerialized = $storeSerialized;
+        $this->maxLifetime = $maxLifetime;
+        $this->maxItems = $maxItems;
         self::$createCacheItem ??= \Closure::bind(static function ($key, $value, $isHit, $tags, $expiry = null) {
             $item = new CacheItem();
             $item->key = $key;
@@ -80,7 +85,7 @@ class ArrayAdapter implements AdapterInterface, CacheInterface, NamespacedPoolIn
     }
     public function hasItem(mixed $key): bool
     {
-        if (\is_string($key) && isset($this->expiries[$key]) && $this->expiries[$key] > $this->getCurrentTime()) {
+        if (\is_string($key) && isset($this->expiries[$key]) && $this->expiries[$key] > microtime(\true)) {
             if ($this->maxItems) {
                 // Move the item last in the storage
                 $value = $this->values[$key];
@@ -108,7 +113,7 @@ class ArrayAdapter implements AdapterInterface, CacheInterface, NamespacedPoolIn
     public function getItems(array $keys = []): iterable
     {
         \assert(self::validateKeys($keys));
-        return $this->generateItems($keys, $this->getCurrentTime(), self::$createCacheItem);
+        return $this->generateItems($keys, microtime(\true), self::$createCacheItem);
     }
     public function deleteItem(mixed $key): bool
     {
@@ -132,7 +137,7 @@ class ArrayAdapter implements AdapterInterface, CacheInterface, NamespacedPoolIn
         $key = $item["\x00*\x00key"];
         $value = $item["\x00*\x00value"];
         $expiry = $item["\x00*\x00expiry"];
-        $now = $this->getCurrentTime();
+        $now = microtime(\true);
         if (null !== $expiry) {
             if (!$expiry) {
                 $expiry = \PHP_INT_MAX;
@@ -183,33 +188,18 @@ class ArrayAdapter implements AdapterInterface, CacheInterface, NamespacedPoolIn
     public function clear(string $prefix = ''): bool
     {
         if ('' !== $prefix) {
-            $now = $this->getCurrentTime();
+            $now = microtime(\true);
             foreach ($this->values as $key => $value) {
                 if (!isset($this->expiries[$key]) || $this->expiries[$key] <= $now || str_starts_with($key, $prefix)) {
                     unset($this->values[$key], $this->tags[$key], $this->expiries[$key], $this->explicitExpiries[$key]);
                 }
             }
-            return \true;
+            if ($this->values) {
+                return \true;
+            }
         }
-        foreach ($this->subPools as $pool) {
-            $pool->clear();
-        }
-        $this->subPools = $this->values = $this->tags = $this->expiries = $this->explicitExpiries = [];
+        $this->values = $this->tags = $this->expiries = $this->explicitExpiries = [];
         return \true;
-    }
-    public function withSubNamespace(string $namespace): static
-    {
-        CacheItem::validateKey($namespace);
-        $subPools = $this->subPools;
-        if (isset($subPools[$namespace])) {
-            return $subPools[$namespace];
-        }
-        $this->subPools = [];
-        $clone = clone $this;
-        $clone->clear();
-        $subPools[$namespace] = $clone;
-        $this->subPools = $subPools;
-        return $clone;
     }
     /**
      * Returns all cached values, with cache miss as null.
@@ -230,15 +220,12 @@ class ArrayAdapter implements AdapterInterface, CacheInterface, NamespacedPoolIn
         }
         return $values;
     }
-    public function reset(): void
+    /**
+     * @return void
+     */
+    public function reset()
     {
         $this->clear();
-    }
-    public function __clone()
-    {
-        foreach ($this->subPools as $i => $pool) {
-            $this->subPools[$i] = clone $pool;
-        }
     }
     private function generateItems(array $keys, float $now, \Closure $f): \Generator
     {
@@ -301,7 +288,7 @@ class ArrayAdapter implements AdapterInterface, CacheInterface, NamespacedPoolIn
         }
         if (\is_string($value) && isset($value[2]) && ':' === $value[1]) {
             try {
-                $value = unserialize($value);
+                $value = unserialize($value, ['allowed_classes' => \true]);
             } catch (\Exception $e) {
                 CacheItem::log($this->logger, 'Failed to unserialize key "{key}": ' . $e->getMessage(), ['key' => $key, 'exception' => $e, 'cache-adapter' => get_debug_type($this)]);
                 $value = \false;
@@ -324,9 +311,5 @@ class ArrayAdapter implements AdapterInterface, CacheInterface, NamespacedPoolIn
             }
         }
         return \true;
-    }
-    private function getCurrentTime(): float
-    {
-        return $this->clock?->now()->format('U.u') ?? microtime(\true);
     }
 }

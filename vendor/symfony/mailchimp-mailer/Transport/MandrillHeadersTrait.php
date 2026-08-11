@@ -24,7 +24,6 @@ trait MandrillHeadersTrait
     public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
     {
         if ($message instanceof Message) {
-            $message = clone $message;
             $this->addMandrillHeaders($message);
         }
         return parent::send($message, $envelope);

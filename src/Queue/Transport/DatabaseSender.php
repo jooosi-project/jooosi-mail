@@ -20,9 +20,9 @@ use JooosiMailDeps\Symfony\Component\Messenger\Transport\Serialization\Serialize
  * @since 0.1.0
  */
 #[Service]
-final readonly class DatabaseSender implements SenderInterface
+final class DatabaseSender implements SenderInterface
 {
-    public function __construct(private DbalConnection $connection, private TableNameResolver $tableNameResolver, private SerializerInterface $serializer, private OptionStore $optionStore)
+    public function __construct(private readonly DbalConnection $connection, private readonly TableNameResolver $tableNameResolver, private readonly SerializerInterface $serializer, private readonly OptionStore $optionStore)
     {
     }
     /**

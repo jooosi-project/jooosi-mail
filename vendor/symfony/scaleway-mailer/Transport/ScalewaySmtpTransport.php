@@ -15,13 +15,7 @@ use JooosiMailDeps\Psr\Log\LoggerInterface;
 use JooosiMailDeps\Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 final class ScalewaySmtpTransport extends EsmtpTransport
 {
-    public function __construct(
-        string $projetId,
-        #[\SensitiveParameter]
-        string $token,
-        ?EventDispatcherInterface $dispatcher = null,
-        ?LoggerInterface $logger = null
-    )
+    public function __construct(string $projetId, string $token, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
     {
         parent::__construct('smtp.tem.scw.cloud', 465, \true, $dispatcher, $logger);
         $this->setUsername($projetId);

@@ -56,7 +56,6 @@ final class IniFileLoader
             }
             foreach ($this->parseIniFile($filepath) as $name => $profile) {
                 $name = preg_replace('/^profile /', '', (string) $name);
-                \assert(null !== $name);
                 if (!isset($profilesData[$name])) {
                     $profilesData[$name] = array_map('trim', $profile);
                 } else {
@@ -86,12 +85,7 @@ final class IniFileLoader
      */
     private function parseIniFile(string $filepath): array
     {
-        $content = file_get_contents($filepath);
-        if (\false === $content) {
-            $this->logger->warning('The ini file {path} is not readable.', ['path' => $filepath]);
-            return [];
-        }
-        if (\false === $data = parse_ini_string(preg_replace('/^#/m', ';', $content), \true, \INI_SCANNER_RAW)) {
+        if (\false === $data = parse_ini_string(preg_replace('/^#/m', ';', file_get_contents($filepath)), \true, \INI_SCANNER_RAW)) {
             $this->logger->warning('The ini file {path} is invalid.', ['path' => $filepath]);
             return [];
         }

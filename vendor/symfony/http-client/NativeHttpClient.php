@@ -68,6 +68,9 @@ final class NativeHttpClient implements HttpClientInterface, LoggerAwareInterfac
             if (str_starts_with($options['bindto'], 'host!')) {
                 $options['bindto'] = substr($options['bindto'], 5);
             }
+            if ((\PHP_VERSION_ID < 80223 || 80300 <= \PHP_VERSION_ID && 80311 < \PHP_VERSION_ID) && '\\' === \DIRECTORY_SEPARATOR && '[' === $options['bindto'][0]) {
+                $options['bindto'] = preg_replace('{^\[[^\]]++\]}', '[$0]', $options['bindto']);
+            }
         }
         $hasContentLength = isset($options['normalized_headers']['content-length']);
         $hasBody = '' !== $options['body'] || 'POST' === $method || $hasContentLength;
@@ -149,10 +152,6 @@ final class NativeHttpClient implements HttpClientInterface, LoggerAwareInterfac
         if (0 < $options['max_duration']) {
             $options['timeout'] = min($options['max_duration'], $options['timeout']);
         }
-        if (\PHP_INT_SIZE === 4 && 2147 < $options['timeout']) {
-            $options['timeout'] = 2147;
-            // fopen() on x86 doesn't support longer timeouts
-        }
         switch ($cryptoMethod = $options['crypto_method']) {
             case \STREAM_CRYPTO_METHOD_TLSv1_0_CLIENT:
                 $cryptoMethod |= \STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT;
@@ -172,10 +171,7 @@ final class NativeHttpClient implements HttpClientInterface, LoggerAwareInterfac
             'curl_verify_ssl_host' => $options['verify_host'],
             'auto_decode' => \false,
             // Disable dechunk filter, it's incompatible with stream_select()
-            // PHP's stream context "timeout" is a read timeout, not a connect-only deadline; on this backend
-            // "max_connect_duration" is therefore best-effort and also caps subsequent socket reads at that
-            // duration. The curl and amp backends enforce the connect phase precisely.
-            'timeout' => 0 < $options['max_connect_duration'] ? min($options['timeout'], $options['max_connect_duration']) : $options['timeout'],
+            'timeout' => $options['timeout'],
             'follow_location' => \false,
         ], 'ssl' => array_filter(['verify_peer' => $options['verify_peer'], 'verify_peer_name' => $options['verify_host'], 'cafile' => $options['cafile'], 'capath' => $options['capath'], 'local_cert' => $options['local_cert'], 'local_pk' => $options['local_pk'], 'passphrase' => $options['passphrase'], 'ciphers' => $options['ciphers'], 'peer_fingerprint' => $options['peer_fingerprint'], 'capture_peer_cert_chain' => $options['capture_peer_cert_chain'], 'allow_self_signed' => (bool) $options['peer_fingerprint'], 'SNI_enabled' => \true, 'disable_compression' => \true, 'crypto_method' => $cryptoMethod], static fn($v) => null !== $v), 'socket' => ['bindto' => $options['bindto'], 'tcp_nodelay' => \true]];
         $context = stream_context_create($context, ['notification' => $notification]);
@@ -237,40 +233,26 @@ final class NativeHttpClient implements HttpClientInterface, LoggerAwareInterfac
     }
     /**
      * Resolves the IP of the host using the local DNS cache if possible.
-     *
-     * @param-immediately-invoked-callable $onProgress
      */
     private static function dnsResolve(string $host, NativeClientState $multi, array &$info, ?\Closure $onProgress): string
     {
         $flag = '' !== $host && '[' === $host[0] && ']' === $host[-1] && str_contains($host, ':') ? \FILTER_FLAG_IPV6 : \FILTER_FLAG_IPV4;
         $ip = \FILTER_FLAG_IPV6 === $flag ? substr($host, 1, -1) : $host;
-        $now = microtime(\true);
         if (filter_var($ip, \FILTER_VALIDATE_IP, $flag)) {
             // The host is already an IP address
         } elseif (null === $ip = $multi->dnsCache[$host] ?? null) {
             $info['debug'] .= "* Hostname was NOT found in DNS cache\n";
-            if ($ip = gethostbynamel($host)) {
-                $ip = $ip[0];
-            } elseif (!\defined('STREAM_PF_INET6')) {
-                throw new TransportException(\sprintf('Could not resolve host "%s".', $host));
-            } elseif ($ip = dns_get_record($host, \DNS_AAAA)) {
-                $ip = $ip[0]['ipv6'];
-            } elseif (\extension_loaded('sockets')) {
-                if (!$addrInfo = socket_addrinfo_lookup($host, 0, ['ai_socktype' => \SOCK_STREAM, 'ai_family' => \AF_INET6])) {
-                    throw new TransportException(\sprintf('Could not resolve host "%s".', $host));
-                }
-                $ip = socket_addrinfo_explain($addrInfo[0])['ai_addr']['sin6_addr'];
-            } elseif ('localhost' === $host || 'localhost.' === $host) {
-                $ip = '::1';
-            } else {
+            $now = microtime(\true);
+            if (!$ip = gethostbynamel($host)) {
                 throw new TransportException(\sprintf('Could not resolve host "%s".', $host));
             }
-            $multi->dnsCache[$host] = $ip;
+            $multi->dnsCache[$host] = $ip = $ip[0];
             $info['debug'] .= "* Added {$host}:0:{$ip} to DNS cache\n";
+            $host = $ip;
         } else {
             $info['debug'] .= "* Hostname was found in DNS cache\n";
+            $host = str_contains($ip, ':') ? "[{$ip}]" : $ip;
         }
-        $host = str_contains($ip, ':') ? "[{$ip}]" : $ip;
         $info['namelookup_time'] = microtime(\true) - ($info['start_time'] ?: $now);
         $info['primary_ip'] = $ip;
         if ($onProgress) {
@@ -288,8 +270,8 @@ final class NativeHttpClient implements HttpClientInterface, LoggerAwareInterfac
         if (0 < $maxRedirects = $options['max_redirects']) {
             $redirectHeaders = ['authority' => $authority];
             $redirectHeaders['with_auth'] = $redirectHeaders['no_auth'] = array_filter($options['headers'], static fn($h) => 0 !== stripos($h, 'Host:'));
-            if (isset($options['normalized_headers']['authorization']) || isset($options['normalized_headers']['cookie'])) {
-                $redirectHeaders['no_auth'] = array_filter($redirectHeaders['no_auth'], static fn($h) => 0 !== stripos($h, 'Authorization:') && 0 !== stripos($h, 'Cookie:'));
+            if (isset($options['normalized_headers']['authorization']) || isset($options['normalized_headers']['cookie']) || isset($options['normalized_headers']['proxy-authorization'])) {
+                $redirectHeaders['no_auth'] = array_filter($redirectHeaders['no_auth'], static fn($h) => 0 !== stripos($h, 'Authorization:') && 0 !== stripos($h, 'Cookie:') && 0 !== stripos($h, 'Proxy-Authorization:'));
             }
         }
         return static function (NativeClientState $multi, ?string $location, $context) use (&$redirectHeaders, $proxy, &$info, $maxRedirects, $onProgress): ?string {
@@ -322,12 +304,16 @@ final class NativeHttpClient implements HttpClientInterface, LoggerAwareInterfac
                     $options['header'] = array_filter($options['header'], $filterContentHeaders);
                     $redirectHeaders['no_auth'] = array_filter($redirectHeaders['no_auth'], $filterContentHeaders);
                     $redirectHeaders['with_auth'] = array_filter($redirectHeaders['with_auth'], $filterContentHeaders);
-                    stream_context_set_options($context, ['http' => $options]);
+                    if (\PHP_VERSION_ID >= 80300) {
+                        stream_context_set_options($context, ['http' => $options]);
+                    } else {
+                        stream_context_set_option($context, ['http' => $options]);
+                    }
                 }
             }
             [$host, $port] = self::parseHostPort($url, $info);
             if ($locationHasHost) {
-                // Authorization and Cookie headers MUST NOT follow except for the initial authority name
+                // Authorization, Cookie and Proxy-Authorization headers MUST NOT follow except for the initial authority name
                 $requestHeaders = $redirectHeaders['authority'] === $url['authority'] ? $redirectHeaders['with_auth'] : $redirectHeaders['no_auth'];
                 $requestHeaders[] = 'Host: ' . $host . $port;
                 $dnsResolve = !self::configureHeadersAndProxy($context, $host, $requestHeaders, $proxy, 'https:' === $url['scheme']);

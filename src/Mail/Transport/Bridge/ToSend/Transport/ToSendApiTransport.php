@@ -27,9 +27,12 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class ToSendApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'api.tosend.com';
+    /**
+     * @var string
+     */
+    private const HOST = 'api.tosend.com';
     /** @var list<string> */
-    private const array DISALLOWED_HEADERS = ['bcc', 'cc', 'content-transfer-encoding', 'content-type', 'date', 'dkim-signature', 'from', 'message-id', 'mime-version', 'reply-to', 'return-path', 'subject', 'to'];
+    private const DISALLOWED_HEADERS = ['bcc', 'cc', 'content-transfer-encoding', 'content-type', 'date', 'dkim-signature', 'from', 'message-id', 'mime-version', 'reply-to', 'return-path', 'subject', 'to'];
     public function __construct(
         #[SensitiveParameter]
         private readonly string $apiKey,

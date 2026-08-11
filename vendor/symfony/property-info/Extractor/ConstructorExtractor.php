@@ -11,7 +11,6 @@
 namespace JooosiMailDeps\Symfony\Component\PropertyInfo\Extractor;
 
 use JooosiMailDeps\Symfony\Component\PropertyInfo\PropertyTypeExtractorInterface;
-use JooosiMailDeps\Symfony\Component\TypeInfo\Type;
 /**
  * Extracts the constructor argument type using ConstructorArgumentTypeExtractorInterface implementations.
  *
@@ -25,10 +24,11 @@ final class ConstructorExtractor implements PropertyTypeExtractorInterface
     public function __construct(private readonly iterable $extractors = [])
     {
     }
-    public function getType(string $class, string $property, array $context = []): ?Type
+    public function getTypes(string $class, string $property, array $context = []): ?array
     {
         foreach ($this->extractors as $extractor) {
-            if (null !== $value = $extractor->getTypeFromConstructor($class, $property)) {
+            $value = $extractor->getTypesFromConstructor($class, $property);
+            if (null !== $value) {
                 return $value;
             }
         }

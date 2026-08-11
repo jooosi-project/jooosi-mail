@@ -4,16 +4,15 @@ declare (strict_types=1);
 namespace JooosiMailDeps\Doctrine\DBAL\Platforms;
 
 use JooosiMailDeps\Doctrine\DBAL\Connection;
+use JooosiMailDeps\Doctrine\DBAL\Exception;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\Exception\NotSupported;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords\SQLiteKeywords;
-use JooosiMailDeps\Doctrine\DBAL\Platforms\SQLite\SQLiteMetadataProvider;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Column;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Exception\ColumnDoesNotExist;
 use JooosiMailDeps\Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Identifier;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Index;
-use JooosiMailDeps\Doctrine\DBAL\Schema\Name\UnquotedIdentifierFolding;
 use JooosiMailDeps\Doctrine\DBAL\Schema\SQLiteSchemaManager;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Table;
 use JooosiMailDeps\Doctrine\DBAL\Schema\TableDiff;
@@ -21,10 +20,8 @@ use JooosiMailDeps\Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use JooosiMailDeps\Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use JooosiMailDeps\Doctrine\DBAL\TransactionIsolationLevel;
 use JooosiMailDeps\Doctrine\DBAL\Types;
-use JooosiMailDeps\Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
 use function array_combine;
-use function array_fill_keys;
 use function array_keys;
 use function array_merge;
 use function array_search;
@@ -41,16 +38,9 @@ use function substr;
 /**
  * The SQLitePlatform class describes the specifics and dialects of the SQLite
  * database platform.
- *
- * @phpstan-import-type ColumnProperties from Column
- * @phpstan-import-type CreateTableParameters from AbstractPlatform
  */
 class SQLitePlatform extends AbstractPlatform
 {
-    public function __construct()
-    {
-        parent::__construct(UnquotedIdentifierFolding::NONE);
-    }
     public function getCreateDatabaseSQL(string $name): string
     {
         throw NotSupported::new(__METHOD__);
@@ -160,7 +150,7 @@ class SQLitePlatform extends AbstractPlatform
      */
     public function getBigIntTypeDeclarationSQL(array $column): string
     {
-        // SQLite autoincrement is implicit for INTEGER PKs, but not for BIGINT fields.
+        //  SQLite autoincrement is implicit for INTEGER PKs, but not for BIGINT fields.
         if (!empty($column['autoincrement'])) {
             return $this->getIntegerTypeDeclarationSQL($column);
         }
@@ -203,31 +193,29 @@ class SQLitePlatform extends AbstractPlatform
      */
     protected function _getCommonIntegerTypeDeclarationSQL(array $column): string
     {
-        // SQLite autoincrement is only possible for the primary key
+        // sqlite autoincrement is only possible for the primary key
         if (!empty($column['autoincrement'])) {
             return ' PRIMARY KEY AUTOINCREMENT';
         }
         return !empty($column['unsigned']) ? ' UNSIGNED' : '';
+    }
+    /** @internal The method should be only used from within the {@see AbstractPlatform} class hierarchy. */
+    public function getForeignKeyDeclarationSQL(ForeignKeyConstraint $foreignKey): string
+    {
+        return parent::getForeignKeyDeclarationSQL(new ForeignKeyConstraint($foreignKey->getQuotedLocalColumns($this), $foreignKey->getQuotedForeignTableName($this), $foreignKey->getQuotedForeignColumns($this), $foreignKey->getName(), $foreignKey->getOptions()));
     }
     /**
      * {@inheritDoc}
      */
     protected function _getCreateTableSQL(string $name, array $columns, array $options = []): array
     {
-        $this->validateCreateTableOptions($options, __METHOD__);
-        if ($this->hasAutoIncrementColumn($columns, $options)) {
-            $options['primary'] = [];
-        }
         $queryFields = $this->getColumnDeclarationListSQL($columns);
-        if (!empty($options['uniqueConstraints'])) {
+        if (isset($options['uniqueConstraints']) && !empty($options['uniqueConstraints'])) {
             foreach ($options['uniqueConstraints'] as $definition) {
                 $queryFields .= ', ' . $this->getUniqueConstraintDeclarationSQL($definition);
             }
         }
-        if (!empty($options['primary'])) {
-            $keyColumns = array_unique(array_values($options['primary']));
-            $queryFields .= ', PRIMARY KEY (' . implode(', ', $keyColumns) . ')';
-        }
+        $queryFields .= $this->getNonAutoincrementPrimaryKeyDefinition($columns, $options);
         if (isset($options['foreignKeys'])) {
             foreach ($options['foreignKeys'] as $foreignKey) {
                 $queryFields .= ', ' . $this->getForeignKeyDeclarationSQL($foreignKey);
@@ -235,38 +223,44 @@ class SQLitePlatform extends AbstractPlatform
         }
         $tableComment = '';
         if (isset($options['comment'])) {
-            $tableComment = $this->getInlineCommentSQL($options['comment']);
+            $tableComment = $this->getInlineTableCommentSQL($options['comment']);
         }
         $query = ['CREATE TABLE ' . $name . ' ' . $tableComment . '(' . $queryFields . ')'];
         if (isset($options['alter']) && $options['alter'] === \true) {
             return $query;
         }
-        if (!empty($options['indexes'])) {
+        if (isset($options['indexes']) && !empty($options['indexes'])) {
             foreach ($options['indexes'] as $indexDef) {
+                $query[] = $this->getCreateIndexSQL($indexDef, $name);
+            }
+        }
+        if (isset($options['unique']) && !empty($options['unique'])) {
+            foreach ($options['unique'] as $indexDef) {
                 $query[] = $this->getCreateIndexSQL($indexDef, $name);
             }
         }
         return $query;
     }
     /**
-     * @param list<ColumnProperties> $columns
-     * @param CreateTableParameters  $options
+     * Generate a PRIMARY KEY definition if no autoincrement value is used
+     *
+     * @param mixed[][] $columns
+     * @param mixed[]   $options
      */
-    private function hasAutoIncrementColumn(array $columns, array $options): bool
+    private function getNonAutoincrementPrimaryKeyDefinition(array $columns, array $options): string
     {
-        $primaryKeyColumnNames = array_fill_keys($options['primary'] ?? [], \true);
-        foreach ($columns as $column) {
-            if (empty($column['autoincrement'])) {
-                continue;
-            }
-            if (!isset($primaryKeyColumnNames[$column['name']])) {
-                Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6849', 'Declaring a column that is not part of the primary key as auto-increment is deprecated.');
-            } elseif (count($primaryKeyColumnNames) > 1) {
-                Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6849', 'Declaring a column that is part of a composite primary key as auto-increment is deprecated.');
-            }
-            return \true;
+        if (empty($options['primary'])) {
+            return '';
         }
-        return \false;
+        $keyColumns = array_unique(array_values($options['primary']));
+        foreach ($keyColumns as $keyColumn) {
+            foreach ($columns as $column) {
+                if ($column['name'] === $keyColumn && !empty($column['autoincrement'])) {
+                    return '';
+                }
+            }
+        }
+        return ', PRIMARY KEY(' . implode(', ', $keyColumns) . ')';
     }
     protected function getBinaryTypeDeclarationSQLSnippet(?int $length): string
     {
@@ -334,23 +328,21 @@ class SQLitePlatform extends AbstractPlatform
     /** @internal The method should be only used from within the {@see AbstractPlatform} class hierarchy. */
     public function getInlineColumnCommentSQL(string $comment): string
     {
-        return $this->getInlineCommentSQL($comment);
-    }
-    private function getInlineCommentSQL(string $comment): string
-    {
         if ($comment === '') {
             return '';
         }
         return '--' . str_replace("\n", "\n--", $comment) . "\n";
     }
+    private function getInlineTableCommentSQL(string $comment): string
+    {
+        return $this->getInlineColumnCommentSQL($comment);
+    }
     protected function initializeDoctrineTypeMappings(): void
     {
         $this->doctrineTypeMapping = ['bigint' => 'bigint', 'bigserial' => 'bigint', 'blob' => 'blob', 'boolean' => 'boolean', 'char' => 'string', 'clob' => 'text', 'date' => 'date', 'datetime' => 'datetime', 'decimal' => 'decimal', 'double' => 'float', 'double precision' => 'float', 'float' => 'float', 'image' => 'string', 'int' => 'integer', 'integer' => 'integer', 'longtext' => 'text', 'longvarchar' => 'string', 'mediumint' => 'integer', 'mediumtext' => 'text', 'ntext' => 'string', 'numeric' => 'decimal', 'nvarchar' => 'string', 'real' => 'smallfloat', 'serial' => 'integer', 'smallint' => 'smallint', 'string' => 'string', 'text' => 'text', 'time' => 'time', 'timestamp' => 'datetime', 'tinyint' => 'boolean', 'tinytext' => 'text', 'varchar' => 'string', 'varchar2' => 'string'];
     }
-    /** @deprecated */
     protected function createReservedKeywordsList(): KeywordList
     {
-        Deprecation::triggerIfCalledFromOutside('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6607', '%s is deprecated.', __METHOD__);
         return new SQLiteKeywords();
     }
     /**
@@ -367,7 +359,7 @@ class SQLitePlatform extends AbstractPlatform
     {
         $table = $diff->getOldTable();
         $sql = [];
-        foreach ($this->getIndexesInAlteredTable($diff) as $index) {
+        foreach ($this->getIndexesInAlteredTable($diff, $table) as $index) {
             if ($index->isPrimary()) {
                 continue;
             }
@@ -434,7 +426,6 @@ class SQLitePlatform extends AbstractPlatform
         }
         return $sql;
     }
-    /** @deprecated */
     public function getCreatePrimaryKeySQL(Index $index, string $table): string
     {
         throw NotSupported::new(__METHOD__);
@@ -490,7 +481,7 @@ class SQLitePlatform extends AbstractPlatform
             $tableName = substr($tableName, $pos + 1);
         }
         $dataTable = new Table('__temp__' . $tableName);
-        $newTable = new Table($table->getQuotedName($this), $columns, $this->getPrimaryIndexInAlteredTable($diff), [], $this->getForeignKeysInAlteredTable($diff), $table->getOptions());
+        $newTable = new Table($table->getQuotedName($this), $columns, $this->getPrimaryIndexInAlteredTable($diff, $table), [], $this->getForeignKeysInAlteredTable($diff, $table), $table->getOptions());
         $newTable->addOption('alter', \true);
         $sql = $this->getPreAlterTableIndexForeignKeySQL($diff);
         $sql[] = sprintf('CREATE TEMPORARY TABLE %s AS SELECT %s FROM %s', $dataTable->getQuotedName($this), implode(', ', $oldColumnNames), $table->getQuotedName($this));
@@ -506,6 +497,8 @@ class SQLitePlatform extends AbstractPlatform
      * @param array<string,Column> $columns
      *
      * @return array<string,Column>
+     *
+     * @throws Exception
      */
     private function replaceColumn(string $tableName, array $columns, string $columnName, Column $column): array
     {
@@ -519,7 +512,11 @@ class SQLitePlatform extends AbstractPlatform
         $values[$index] = $column;
         return array_combine($keys, $values);
     }
-    /** @return list<string>|false */
+    /**
+     * @return list<string>|false
+     *
+     * @throws Exception
+     */
     private function getSimpleAlterTableSQL(TableDiff $diff): array|false
     {
         if (count($diff->getChangedColumns()) > 0 || count($diff->getDroppedColumns()) > 0 || count($diff->getAddedIndexes()) > 0 || count($diff->getModifiedIndexes()) > 0 || count($diff->getDroppedIndexes()) > 0 || count($diff->getRenamedIndexes()) > 0 || count($diff->getAddedForeignKeys()) > 0 || count($diff->getModifiedForeignKeys()) > 0 || count($diff->getDroppedForeignKeys()) > 0) {
@@ -528,10 +525,10 @@ class SQLitePlatform extends AbstractPlatform
         $table = $diff->getOldTable();
         $sql = [];
         foreach ($diff->getAddedColumns() as $column) {
-            $definition = $column->toArray();
+            $definition = array_merge(['unique' => null, 'autoincrement' => null, 'default' => null], $column->toArray());
             $type = $definition['type'];
             switch (\true) {
-                case isset($definition['columnDefinition']) || $definition['autoincrement']:
+                case isset($definition['columnDefinition']) || $definition['autoincrement'] || $definition['unique']:
                 case $type instanceof Types\DateTimeType && $definition['default'] === $this->getCurrentTimestampSQL():
                 case $type instanceof Types\DateType && $definition['default'] === $this->getCurrentDateSQL():
                 case $type instanceof Types\TimeType && $definition['default'] === $this->getCurrentTimeSQL():
@@ -542,44 +539,41 @@ class SQLitePlatform extends AbstractPlatform
         }
         return $sql;
     }
-    /**
-     * Based on the table diff, returns a map where the keys are the lower-case old column names and the values are the
-     * new column names. If the column was dropped, it is not present in the map.
-     *
-     * @return array<non-empty-string, non-empty-string>
-     */
-    private function getDiffColumnNameMap(TableDiff $diff): array
+    /** @return string[] */
+    private function getColumnNamesInAlteredTable(TableDiff $diff, Table $oldTable): array
     {
-        $oldTable = $diff->getOldTable();
-        $map = [];
+        $columns = [];
         foreach ($oldTable->getColumns() as $column) {
             $columnName = $column->getName();
-            $map[strtolower($columnName)] = $columnName;
+            $columns[strtolower($columnName)] = $columnName;
         }
         foreach ($diff->getDroppedColumns() as $column) {
-            unset($map[strtolower($column->getName())]);
+            $columnName = strtolower($column->getName());
+            if (!isset($columns[$columnName])) {
+                continue;
+            }
+            unset($columns[$columnName]);
         }
         foreach ($diff->getChangedColumns() as $columnDiff) {
-            $columnName = $columnDiff->getOldColumn()->getName();
-            $map[strtolower($columnName)] = $columnDiff->getNewColumn()->getName();
+            $oldColumnName = $columnDiff->getOldColumn()->getName();
+            $newColumnName = $columnDiff->getNewColumn()->getName();
+            $columns[strtolower($oldColumnName)] = $newColumnName;
+            $columns[strtolower($newColumnName)] = $newColumnName;
         }
         foreach ($diff->getAddedColumns() as $column) {
             $columnName = $column->getName();
-            $map[strtolower($columnName)] = $columnName;
+            $columns[strtolower($columnName)] = $columnName;
         }
-        // @phpstan-ignore return.type
-        return $map;
+        return $columns;
     }
-    /** @return array<Index> */
-    private function getIndexesInAlteredTable(TableDiff $diff): array
+    /** @return Index[] */
+    private function getIndexesInAlteredTable(TableDiff $diff, Table $oldTable): array
     {
-        $oldTable = $diff->getOldTable();
         $indexes = $oldTable->getIndexes();
-        $nameMap = $this->getDiffColumnNameMap($diff);
+        $columnNames = $this->getColumnNamesInAlteredTable($diff, $oldTable);
         foreach ($indexes as $key => $index) {
-            $indexName = $index->getName();
             foreach ($diff->getRenamedIndexes() as $oldIndexName => $renamedIndex) {
-                if (strtolower($indexName) !== strtolower($oldIndexName)) {
+                if (strtolower($key) !== strtolower($oldIndexName)) {
                     continue;
                 }
                 unset($indexes[$key]);
@@ -588,12 +582,12 @@ class SQLitePlatform extends AbstractPlatform
             $indexColumns = [];
             foreach ($index->getColumns() as $columnName) {
                 $normalizedColumnName = strtolower($columnName);
-                if (!isset($nameMap[$normalizedColumnName])) {
+                if (!isset($columnNames[$normalizedColumnName])) {
                     unset($indexes[$key]);
                     continue 2;
                 }
-                $indexColumns[] = $nameMap[$normalizedColumnName];
-                if ($columnName === $nameMap[$normalizedColumnName]) {
+                $indexColumns[] = $columnNames[$normalizedColumnName];
+                if ($columnName === $columnNames[$normalizedColumnName]) {
                     continue;
                 }
                 $changed = \true;
@@ -620,23 +614,22 @@ class SQLitePlatform extends AbstractPlatform
         }
         return $indexes;
     }
-    /** @return array<ForeignKeyConstraint> */
-    private function getForeignKeysInAlteredTable(TableDiff $diff): array
+    /** @return ForeignKeyConstraint[] */
+    private function getForeignKeysInAlteredTable(TableDiff $diff, Table $oldTable): array
     {
-        $oldTable = $diff->getOldTable();
         $foreignKeys = $oldTable->getForeignKeys();
-        $nameMap = $this->getDiffColumnNameMap($diff);
+        $columnNames = $this->getColumnNamesInAlteredTable($diff, $oldTable);
         foreach ($foreignKeys as $key => $constraint) {
             $changed = \false;
             $localColumns = [];
             foreach ($constraint->getLocalColumns() as $columnName) {
                 $normalizedColumnName = strtolower($columnName);
-                if (!isset($nameMap[$normalizedColumnName])) {
+                if (!isset($columnNames[$normalizedColumnName])) {
                     unset($foreignKeys[$key]);
                     continue 2;
                 }
-                $localColumns[] = $nameMap[$normalizedColumnName];
-                if ($columnName === $nameMap[$normalizedColumnName]) {
+                $localColumns[] = $columnNames[$normalizedColumnName];
+                if ($columnName === $columnNames[$normalizedColumnName]) {
                     continue;
                 }
                 $changed = \true;
@@ -644,15 +637,7 @@ class SQLitePlatform extends AbstractPlatform
             if (!$changed) {
                 continue;
             }
-            $foreignKeys[$key] = new ForeignKeyConstraint(
-                $localColumns,
-                // @phpstan-ignore argument.type
-                $constraint->getForeignTableName(),
-                $constraint->getForeignColumns(),
-                // @phpstan-ignore argument.type
-                $constraint->getName(),
-                $constraint->getOptions()
-            );
+            $foreignKeys[$key] = new ForeignKeyConstraint($localColumns, $constraint->getForeignTableName(), $constraint->getForeignColumns(), $constraint->getName(), $constraint->getOptions());
         }
         foreach ($diff->getDroppedForeignKeys() as $constraint) {
             $constraintName = $constraint->getName();
@@ -671,21 +656,17 @@ class SQLitePlatform extends AbstractPlatform
         }
         return $foreignKeys;
     }
-    /** @return array<string, Index> */
-    private function getPrimaryIndexInAlteredTable(TableDiff $diff): array
+    /** @return Index[] */
+    private function getPrimaryIndexInAlteredTable(TableDiff $diff, Table $oldTable): array
     {
         $primaryIndex = [];
-        foreach ($this->getIndexesInAlteredTable($diff) as $index) {
+        foreach ($this->getIndexesInAlteredTable($diff, $oldTable) as $index) {
             if (!$index->isPrimary()) {
                 continue;
             }
             $primaryIndex = [$index->getName() => $index];
         }
         return $primaryIndex;
-    }
-    public function createMetadataProvider(Connection $connection): SQLiteMetadataProvider
-    {
-        return new SQLiteMetadataProvider($connection, $this);
     }
     public function createSchemaManager(Connection $connection): SQLiteSchemaManager
     {

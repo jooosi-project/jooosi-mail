@@ -12,9 +12,9 @@ use JooosiMail\Mail\Profile\ProfileMetadataResolver;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionConfigurationValidator
+final class ConnectionConfigurationValidator
 {
-    public function __construct(private ProfileMetadataResolver $profileMetadataResolver)
+    public function __construct(private readonly ProfileMetadataResolver $profileMetadataResolver)
     {
     }
     /**

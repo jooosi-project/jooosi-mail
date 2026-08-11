@@ -15,9 +15,9 @@ use JooosiMailDeps\Symfony\Component\Messenger\Middleware\SendMessageMiddleware;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MessageBusFactory
+final class MessageBusFactory
 {
-    public function __construct(private \JooosiMail\Queue\Bus\MessageRouter $messageRouter, private \JooosiMail\Queue\Bus\HandlerLocator $handlerLocator, private EventDispatcherInterface $eventDispatcher)
+    public function __construct(private readonly \JooosiMail\Queue\Bus\MessageRouter $messageRouter, private readonly \JooosiMail\Queue\Bus\HandlerLocator $handlerLocator, private readonly EventDispatcherInterface $eventDispatcher)
     {
     }
     /**

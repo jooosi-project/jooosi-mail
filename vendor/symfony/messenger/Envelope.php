@@ -22,12 +22,14 @@ final class Envelope
      * @var array<class-string<StampInterface>, list<StampInterface>>
      */
     private array $stamps = [];
+    private object $message;
     /**
      * @param object|Envelope  $message
      * @param StampInterface[] $stamps
      */
-    public function __construct(private object $message, array $stamps = [])
+    public function __construct(object $message, array $stamps = [])
     {
+        $this->message = $message;
         foreach ($stamps as $stamp) {
             $this->stamps[$stamp::class][] = $stamp;
         }
@@ -91,7 +93,9 @@ final class Envelope
      *
      * @param class-string<TStamp>|null $stampFqcn
      *
-     * @return ($stampFqcn is null ? array<class-string<StampInterface>, list<StampInterface>> : list<TStamp>)
+     * @return StampInterface[]|StampInterface[][] The stamps for the specified FQCN, or all stamps by their class name
+     *
+     * @psalm-return ($stampFqcn is null ? array<class-string<StampInterface>, list<StampInterface>> : list<TStamp>)
      */
     public function all(?string $stampFqcn = null): array
     {

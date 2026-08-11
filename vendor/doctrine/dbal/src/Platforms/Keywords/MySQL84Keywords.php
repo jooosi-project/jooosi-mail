@@ -7,8 +7,6 @@ use function array_diff;
 use function array_merge;
 /**
  * MySQL 8.4 reserved keywords list.
- *
- * @deprecated
  */
 class MySQL84Keywords extends MySQL80Keywords
 {

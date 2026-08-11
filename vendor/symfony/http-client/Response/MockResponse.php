@@ -54,13 +54,6 @@ class MockResponse implements ResponseInterface, StreamableInterface
         $this->info['response_headers'] = [];
         self::addResponseHeaders($responseHeaders, $this->info, $this->headers);
     }
-    public static function fromFile(string $path, array $info = []): static
-    {
-        if (!is_file($path)) {
-            throw new \InvalidArgumentException(\sprintf('File not found: "%s".', $path));
-        }
-        return new static(file_get_contents($path), $info);
-    }
     /**
      * Returns the options used when doing the request.
      */
@@ -126,7 +119,6 @@ class MockResponse implements ResponseInterface, StreamableInterface
         $response->info['http_code'] = 0;
         $response->info['user_data'] = $options['user_data'] ?? null;
         $response->info['max_duration'] = $options['max_duration'] ?? null;
-        $response->info['max_connect_duration'] = $options['max_connect_duration'] ?? null;
         $response->info['url'] = $url;
         $response->info['original_url'] = $url;
         if ($mock instanceof self) {
@@ -197,9 +189,6 @@ class MockResponse implements ResponseInterface, StreamableInterface
         $onProgress = $options['on_progress'] ?? static function () {
         };
         $response->info += $mock->getInfo() ?: [];
-        if (null !== $mock->getInfo('start_time')) {
-            $response->info['start_time'] = $mock->getInfo('start_time');
-        }
         // simulate "size_upload" if it is set
         if (isset($response->info['size_upload'])) {
             $response->info['size_upload'] = 0.0;
@@ -241,7 +230,7 @@ class MockResponse implements ResponseInterface, StreamableInterface
         $response->info['http_code'] = ($info['http_code'] ?? 0 ?: $mock->getStatusCode()) ?: 200;
         $response->addResponseHeaders($info['response_headers'] ?? [], $response->info, $response->headers);
         $dlSize = isset($response->headers['content-encoding']) || 'HEAD' === $response->info['http_method'] || \in_array($response->info['http_code'], [204, 304], \true) ? 0 : (int) ($response->headers['content-length'][0] ?? 0);
-        $response->info = ['start_time' => $response->info['start_time'], 'user_data' => $response->info['user_data'], 'max_duration' => $response->info['max_duration'], 'max_connect_duration' => $response->info['max_connect_duration'], 'http_code' => $response->info['http_code']] + $info + $response->info;
+        $response->info = ['start_time' => $response->info['start_time'], 'user_data' => $response->info['user_data'], 'max_duration' => $response->info['max_duration'], 'http_code' => $response->info['http_code']] + $info + $response->info;
         if (null !== $response->info['error']) {
             throw new TransportException($response->info['error']);
         }

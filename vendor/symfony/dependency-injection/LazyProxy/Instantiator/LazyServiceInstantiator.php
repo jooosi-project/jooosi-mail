@@ -19,27 +19,15 @@ use JooosiMailDeps\Symfony\Component\DependencyInjection\LazyProxy\PhpDumper\Laz
  */
 final class LazyServiceInstantiator implements InstantiatorInterface
 {
-    /**
-     * @param-immediately-invoked-callable $realInstantiator
-     */
     public function instantiateProxy(ContainerInterface $container, Definition $definition, string $id, callable $realInstantiator): object
     {
         $dumper = new LazyServiceDumper();
         if (!$dumper->isProxyCandidate($definition, $asGhostObject, $id)) {
             throw new InvalidArgumentException(\sprintf('Cannot instantiate lazy proxy for service "%s".', $id));
         }
-        if ($asGhostObject) {
-            return (new \ReflectionClass($definition->getClass()))->newLazyGhost(static function ($ghost) use ($realInstantiator) {
-                $realInstantiator($ghost);
-            });
-        }
-        $class = null;
-        if (!class_exists($proxyClass = $dumper->getProxyClass($definition, \false, $class), \false)) {
+        if (!class_exists($proxyClass = $dumper->getProxyClass($definition, $asGhostObject), \false)) {
             eval($dumper->getProxyCode($definition, $id));
         }
-        if ($definition->getClass() === $proxyClass) {
-            return $class->newLazyProxy($realInstantiator);
-        }
-        return $proxyClass::createLazyProxy($realInstantiator);
+        return $asGhostObject ? $proxyClass::createLazyGhost($realInstantiator) : $proxyClass::createLazyProxy($realInstantiator);
     }
 }

@@ -5,7 +5,6 @@ namespace JooosiMailDeps\Doctrine\DBAL\Platforms\SQLite;
 
 use JooosiMailDeps\Doctrine\DBAL\Platforms\SQLitePlatform;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Comparator as BaseComparator;
-use JooosiMailDeps\Doctrine\DBAL\Schema\ComparatorConfig;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Table;
 use JooosiMailDeps\Doctrine\DBAL\Schema\TableDiff;
 use function strcasecmp;
@@ -17,9 +16,9 @@ use function strcasecmp;
 class Comparator extends BaseComparator
 {
     /** @internal The comparator can be only instantiated by a schema manager. */
-    public function __construct(SQLitePlatform $platform, ComparatorConfig $config = new ComparatorConfig())
+    public function __construct(SQLitePlatform $platform)
     {
-        parent::__construct($platform, $config);
+        parent::__construct($platform);
     }
     public function compareTables(Table $oldTable, Table $newTable): TableDiff
     {

@@ -19,5 +19,10 @@ use JooosiMailDeps\Symfony\Component\DependencyInjection\ContainerBuilder;
  */
 interface ConfigurationExtensionInterface
 {
-    public function getConfiguration(array $config, ContainerBuilder $container): ?ConfigurationInterface;
+    /**
+     * Returns extension configuration.
+     *
+     * @return ConfigurationInterface|null
+     */
+    public function getConfiguration(array $config, ContainerBuilder $container);
 }

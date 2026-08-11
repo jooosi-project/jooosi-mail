@@ -4,22 +4,18 @@ declare (strict_types=1);
 namespace JooosiMailDeps\Doctrine\DBAL\Platforms;
 
 use JooosiMailDeps\Doctrine\DBAL\Connection;
+use JooosiMailDeps\Doctrine\DBAL\Exception;
 use JooosiMailDeps\Doctrine\DBAL\Exception\InvalidColumnType\ColumnValuesRequired;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords\MySQLKeywords;
-use JooosiMailDeps\Doctrine\DBAL\Platforms\MySQL\MySQLMetadataProvider;
 use JooosiMailDeps\Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Index;
 use JooosiMailDeps\Doctrine\DBAL\Schema\MySQLSchemaManager;
-use JooosiMailDeps\Doctrine\DBAL\Schema\Name\UnquotedIdentifierFolding;
 use JooosiMailDeps\Doctrine\DBAL\Schema\TableDiff;
 use JooosiMailDeps\Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use JooosiMailDeps\Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
-use JooosiMailDeps\Doctrine\DBAL\SQL\Parser;
 use JooosiMailDeps\Doctrine\DBAL\TransactionIsolationLevel;
 use JooosiMailDeps\Doctrine\DBAL\Types\Types;
-use JooosiMailDeps\Doctrine\Deprecations\Deprecation;
-use function array_diff;
 use function array_map;
 use function array_merge;
 use function array_unique;
@@ -43,10 +39,6 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
     final public const LENGTH_LIMIT_TINYBLOB = 255;
     final public const LENGTH_LIMIT_BLOB = 65535;
     final public const LENGTH_LIMIT_MEDIUMBLOB = 16777215;
-    public function __construct()
-    {
-        parent::__construct(UnquotedIdentifierFolding::NONE);
-    }
     protected function doModifyLimitQuery(string $query, ?int $limit, int $offset): string
     {
         if ($limit !== null) {
@@ -111,9 +103,6 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
      */
     public function getJsonTypeDeclarationSQL(array $column): string
     {
-        if (!empty($column['jsonb'])) {
-            Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6939', 'The "jsonb" column platform option is deprecated. Use the "JSONB" type instead.');
-        }
         return 'JSON';
     }
     /**
@@ -147,7 +136,6 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
     public function getDateTimeTypeDeclarationSQL(array $column): string
     {
         if (isset($column['version']) && $column['version'] === \true) {
-            Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6940', 'The "version" column platform option is deprecated.');
             return 'TIMESTAMP';
         }
         return 'DATETIME';
@@ -171,7 +159,7 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
      */
     public function getBooleanTypeDeclarationSQL(array $column): string
     {
-        return 'TINYINT';
+        return 'TINYINT(1)';
     }
     /**
      * {@inheritDoc}
@@ -196,35 +184,32 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
      * The SQL snippet required to elucidate a column type
      *
      * Returns a column type SELECT snippet string
-     *
-     * @internal The method should be only used from within the {@see MySQLSchemaManager} class hierarchy.
      */
     public function getColumnTypeSQLSnippet(string $tableAlias, string $databaseName): string
     {
-        return $tableAlias . '.DATA_TYPE';
+        return $tableAlias . '.COLUMN_TYPE';
     }
     /**
      * {@inheritDoc}
      */
     protected function _getCreateTableSQL(string $name, array $columns, array $options = []): array
     {
-        $this->validateCreateTableOptions($options, __METHOD__);
         $queryFields = $this->getColumnDeclarationListSQL($columns);
-        if (!empty($options['uniqueConstraints'])) {
+        if (isset($options['uniqueConstraints']) && !empty($options['uniqueConstraints'])) {
             foreach ($options['uniqueConstraints'] as $definition) {
                 $queryFields .= ', ' . $this->getUniqueConstraintDeclarationSQL($definition);
             }
         }
         // add all indexes
-        if (!empty($options['indexes'])) {
+        if (isset($options['indexes']) && !empty($options['indexes'])) {
             foreach ($options['indexes'] as $definition) {
                 $queryFields .= ', ' . $this->getIndexDeclarationSQL($definition);
             }
         }
         // attach all primary keys
-        if (!empty($options['primary'])) {
+        if (isset($options['primary']) && !empty($options['primary'])) {
             $keyColumns = array_unique(array_values($options['primary']));
-            $queryFields .= ', PRIMARY KEY (' . implode(', ', $keyColumns) . ')';
+            $queryFields .= ', PRIMARY KEY(' . implode(', ', $keyColumns) . ')';
         }
         $sql = ['CREATE'];
         if (!empty($options['temporary'])) {
@@ -303,35 +288,25 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
             $oldColumn = $columnDiff->getOldColumn();
             $queryParts[] = 'CHANGE ' . $oldColumn->getQuotedName($this) . ' ' . $this->getColumnDeclarationSQL($newColumn->getQuotedName($this), $newColumnProperties);
         }
-        $droppedIndexes = $this->indexIndexesByLowerCaseName($diff->getDroppedIndexes());
         $addedIndexes = $this->indexIndexesByLowerCaseName($diff->getAddedIndexes());
+        $modifiedIndexes = $this->indexIndexesByLowerCaseName($diff->getModifiedIndexes());
         $diffModified = \false;
-        $noLongerPrimaryKeyColumns = [];
-        if (isset($droppedIndexes['primary'])) {
-            $queryParts[] = 'DROP PRIMARY KEY';
-            $noLongerPrimaryKeyColumns = $droppedIndexes['primary']->getColumns();
-        }
         if (isset($addedIndexes['primary'])) {
             $keyColumns = array_values(array_unique($addedIndexes['primary']->getColumns()));
             $queryParts[] = 'ADD PRIMARY KEY (' . implode(', ', $keyColumns) . ')';
-            $noLongerPrimaryKeyColumns = array_diff($noLongerPrimaryKeyColumns, $addedIndexes['primary']->getColumns());
-            $diff->unsetAddedIndex($addedIndexes['primary']);
+            unset($addedIndexes['primary']);
+            $diffModified = \true;
+        } elseif (isset($modifiedIndexes['primary'])) {
+            $keyColumns = array_values(array_unique($modifiedIndexes['primary']->getColumns()));
+            $queryParts[] = 'DROP PRIMARY KEY';
+            $queryParts[] = 'ADD PRIMARY KEY (' . implode(', ', $keyColumns) . ')';
+            unset($modifiedIndexes['primary']);
+            $diffModified = \true;
+        }
+        if ($diffModified) {
+            $diff = new TableDiff($diff->getOldTable(), addedColumns: $diff->getAddedColumns(), changedColumns: $diff->getChangedColumns(), droppedColumns: $diff->getDroppedColumns(), addedIndexes: array_values($addedIndexes), modifiedIndexes: array_values($modifiedIndexes), droppedIndexes: $diff->getDroppedIndexes(), renamedIndexes: $diff->getRenamedIndexes(), addedForeignKeys: $diff->getAddedForeignKeys(), modifiedForeignKeys: $diff->getModifiedForeignKeys(), droppedForeignKeys: $diff->getDroppedForeignKeys());
         }
         $tableSql = [];
-        if (isset($droppedIndexes['primary'])) {
-            $oldTable = $diff->getOldTable();
-            foreach ($noLongerPrimaryKeyColumns as $columnName) {
-                if (!$oldTable->hasColumn($columnName)) {
-                    continue;
-                }
-                $column = $oldTable->getColumn($columnName);
-                if ($column->getAutoincrement()) {
-                    $tableSql = array_merge($tableSql, $this->getPreAlterTableAlterPrimaryKeySQL($diff, $droppedIndexes['primary']));
-                    break;
-                }
-            }
-            $diff->unsetDroppedIndex($droppedIndexes['primary']);
-        }
         if (count($queryParts) > 0) {
             $tableSql[] = 'ALTER TABLE ' . $diff->getOldTable()->getQuotedName($this) . ' ' . implode(', ', $queryParts);
         }
@@ -370,7 +345,11 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
         }
         return array_merge($sql, $this->getPreAlterTableAlterIndexForeignKeySQL($diff), parent::getPreAlterTableIndexForeignKeySQL($diff), $this->getPreAlterTableRenameIndexForeignKeySQL($diff));
     }
-    /** @return list<string> */
+    /**
+     * @return list<string>
+     *
+     * @throws Exception
+     */
     private function getPreAlterTableAlterPrimaryKeySQL(TableDiff $diff, Index $index): array
     {
         if (!$index->isPrimary()) {
@@ -388,7 +367,6 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
             if (!$column->getAutoincrement()) {
                 continue;
             }
-            Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6841', 'Relying on the auto-increment attribute of a column being automatically dropped once a column' . ' is no longer part of the primary key constraint is deprecated. Instead, drop the auto-increment' . ' attribute explicitly.');
             $column->setAutoincrement(\false);
             $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' MODIFY ' . $this->getColumnDeclarationSQL($column->getQuotedName($this), $column->toArray());
             // original autoincrement information might be needed later on by other parts of the table alteration
@@ -400,6 +378,8 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
      * @param TableDiff $diff The table diff to gather the SQL for.
      *
      * @return list<string>
+     *
+     * @throws Exception
      */
     private function getPreAlterTableAlterIndexForeignKeySQL(TableDiff $diff): array
     {
@@ -528,11 +508,11 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
      */
     protected function _getCommonIntegerTypeDeclarationSQL(array $column): string
     {
-        $sql = $this->getUnsignedDeclaration($column);
+        $autoinc = '';
         if (!empty($column['autoincrement'])) {
-            $sql .= ' AUTO_INCREMENT';
+            $autoinc = ' AUTO_INCREMENT';
         }
-        return $sql;
+        return $this->getUnsignedDeclaration($column) . $autoinc;
     }
     /** @internal The method should be only used from within the {@see AbstractPlatform} class hierarchy. */
     public function getColumnCharsetDeclarationSQL(string $charset): string
@@ -570,10 +550,8 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
     {
         $this->doctrineTypeMapping = ['bigint' => Types::BIGINT, 'binary' => Types::BINARY, 'blob' => Types::BLOB, 'char' => Types::STRING, 'date' => Types::DATE_MUTABLE, 'datetime' => Types::DATETIME_MUTABLE, 'decimal' => Types::DECIMAL, 'double' => Types::FLOAT, 'enum' => Types::ENUM, 'float' => Types::SMALLFLOAT, 'int' => Types::INTEGER, 'integer' => Types::INTEGER, 'json' => Types::JSON, 'longblob' => Types::BLOB, 'longtext' => Types::TEXT, 'mediumblob' => Types::BLOB, 'mediumint' => Types::INTEGER, 'mediumtext' => Types::TEXT, 'numeric' => Types::DECIMAL, 'real' => Types::FLOAT, 'set' => Types::SIMPLE_ARRAY, 'smallint' => Types::SMALLINT, 'string' => Types::STRING, 'text' => Types::TEXT, 'time' => Types::TIME_MUTABLE, 'timestamp' => Types::DATETIME_MUTABLE, 'tinyblob' => Types::BLOB, 'tinyint' => Types::BOOLEAN, 'tinytext' => Types::TEXT, 'varbinary' => Types::BINARY, 'varchar' => Types::STRING, 'year' => Types::DATE_MUTABLE];
     }
-    /** @deprecated */
     protected function createReservedKeywordsList(): KeywordList
     {
-        Deprecation::triggerIfCalledFromOutside('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6607', '%s is deprecated.', __METHOD__);
         return new MySQLKeywords();
     }
     /**
@@ -621,15 +599,9 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
     {
         return TransactionIsolationLevel::REPEATABLE_READ;
     }
-    /** @deprecated */
     public function supportsColumnLengthIndexes(): bool
     {
-        Deprecation::triggerIfCalledFromOutside('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6886', '%s is deprecated.', __METHOD__);
         return \true;
-    }
-    public function createMetadataProvider(Connection $connection): MySQLMetadataProvider
-    {
-        return new MySQLMetadataProvider($connection, $this);
     }
     public function createSchemaManager(Connection $connection): MySQLSchemaManager
     {
@@ -648,7 +620,6 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
         }
         return $result;
     }
-    /** @internal The method should be only used from within the {@see MySQLSchemaManager} class hierarchy. */
     public function fetchTableOptionsByTable(bool $includeTableName): string
     {
         $sql = <<<'SQL'
@@ -669,9 +640,5 @@ SQL;
         }
         $conditions[] = "t.TABLE_TYPE = 'BASE TABLE'";
         return $sql . ' WHERE ' . implode(' AND ', $conditions);
-    }
-    public function createSQLParser(): Parser
-    {
-        return new Parser(\true);
     }
 }

@@ -62,7 +62,7 @@ final class LockRegistry
         if ($key < 0 || self::$lockedFiles || !$lock = self::open($key)) {
             return $callback($item, $save);
         }
-        self::$signalingException ??= unserialize("O:9:\"Exception\":1:{s:16:\"\x00Exception\x00trace\";a:0:{}}");
+        self::$signalingException ??= unserialize("O:9:\"Exception\":1:{s:16:\"\x00Exception\x00trace\";a:0:{}}", ['allowed_classes' => [\Exception::class]]);
         self::$signalingCallback ??= static fn() => throw self::$signalingException;
         while (\true) {
             try {

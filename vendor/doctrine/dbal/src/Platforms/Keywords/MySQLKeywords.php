@@ -5,8 +5,6 @@ namespace JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords;
 
 /**
  * MySQL Keywordlist.
- *
- * @deprecated
  */
 class MySQLKeywords extends KeywordList
 {

@@ -10,16 +10,11 @@
  */
 namespace JooosiMailDeps\Symfony\Component\HttpClient\Internal;
 
-use JooosiMailDeps\Amp\DeferredCancellation;
-use JooosiMailDeps\Amp\Http\Client\ApplicationInterceptor;
-use JooosiMailDeps\Amp\Http\Client\Connection\Connection;
 use JooosiMailDeps\Amp\Http\Client\Connection\Stream;
 use JooosiMailDeps\Amp\Http\Client\EventListener;
-use JooosiMailDeps\Amp\Http\Client\NetworkInterceptor;
 use JooosiMailDeps\Amp\Http\Client\Request;
-use JooosiMailDeps\Amp\Http\Client\Response;
-use JooosiMailDeps\Amp\Socket\InternetAddress;
-use JooosiMailDeps\Revolt\EventLoop;
+use JooosiMailDeps\Amp\Promise;
+use JooosiMailDeps\Amp\Success;
 use JooosiMailDeps\Symfony\Component\HttpClient\Exception\TransportException;
 /**
  * @author Nicolas Grekas <p@tchwork.com>
@@ -29,47 +24,47 @@ use JooosiMailDeps\Symfony\Component\HttpClient\Exception\TransportException;
 class AmpListener implements EventListener
 {
     private array $info;
-    private ?string $connectTimerId = null;
-    /**
-     * @param resource|null $handle
-     */
-    public function __construct(array &$info, private array $pinSha256, private \Closure $onProgress, private &$handle, private float $maxConnectDuration, private DeferredCancellation $canceller)
+    private array $pinSha256;
+    private \Closure $onProgress;
+    /** @var resource|null */
+    private $handle;
+    public function __construct(array &$info, array $pinSha256, \Closure $onProgress, &$handle)
     {
         $info += ['connect_time' => 0.0, 'pretransfer_time' => 0.0, 'starttransfer_time' => 0.0, 'total_time' => 0.0, 'namelookup_time' => 0.0, 'primary_ip' => '', 'primary_port' => 0];
         $this->info =& $info;
+        $this->pinSha256 = $pinSha256;
+        $this->onProgress = $onProgress;
+        $this->handle =& $handle;
     }
-    public function requestStart(Request $request): void
+    public function startRequest(Request $request): Promise
     {
         $this->info['start_time'] ??= microtime(\true);
-        if (0 < $this->maxConnectDuration) {
-            $this->connectTimerId = EventLoop::delay($this->maxConnectDuration, function (): void {
-                $this->canceller->cancel(new TransportException(\sprintf('Max connect duration was reached for "%s".', $this->info['url'])));
-            });
-        }
         ($this->onProgress)();
+        return new Success();
     }
-    public function connectionAcquired(Request $request, Connection $connection, int $streamCount): void
+    public function startDnsResolution(Request $request): Promise
     {
-        if (null !== $this->connectTimerId) {
-            EventLoop::cancel($this->connectTimerId);
-            $this->connectTimerId = null;
-        }
-        $this->info['namelookup_time'] = microtime(\true) - $this->info['start_time'];
-        // see https://github.com/amphp/socket/issues/114
-        $this->info['connect_time'] = microtime(\true) - $this->info['start_time'];
         ($this->onProgress)();
+        return new Success();
     }
-    public function requestHeaderStart(Request $request, Stream $stream): void
+    public function startConnectionCreation(Request $request): Promise
     {
-        $host = $stream->getRemoteAddress()->toString();
-        if ($stream->getRemoteAddress() instanceof InternetAddress) {
-            $host = $stream->getRemoteAddress()->getAddress();
-            $this->info['primary_port'] = $stream->getRemoteAddress()->getPort();
-        }
+        ($this->onProgress)();
+        return new Success();
+    }
+    public function startTlsNegotiation(Request $request): Promise
+    {
+        ($this->onProgress)();
+        return new Success();
+    }
+    public function startSendingRequest(Request $request, Stream $stream): Promise
+    {
+        $host = $stream->getRemoteAddress()->getHost();
         $this->info['primary_ip'] = $host;
         if (str_contains($host, ':')) {
             $host = '[' . $host . ']';
         }
+        $this->info['primary_port'] = $stream->getRemoteAddress()->getPort();
         $this->info['pretransfer_time'] = microtime(\true) - $this->info['start_time'];
         $this->info['debug'] .= \sprintf("* Connected to %s (%s) port %d\n", $request->getUri()->getHost(), $host, $this->info['primary_port']);
         if ((isset($this->info['peer_certificate_chain']) || $this->pinSha256) && null !== $tlsInfo = $stream->getTlsInfo()) {
@@ -97,85 +92,48 @@ class AmpListener implements EventListener
             $requestUri = $uri->getHost() . ': ' . ($uri->getPort() ?? ('https' === $uri->getScheme() ? 443 : 80));
         }
         $this->info['debug'] .= \sprintf("> %s %s HTTP/%s \r\n", $method, $requestUri, $request->getProtocolVersions()[0]);
-        foreach ($request->getHeaderPairs() as [$name, $value]) {
+        foreach ($request->getRawHeaders() as [$name, $value]) {
             $this->info['debug'] .= $name . ': ' . $value . "\r\n";
         }
         $this->info['debug'] .= "\r\n";
+        return new Success();
     }
-    public function requestBodyEnd(Request $request, Stream $stream): void
+    public function completeSendingRequest(Request $request, Stream $stream): Promise
     {
         ($this->onProgress)();
+        return new Success();
     }
-    public function responseHeaderStart(Request $request, Stream $stream): void
-    {
-        ($this->onProgress)();
-    }
-    public function requestEnd(Request $request, Response $response): void
-    {
-        ($this->onProgress)();
-    }
-    public function requestFailed(Request $request, \Throwable $exception): void
-    {
-        if (null !== $this->connectTimerId) {
-            EventLoop::cancel($this->connectTimerId);
-            $this->connectTimerId = null;
-        }
-        $this->handle = null;
-        ($this->onProgress)();
-    }
-    public function requestHeaderEnd(Request $request, Stream $stream): void
-    {
-        ($this->onProgress)();
-    }
-    public function requestBodyStart(Request $request, Stream $stream): void
-    {
-        ($this->onProgress)();
-    }
-    public function requestBodyProgress(Request $request, Stream $stream): void
-    {
-        ($this->onProgress)();
-    }
-    public function responseHeaderEnd(Request $request, Stream $stream, Response $response): void
-    {
-        ($this->onProgress)();
-    }
-    public function responseBodyStart(Request $request, Stream $stream, Response $response): void
+    public function startReceivingResponse(Request $request, Stream $stream): Promise
     {
         $this->info['starttransfer_time'] = microtime(\true) - $this->info['start_time'];
         ($this->onProgress)();
+        return new Success();
     }
-    public function responseBodyProgress(Request $request, Stream $stream, Response $response): void
-    {
-        ($this->onProgress)();
-    }
-    public function responseBodyEnd(Request $request, Stream $stream, Response $response): void
+    public function completeReceivingResponse(Request $request, Stream $stream): Promise
     {
         $this->handle = null;
         ($this->onProgress)();
+        return new Success();
     }
-    public function applicationInterceptorStart(Request $request, ApplicationInterceptor $interceptor): void
+    public function completeDnsResolution(Request $request): Promise
     {
+        $this->info['namelookup_time'] = microtime(\true) - $this->info['start_time'];
+        ($this->onProgress)();
+        return new Success();
     }
-    public function applicationInterceptorEnd(Request $request, ApplicationInterceptor $interceptor, Response $response): void
+    public function completeConnectionCreation(Request $request): Promise
     {
+        $this->info['connect_time'] = microtime(\true) - $this->info['start_time'];
+        ($this->onProgress)();
+        return new Success();
     }
-    public function networkInterceptorStart(Request $request, NetworkInterceptor $interceptor): void
-    {
-    }
-    public function networkInterceptorEnd(Request $request, NetworkInterceptor $interceptor, Response $response): void
-    {
-    }
-    public function push(Request $request): void
+    public function completeTlsNegotiation(Request $request): Promise
     {
         ($this->onProgress)();
+        return new Success();
     }
-    public function requestRejected(Request $request): void
+    public function abort(Request $request, \Throwable $cause): Promise
     {
-        if (null !== $this->connectTimerId) {
-            EventLoop::cancel($this->connectTimerId);
-            $this->connectTimerId = null;
-        }
-        $this->handle = null;
-        ($this->onProgress)();
+        return new Success();
     }
 }

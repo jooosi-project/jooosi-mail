@@ -10,17 +10,18 @@
  */
 namespace JooosiMailDeps\Symfony\Component\Messenger\Stamp;
 
-use JooosiMailDeps\Symfony\Component\Clock\Clock;
 /**
  * Apply this stamp to delay delivery of your message on a transport.
  */
 final class DelayStamp implements StampInterface
 {
+    private int $delay;
     /**
      * @param int $delay The delay in milliseconds
      */
-    public function __construct(private int $delay)
+    public function __construct(int $delay)
     {
+        $this->delay = $delay;
     }
     public function getDelay(): int
     {
@@ -28,12 +29,12 @@ final class DelayStamp implements StampInterface
     }
     public static function delayFor(\DateInterval $interval): self
     {
-        $now = Clock::get()->withTimeZone(new \DateTimeZone('UTC'))->now();
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
         $end = $now->add($interval);
         return new self(($end->getTimestamp() - $now->getTimestamp()) * 1000);
     }
     public static function delayUntil(\DateTimeInterface $dateTime): self
     {
-        return new self(($dateTime->getTimestamp() - Clock::get()->now()->getTimestamp()) * 1000);
+        return new self(($dateTime->getTimestamp() - time()) * 1000);
     }
 }

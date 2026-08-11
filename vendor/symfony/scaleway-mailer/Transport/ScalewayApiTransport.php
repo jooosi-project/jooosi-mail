@@ -25,16 +25,14 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\ResponseInterface;
 final class ScalewayApiTransport extends AbstractApiTransport
 {
     private const HOST = 'api.scaleway.com';
-    public function __construct(
-        private string $projectId,
-        #[\SensitiveParameter]
-        private string $token,
-        private ?string $region = null,
-        ?HttpClientInterface $client = null,
-        ?EventDispatcherInterface $dispatcher = null,
-        ?LoggerInterface $logger = null
-    )
+    private string $projectId;
+    private string $token;
+    private ?string $region;
+    public function __construct(string $projectId, string $token, ?string $region = null, ?HttpClientInterface $client = null, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
     {
+        $this->projectId = $projectId;
+        $this->token = $token;
+        $this->region = $region;
         parent::__construct($client, $dispatcher, $logger);
     }
     public function __toString(): string
@@ -76,8 +74,8 @@ final class ScalewayApiTransport extends AbstractApiTransport
         if ($email->getHtmlBody()) {
             $payload['html'] = $email->getHtmlBody();
         }
-        if ($attachments = $this->prepareAttachments($email)) {
-            $payload['attachments'] = $attachments;
+        if ($attachements = $this->prepareAttachments($email)) {
+            $payload['attachments'] = $attachements;
         }
         if ($headers = $this->getCustomHeaders($email)) {
             $payload['additional_headers'] = $headers;
@@ -97,8 +95,9 @@ final class ScalewayApiTransport extends AbstractApiTransport
     private function getCustomHeaders(Email $email): array
     {
         $headers = [];
+        $headersToBypass = ['from', 'to', 'cc', 'bcc', 'subject', 'content-type', 'sender'];
         foreach ($email->getHeaders()->all() as $name => $header) {
-            if (\in_array($name, ['from', 'to', 'cc', 'bcc', 'subject', 'content-type', 'sender'], \true)) {
+            if (\in_array($name, $headersToBypass, \true)) {
                 continue;
             }
             $headers[] = ['key' => $header->getName(), 'value' => $header->getBodyAsString()];
@@ -115,7 +114,9 @@ final class ScalewayApiTransport extends AbstractApiTransport
     }
     protected function formatAddresses(array $addresses): array
     {
-        return array_map(fn(Address $address) => $this->formatAddress($address), $addresses);
+        return array_map(function (Address $address) {
+            return $this->formatAddress($address);
+        }, $addresses);
     }
     private function getEndpoint(): ?string
     {

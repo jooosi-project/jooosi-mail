@@ -35,7 +35,6 @@ final class Connection implements ConnectionInterface
     public function prepare(string $sql): Statement
     {
         $visitor = new ConvertParameters();
-        /** @phpstan-ignore missingType.checkedException */
         $this->parser->parse($sql, $visitor);
         $statementName = uniqid('dbal', \true);
         if (@pg_send_prepare($this->connection, $statementName, $visitor->getSQL()) !== \true) {

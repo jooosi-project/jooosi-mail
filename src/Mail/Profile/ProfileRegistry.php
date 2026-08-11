@@ -12,9 +12,9 @@ use JooosiMailDeps\Psr\Container\ContainerInterface;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ProfileRegistry
+final class ProfileRegistry
 {
-    public function __construct(private DiscoveryManifest $manifest, private ContainerInterface $container, private \JooosiMail\Mail\Profile\ProfileMetadataResolver $profileMetadataResolver)
+    public function __construct(private readonly DiscoveryManifest $manifest, private readonly ContainerInterface $container, private readonly \JooosiMail\Mail\Profile\ProfileMetadataResolver $profileMetadataResolver)
     {
     }
     /**
@@ -38,13 +38,11 @@ final readonly class ProfileRegistry
      */
     public function get(string $key): ?\JooosiMail\Mail\Profile\MailProfileInterface
     {
-        $found = null;
         foreach ($this->all() as $profile) {
             if ($this->profileMetadataResolver->getKey($profile) === $key) {
-                $found = $profile;
-                break;
+                return $profile;
             }
         }
-        return $found;
+        return null;
     }
 }

@@ -44,9 +44,9 @@ final class EmailContent
     private $template;
     /**
      * @param array{
-     *   Simple?: Message|array|null,
-     *   Raw?: RawMessage|array|null,
-     *   Template?: Template|array|null,
+     *   Simple?: null|Message|array,
+     *   Raw?: null|RawMessage|array,
+     *   Template?: null|Template|array,
      * } $input
      */
     public function __construct(array $input)
@@ -57,9 +57,9 @@ final class EmailContent
     }
     /**
      * @param array{
-     *   Simple?: Message|array|null,
-     *   Raw?: RawMessage|array|null,
-     *   Template?: Template|array|null,
+     *   Simple?: null|Message|array,
+     *   Raw?: null|RawMessage|array,
+     *   Template?: null|Template|array,
      * }|EmailContent $input
      */
     public static function create($input): self

@@ -10,13 +10,16 @@
  */
 namespace JooosiMailDeps\Symfony\Component\DependencyInjection\Loader;
 
+use JooosiMailDeps\Symfony\Component\Config\Builder\ConfigBuilderGenerator;
+use JooosiMailDeps\Symfony\Component\Config\Builder\ConfigBuilderGeneratorInterface;
+use JooosiMailDeps\Symfony\Component\Config\Builder\ConfigBuilderInterface;
+use JooosiMailDeps\Symfony\Component\Config\FileLocatorInterface;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Attribute\When;
-use JooosiMailDeps\Symfony\Component\DependencyInjection\Attribute\WhenNot;
+use JooosiMailDeps\Symfony\Component\DependencyInjection\Container;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\ContainerBuilder;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
-use JooosiMailDeps\Symfony\Component\DependencyInjection\Exception\LogicException;
-use JooosiMailDeps\Symfony\Component\DependencyInjection\Loader\Configurator\App;
-use JooosiMailDeps\Symfony\Component\DependencyInjection\Loader\Configurator\AppReference;
+use JooosiMailDeps\Symfony\Component\DependencyInjection\Extension\ConfigurationExtensionInterface;
+use JooosiMailDeps\Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 /**
  * PhpFileLoader loads service definitions from a PHP file.
@@ -28,8 +31,13 @@ use JooosiMailDeps\Symfony\Component\DependencyInjection\Loader\Configurator\Con
  */
 class PhpFileLoader extends FileLoader
 {
-    use ContentLoaderTrait;
-    protected bool $autoRegisterAliasesForSinglyImplementedInterfaces = \false;
+    protected $autoRegisterAliasesForSinglyImplementedInterfaces = \false;
+    private ?ConfigBuilderGeneratorInterface $generator;
+    public function __construct(ContainerBuilder $container, FileLocatorInterface $locator, ?string $env = null, ?ConfigBuilderGeneratorInterface $generator = null)
+    {
+        parent::__construct($container, $locator, $env);
+        $this->generator = $generator;
+    }
     public function load(mixed $resource, ?string $type = null): mixed
     {
         // the container and loader variables are exposed to the included file below
@@ -38,62 +46,17 @@ class PhpFileLoader extends FileLoader
         $path = $this->locator->locate($resource);
         $this->setCurrentDir(\dirname($path));
         $this->container->fileExists($path);
-        // Force load ContainerConfigurator to make env(), param() etc available.
-        class_exists(ContainerConfigurator::class);
-        // Expose AppReference::config() as App::config()
-        if (!class_exists(App::class)) {
-            class_alias(AppReference::class, App::class);
-        }
         // the closure forbids access to the private scope in the included file
-        $load = \Closure::bind(static function ($path, $env) use ($container, $loader, $resource, $type) {
+        $load = \Closure::bind(function ($path, $env) use ($container, $loader, $resource, $type) {
             return include $path;
-        }, null, null);
+        }, $this, ProtectedPhpFileLoader::class);
         $instanceof = $this->instanceof;
         $this->instanceof = [];
         try {
-            if (1 === $result = $load($path, $this->env)) {
-                $result = null;
+            $callback = $load($path, $this->env);
+            if (\is_object($callback) && \is_callable($callback)) {
+                $this->executeCallback($callback, new ContainerConfigurator($this->container, $this, $this->instanceof, $path, $resource, $this->env), $path);
             }
-            if (\is_object($result) && \is_callable($result)) {
-                $this->callConfigurator($result, new ContainerConfigurator($this->container, $this, $this->instanceof, $path, $resource, $this->env), $path);
-            } elseif (\is_array($result)) {
-                ++$this->importing;
-                try {
-                    $this->loadContent(['imports' => ContainerConfigurator::processValue($result['imports'] ?? []), 'parameters' => ContainerConfigurator::processValue($result['parameters'] ?? []), 'services' => ContainerConfigurator::processValue($result['services'] ?? [], \true)], $path);
-                    foreach ($result as $namespace => $config) {
-                        if (!\is_array($config)) {
-                            throw new InvalidArgumentException(\sprintf('The "%s" key should contain an array in "%s".', $namespace, $path));
-                        }
-                        if (\in_array($namespace, ['imports', 'parameters', 'services'], \true)) {
-                            continue;
-                        }
-                        if (str_starts_with($namespace, 'when@')) {
-                            $knownEnvs = $this->container->hasParameter('.container.known_envs') ? array_flip($this->container->getParameter('.container.known_envs')) : [];
-                            $this->container->setParameter('.container.known_envs', array_keys($knownEnvs + [substr($namespace, 5) => \true]));
-                            continue;
-                        }
-                        $this->loadExtensionConfig($namespace, ContainerConfigurator::processValue($config));
-                    }
-                    // per-env configuration
-                    if ($this->env && isset($result[$when = 'when@' . $this->env])) {
-                        if (!\is_array($result[$when])) {
-                            throw new InvalidArgumentException(\sprintf('The "%s" key should contain an array in "%s".', $when, $path));
-                        }
-                        $this->loadContent(['imports' => ContainerConfigurator::processValue($result[$when]['imports'] ?? []), 'parameters' => ContainerConfigurator::processValue($result[$when]['parameters'] ?? []), 'services' => ContainerConfigurator::processValue($result[$when]['services'] ?? [], \true)], $path);
-                        foreach ($result[$when] as $namespace => $config) {
-                            if (!\is_array($config)) {
-                                throw new InvalidArgumentException(\sprintf('The "%s" key should contain an array in "%s".', $namespace, $path));
-                            }
-                            if (!\in_array($namespace, ['imports', 'parameters', 'services'], \true) && !str_starts_with($namespace, 'when@')) {
-                                $this->loadExtensionConfig($namespace, ContainerConfigurator::processValue($config));
-                            }
-                        }
-                    }
-                } finally {
-                    --$this->importing;
-                }
-            }
-            $this->loadExtensionConfigs();
         } finally {
             $this->instanceof = $instanceof;
             $this->registerAliasesForSinglyImplementedInterfaces();
@@ -112,35 +75,21 @@ class PhpFileLoader extends FileLoader
     }
     /**
      * Resolve the parameters to the $callback and execute it.
-     *
-     * @param-immediately-invoked-callable $callback
      */
-    private function callConfigurator(callable $callback, ContainerConfigurator $containerConfigurator, string $path): void
+    private function executeCallback(callable $callback, ContainerConfigurator $containerConfigurator, string $path): void
     {
         $callback = $callback(...);
         $arguments = [];
+        $configBuilders = [];
         $r = new \ReflectionFunction($callback);
-        $excluded = \true;
-        $whenAttributes = $r->getAttributes(When::class, \ReflectionAttribute::IS_INSTANCEOF);
-        $notWhenAttributes = $r->getAttributes(WhenNot::class, \ReflectionAttribute::IS_INSTANCEOF);
-        if ($whenAttributes && $notWhenAttributes) {
-            throw new LogicException('Using both #[When] and #[WhenNot] attributes on the same target is not allowed.');
-        }
-        if (!$whenAttributes && !$notWhenAttributes) {
-            $excluded = \false;
-        }
-        foreach ($whenAttributes as $attribute) {
+        $attribute = null;
+        foreach ($r->getAttributes(When::class, \ReflectionAttribute::IS_INSTANCEOF) as $attribute) {
             if ($this->env === $attribute->newInstance()->env) {
-                $excluded = \false;
+                $attribute = null;
                 break;
             }
         }
-        foreach ($notWhenAttributes as $attribute) {
-            if ($excluded = $this->env === $attribute->newInstance()->env) {
-                break;
-            }
-        }
-        if ($excluded) {
+        if (null !== $attribute) {
             return;
         }
         foreach ($r->getParameters() as $parameter) {
@@ -167,14 +116,63 @@ class PhpFileLoader extends FileLoader
                     }
                 // no break
                 default:
-                    throw new \InvalidArgumentException(\sprintf('Could not resolve argument "%s" for "%s".', $type . ' $' . $parameter->getName(), $path));
+                    try {
+                        $configBuilder = $this->configBuilder($type);
+                    } catch (InvalidArgumentException|\LogicException $e) {
+                        throw new \InvalidArgumentException(\sprintf('Could not resolve argument "%s" for "%s".', $type . ' $' . $parameter->getName(), $path), 0, $e);
+                    }
+                    $configBuilders[] = $configBuilder;
+                    $arguments[] = $configBuilder;
             }
         }
-        ++$this->importing;
-        try {
-            $callback(...$arguments);
-        } finally {
-            --$this->importing;
+        // Force load ContainerConfigurator to make env(), param() etc available.
+        class_exists(ContainerConfigurator::class);
+        $callback(...$arguments);
+        /** @var ConfigBuilderInterface $configBuilder */
+        foreach ($configBuilders as $configBuilder) {
+            $containerConfigurator->extension($configBuilder->getExtensionAlias(), $configBuilder->toArray());
         }
     }
+    /**
+     * @param string $namespace FQCN string for a class implementing ConfigBuilderInterface
+     */
+    private function configBuilder(string $namespace): ConfigBuilderInterface
+    {
+        if (!class_exists(ConfigBuilderGenerator::class)) {
+            throw new \LogicException('You cannot use the config builder as the Config component is not installed. Try running "composer require symfony/config".');
+        }
+        if (null === $this->generator) {
+            throw new \LogicException('You cannot use the ConfigBuilders without providing a class implementing ConfigBuilderGeneratorInterface.');
+        }
+        // If class exists and implements ConfigBuilderInterface
+        if (class_exists($namespace) && is_subclass_of($namespace, ConfigBuilderInterface::class)) {
+            return new $namespace();
+        }
+        // If it does not start with Symfony\Config\ we don't know how to handle this
+        if (!str_starts_with($namespace, 'Symfony\Config\\')) {
+            throw new InvalidArgumentException(\sprintf('Could not find or generate class "%s".', $namespace));
+        }
+        // Try to get the extension alias
+        $alias = Container::underscore(substr($namespace, 15, -6));
+        if (str_contains($alias, '\\')) {
+            throw new InvalidArgumentException('You can only use "root" ConfigBuilders from "Symfony\Config\" namespace. Nested classes like "Symfony\Config\Framework\CacheConfig" cannot be used.');
+        }
+        if (!$this->container->hasExtension($alias)) {
+            $extensions = array_filter(array_map(static fn(ExtensionInterface $ext) => $ext->getAlias(), $this->container->getExtensions()));
+            throw new InvalidArgumentException(\sprintf('There is no extension able to load the configuration for "%s". Looked for namespace "%s", found "%s".', $namespace, $alias, $extensions ? implode('", "', $extensions) : 'none'));
+        }
+        $extension = $this->container->getExtension($alias);
+        if (!$extension instanceof ConfigurationExtensionInterface) {
+            throw new \LogicException(\sprintf('You cannot use the config builder for "%s" because the extension does not implement "%s".', $namespace, ConfigurationExtensionInterface::class));
+        }
+        $configuration = $extension->getConfiguration([], $this->container);
+        $loader = $this->generator->build($configuration);
+        return $loader();
+    }
+}
+/**
+ * @internal
+ */
+final class ProtectedPhpFileLoader extends PhpFileLoader
+{
 }

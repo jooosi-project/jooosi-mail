@@ -5,19 +5,18 @@ namespace JooosiMailDeps\AsyncAws\Ses\ValueObject;
 use JooosiMailDeps\AsyncAws\Core\Exception\InvalidArgument;
 use JooosiMailDeps\AsyncAws\Ses\Enum\SuppressionListReason;
 /**
- * An object that contains information about an email address that is on the suppression list for your account or for a
- * specific tenant.
+ * An object that contains information about an email address that is on the suppression list for your account.
  */
 final class SuppressedDestination
 {
     /**
-     * The email address that is on the suppression list for your account or for a specific tenant.
+     * The email address that is on the suppression list for your account.
      *
      * @var string
      */
     private $emailAddress;
     /**
-     * The reason that the address was added to the suppression list for your account or for a specific tenant.
+     * The reason that the address was added to the suppression list for your account.
      *
      * @var SuppressionListReason::*
      */
@@ -30,25 +29,17 @@ final class SuppressedDestination
     private $lastUpdateTime;
     /**
      * An optional value that can contain additional information about the reasons that the address was added to the
-     * suppression list for your account or for a specific tenant.
+     * suppression list for your account.
      *
      * @var SuppressedDestinationAttributes|null
      */
     private $attributes;
     /**
-     * The name of the tenant that the suppressed destination belongs to. This field is present only when the suppressed
-     * destination is on a tenant's suppression list.
-     *
-     * @var string|null
-     */
-    private $tenantName;
-    /**
      * @param array{
      *   EmailAddress: string,
      *   Reason: SuppressionListReason::*,
      *   LastUpdateTime: \DateTimeImmutable,
-     *   Attributes?: SuppressedDestinationAttributes|array|null,
-     *   TenantName?: string|null,
+     *   Attributes?: null|SuppressedDestinationAttributes|array,
      * } $input
      */
     public function __construct(array $input)
@@ -57,15 +48,13 @@ final class SuppressedDestination
         $this->reason = $input['Reason'] ?? $this->throwException(new InvalidArgument('Missing required field "Reason".'));
         $this->lastUpdateTime = $input['LastUpdateTime'] ?? $this->throwException(new InvalidArgument('Missing required field "LastUpdateTime".'));
         $this->attributes = isset($input['Attributes']) ? SuppressedDestinationAttributes::create($input['Attributes']) : null;
-        $this->tenantName = $input['TenantName'] ?? null;
     }
     /**
      * @param array{
      *   EmailAddress: string,
      *   Reason: SuppressionListReason::*,
      *   LastUpdateTime: \DateTimeImmutable,
-     *   Attributes?: SuppressedDestinationAttributes|array|null,
-     *   TenantName?: string|null,
+     *   Attributes?: null|SuppressedDestinationAttributes|array,
      * }|SuppressedDestination $input
      */
     public static function create($input): self
@@ -90,10 +79,6 @@ final class SuppressedDestination
     public function getReason(): string
     {
         return $this->reason;
-    }
-    public function getTenantName(): ?string
-    {
-        return $this->tenantName;
     }
     /**
      * @return never

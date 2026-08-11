@@ -14,14 +14,29 @@ use JooosiMail\Mail\ValueObject\MailRequest;
  * @since 0.1.0
  */
 #[Service]
-final readonly class SenderPolicyResolver
+final class SenderPolicyResolver
 {
-    public const string RETURN_PATH_MODE_INHERIT = 'inherit';
-    public const string RETURN_PATH_MODE_PROVIDER_DEFAULT = 'provider_default';
-    public const string RETURN_PATH_MODE_MATCH_FROM = 'match_from';
-    public const string RETURN_PATH_MODE_CUSTOM = 'custom';
-    private const string DEFAULT_FROM_APPLIED_METADATA_KEY = 'jooosi_mail_default_from_applied';
-    public function __construct(private OptionStore $optionStore)
+    /**
+     * @var string
+     */
+    public const RETURN_PATH_MODE_INHERIT = 'inherit';
+    /**
+     * @var string
+     */
+    public const RETURN_PATH_MODE_PROVIDER_DEFAULT = 'provider_default';
+    /**
+     * @var string
+     */
+    public const RETURN_PATH_MODE_MATCH_FROM = 'match_from';
+    /**
+     * @var string
+     */
+    public const RETURN_PATH_MODE_CUSTOM = 'custom';
+    /**
+     * @var string
+     */
+    private const DEFAULT_FROM_APPLIED_METADATA_KEY = 'jooosi_mail_default_from_applied';
+    public function __construct(private readonly OptionStore $optionStore)
     {
     }
     /**

@@ -16,9 +16,19 @@ use JooosiMailDeps\Symfony\Component\Mime\Header\Headers;
  */
 class SMimePart extends AbstractPart
 {
-    public function __construct(private iterable|string $body, private string $type, private string $subtype, private array $parameters)
+    /** @internal */
+    protected Headers $_headers;
+    private iterable|string $body;
+    private string $type;
+    private string $subtype;
+    private array $parameters;
+    public function __construct(iterable|string $body, string $type, string $subtype, array $parameters)
     {
         parent::__construct();
+        $this->body = $body;
+        $this->type = $type;
+        $this->subtype = $subtype;
+        $this->parameters = $parameters;
     }
     public function getMediaType(): string
     {
@@ -62,25 +72,19 @@ class SMimePart extends AbstractPart
         }
         return $headers;
     }
-    public function __serialize(): array
+    public function __sleep(): array
     {
         // convert iterables to strings for serialization
         if (is_iterable($this->body)) {
             $this->body = $this->bodyToString();
         }
-        return ['_headers' => $this->getHeaders(), 'body' => $this->body, 'type' => $this->type, 'subtype' => $this->subtype, 'parameters' => $this->parameters];
+        $this->_headers = $this->getHeaders();
+        return ['_headers', 'body', 'type', 'subtype', 'parameters'];
     }
-    public function __unserialize(array $data): void
+    public function __wakeup(): void
     {
-        foreach (['body', 'type', 'subtype'] as $prop) {
-            if (($data[$prop] ?? $data["\x00" . self::class . "\x00" . $prop] ?? $data["\x00*\x00" . $prop] ?? null) instanceof \Stringable) {
-                throw new \BadMethodCallException('Cannot unserialize ' . __CLASS__);
-            }
-        }
-        parent::__unserialize(['headers' => $data['_headers'] ?? $data["\x00*\x00_headers"]]);
-        $this->body = $data['body'] ?? $data["\x00" . self::class . "\x00body"];
-        $this->type = $data['type'] ?? $data["\x00" . self::class . "\x00type"];
-        $this->subtype = $data['subtype'] ?? $data["\x00" . self::class . "\x00subtype"];
-        $this->parameters = $data['parameters'] ?? $data["\x00" . self::class . "\x00parameters"];
+        $r = new \ReflectionProperty(AbstractPart::class, 'headers');
+        $r->setValue($this, $this->_headers);
+        unset($this->_headers);
     }
 }

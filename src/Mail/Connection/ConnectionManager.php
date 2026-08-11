@@ -13,9 +13,9 @@ use JooosiMail\Mail\Profile\ProfileRegistry;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionManager
+final class ConnectionManager
 {
-    public function __construct(private \JooosiMail\Mail\Connection\ConnectionRepository $connectionRepository, private ProfileRegistry $profileRegistry, private ProfileMetadataResolver $profileMetadataResolver, private \JooosiMail\Mail\Connection\ConnectionInputResolver $connectionInputResolver, private \JooosiMail\Mail\Connection\ConnectionConfigurationValidator $connectionConfigurationValidator)
+    public function __construct(private readonly \JooosiMail\Mail\Connection\ConnectionRepository $connectionRepository, private readonly ProfileRegistry $profileRegistry, private readonly ProfileMetadataResolver $profileMetadataResolver, private readonly \JooosiMail\Mail\Connection\ConnectionInputResolver $connectionInputResolver, private readonly \JooosiMail\Mail\Connection\ConnectionConfigurationValidator $connectionConfigurationValidator)
     {
     }
     /**
@@ -128,7 +128,7 @@ final readonly class ConnectionManager
             return;
         }
         $activeConnections = $this->connectionRepository->findActive();
-        $nextDefault = $activeConnections[array_key_first($activeConnections)];
+        $nextDefault = $activeConnections === [] ? null : $activeConnections[array_key_first($activeConnections)];
         if (!$nextDefault instanceof \JooosiMail\Mail\Connection\Connection || $nextDefault->id === null) {
             return;
         }

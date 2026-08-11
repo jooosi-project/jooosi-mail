@@ -8,7 +8,7 @@ use function array_key_exists;
 /** @internal */
 final class CachingCharsetMetadataProvider implements CharsetMetadataProvider
 {
-    /** @var array<string,?non-empty-string> */
+    /** @var array<string,?string> */
     private array $cache = [];
     public function __construct(private readonly CharsetMetadataProvider $charsetMetadataProvider)
     {

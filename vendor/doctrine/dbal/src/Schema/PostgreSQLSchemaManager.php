@@ -9,18 +9,20 @@ use JooosiMailDeps\Doctrine\DBAL\Result;
 use JooosiMailDeps\Doctrine\DBAL\Types\JsonType;
 use JooosiMailDeps\Doctrine\DBAL\Types\Type;
 use function array_change_key_case;
+use function array_key_exists;
 use function array_map;
+use function array_merge;
 use function assert;
-use function count;
 use function explode;
 use function implode;
+use function in_array;
 use function is_string;
 use function preg_match;
 use function sprintf;
 use function str_contains;
 use function str_replace;
-use function str_starts_with;
-use function strlen;
+use function strtolower;
+use function trim;
 use const CASE_LOWER;
 /**
  * PostgreSQL Schema Manager.
@@ -29,6 +31,7 @@ use const CASE_LOWER;
  */
 class PostgreSQLSchemaManager extends AbstractSchemaManager
 {
+    private ?string $currentSchema = null;
     /**
      * {@inheritDoc}
      */
@@ -42,23 +45,23 @@ AND    schema_name != 'information_schema'
 SQL
 );
     }
+    public function createSchemaConfig(): SchemaConfig
+    {
+        $config = parent::createSchemaConfig();
+        $config->setName($this->getCurrentSchema());
+        return $config;
+    }
     /**
      * Returns the name of the current schema.
-     *
-     * @deprecated Use {@link getCurrentSchemaName()} instead
      *
      * @throws Exception
      */
     protected function getCurrentSchema(): ?string
     {
-        return $this->getCurrentSchemaName();
+        return $this->currentSchema ??= $this->determineCurrentSchema();
     }
     /**
      * Determines the name of the current schema.
-     *
-     * @deprecated Use {@link determineCurrentSchemaName()} instead
-     *
-     * @return non-empty-string
      *
      * @throws Exception
      */
@@ -66,12 +69,7 @@ SQL
     {
         $currentSchema = $this->connection->fetchOne('SELECT current_schema()');
         assert(is_string($currentSchema));
-        assert(strlen($currentSchema) > 0);
         return $currentSchema;
-    }
-    protected function determineCurrentSchemaName(): ?string
-    {
-        return $this->determineCurrentSchema();
     }
     /**
      * {@inheritDoc}
@@ -93,7 +91,7 @@ SQL
         $localColumns = array_map('trim', explode(',', $values[1]));
         $foreignColumns = array_map('trim', explode(',', $values[3]));
         $foreignTable = $values[2];
-        return new ForeignKeyConstraint($localColumns, $foreignTable, $foreignColumns, $tableForeignKey['conname'], ['onUpdate' => $onUpdate, 'onDelete' => $onDelete, 'deferrable' => (bool) $tableForeignKey['condeferrable'], 'deferred' => (bool) $tableForeignKey['condeferred']]);
+        return new ForeignKeyConstraint($localColumns, $foreignTable, $foreignColumns, $tableForeignKey['conname'], ['onUpdate' => $onUpdate, 'onDelete' => $onDelete]);
     }
     /**
      * {@inheritDoc}
@@ -103,13 +101,10 @@ SQL
         return new View($view['schemaname'] . '.' . $view['viewname'], $view['definition']);
     }
     /**
-     * @deprecated Use the schema name and the unqualified table name separately instead.
-     *
      * {@inheritDoc}
      */
     protected function _getPortableTableDefinition(array $table): string
     {
-        // @phpstan-ignore missingType.checkedException
         $currentSchema = $this->getCurrentSchema();
         if ($table['schema_name'] === $currentSchema) {
             return $table['table_name'];
@@ -119,15 +114,32 @@ SQL
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableIndexesList(array $rows, string $tableName): array
+    protected function _getPortableTableIndexesList(array $tableIndexes, string $tableName): array
     {
-        return parent::_getPortableTableIndexesList(array_map(
-            /** @param array<string, mixed> $row */
-            static function (array $row): array {
-                return ['key_name' => $row['relname'], 'non_unique' => !$row['indisunique'], 'primary' => (bool) $row['indisprimary'], 'where' => $row['where'], 'column_name' => $row['attname']];
-            },
-            $rows
-        ), $tableName);
+        $buffer = [];
+        foreach ($tableIndexes as $row) {
+            $colNumbers = array_map('intval', explode(' ', $row['indkey']));
+            $columnNameSql = sprintf(<<<'SQL'
+SELECT attnum,
+       quote_ident(attname) AS attname
+FROM pg_attribute
+WHERE attrelid = %d
+  AND attnum IN (%s)
+ORDER BY attnum
+SQL
+, $row['indrelid'], implode(', ', $colNumbers));
+            $indexColumns = $this->connection->fetchAllAssociative($columnNameSql);
+            // required for getting the order of the columns right.
+            foreach ($colNumbers as $colNum) {
+                foreach ($indexColumns as $colRow) {
+                    if ($colNum !== $colRow['attnum']) {
+                        continue;
+                    }
+                    $buffer[] = ['key_name' => $row['relname'], 'column_name' => trim($colRow['attname']), 'non_unique' => !$row['indisunique'], 'primary' => $row['indisprimary'], 'where' => $row['where']];
+                }
+            }
+        }
+        return parent::_getPortableTableIndexesList($buffer, $tableName);
     }
     /**
      * {@inheritDoc}
@@ -155,46 +167,97 @@ SQL
     {
         $tableColumn = array_change_key_case($tableColumn, CASE_LOWER);
         $length = null;
+        if (in_array(strtolower($tableColumn['type']), ['varchar', 'bpchar'], \true) && preg_match('/\((\d*)\)/', $tableColumn['complete_type'], $matches) === 1) {
+            $length = (int) $matches[1];
+        }
+        $autoincrement = $tableColumn['attidentity'] === 'd';
+        $matches = [];
+        assert(array_key_exists('default', $tableColumn));
+        assert(array_key_exists('complete_type', $tableColumn));
+        if ($tableColumn['default'] !== null) {
+            if (preg_match("/^['(](.*)[')]::/", $tableColumn['default'], $matches) === 1) {
+                $tableColumn['default'] = $matches[1];
+            } elseif (preg_match('/^NULL::/', $tableColumn['default']) === 1) {
+                $tableColumn['default'] = null;
+            }
+        }
+        if ($length === -1 && isset($tableColumn['atttypmod'])) {
+            $length = $tableColumn['atttypmod'] - 4;
+        }
+        if ((int) $length <= 0) {
+            $length = null;
+        }
+        $fixed = \false;
+        if (!isset($tableColumn['name'])) {
+            $tableColumn['name'] = '';
+        }
         $precision = null;
         $scale = 0;
-        $fixed = \false;
-        $jsonb = \false;
-        $dbType = $tableColumn['type'];
-        if ($tableColumn['domain_type'] !== null && !$this->platform->hasDoctrineTypeMappingFor($dbType)) {
-            $dbType = $tableColumn['domain_type'];
-            $completeType = $tableColumn['domain_complete_type'];
-        } else {
-            $completeType = $tableColumn['complete_type'];
+        $jsonb = null;
+        $dbType = strtolower($tableColumn['type']);
+        if ($tableColumn['domain_type'] !== null && $tableColumn['domain_type'] !== '' && !$this->platform->hasDoctrineTypeMappingFor($tableColumn['type'])) {
+            $dbType = strtolower($tableColumn['domain_type']);
+            $tableColumn['complete_type'] = $tableColumn['domain_complete_type'];
         }
         $type = $this->platform->getDoctrineTypeMapping($dbType);
         switch ($dbType) {
-            case 'bpchar':
-            case 'varchar':
-                $parameters = $this->parseColumnTypeParameters($completeType);
-                if (count($parameters) > 0) {
-                    $length = $parameters[0];
-                }
+            case 'smallint':
+            case 'int2':
+            case 'int':
+            case 'int4':
+            case 'integer':
+            case 'bigint':
+            case 'int8':
+                $length = null;
                 break;
+            case 'bool':
+            case 'boolean':
+                if ($tableColumn['default'] === 'true') {
+                    $tableColumn['default'] = \true;
+                }
+                if ($tableColumn['default'] === 'false') {
+                    $tableColumn['default'] = \false;
+                }
+                $length = null;
+                break;
+            case 'json':
+            case 'text':
+            case '_varchar':
+            case 'varchar':
+                $tableColumn['default'] = $this->parseDefaultExpression($tableColumn['default']);
+                break;
+            case 'char':
+            case 'bpchar':
+                $fixed = \true;
+                break;
+            case 'float':
+            case 'float4':
+            case 'float8':
             case 'double':
+            case 'double precision':
+            case 'real':
             case 'decimal':
             case 'money':
             case 'numeric':
-                $parameters = $this->parseColumnTypeParameters($completeType);
-                if (count($parameters) > 0) {
-                    $precision = $parameters[0];
-                }
-                if (count($parameters) > 1) {
-                    $scale = $parameters[1];
+                if (preg_match('([A-Za-z]+\(([0-9]+),([0-9]+)\))', $tableColumn['complete_type'], $match) === 1) {
+                    $precision = (int) $match[1];
+                    $scale = (int) $match[2];
+                    $length = null;
                 }
                 break;
+            case 'year':
+                $length = null;
+                break;
+            // PostgreSQL 9.4+ only
+            case 'jsonb':
+                $jsonb = \true;
+                break;
         }
-        if ($dbType === 'bpchar') {
-            $fixed = \true;
-        } elseif ($dbType === 'jsonb') {
-            $jsonb = \true;
+        if (is_string($tableColumn['default']) && preg_match("('([^']+)'::)", $tableColumn['default'], $match) === 1) {
+            $tableColumn['default'] = $match[1];
         }
-        $options = ['length' => $length, 'notnull' => (bool) $tableColumn['isnotnull'], 'default' => $this->parseDefaultExpression($tableColumn['default']), 'precision' => $precision, 'scale' => $scale, 'fixed' => $fixed, 'autoincrement' => $tableColumn['attidentity'] === 'd'];
-        if ($tableColumn['comment'] !== null) {
+        $options = ['length' => $length, 'notnull' => (bool) $tableColumn['isnotnull'], 'default' => $tableColumn['default'], 'precision' => $precision, 'scale' => $scale, 'fixed' => $fixed, 'autoincrement' => $autoincrement];
+        if (isset($tableColumn['comment'])) {
             $options['comment'] = $tableColumn['comment'];
         }
         $column = new Column($tableColumn['field'], Type::getType($type), $options);
@@ -207,39 +270,14 @@ SQL
         return $column;
     }
     /**
-     * Parses the parameters between parenthesis in the data type.
-     *
-     * @return list<int>
-     */
-    private function parseColumnTypeParameters(string $type): array
-    {
-        if (preg_match('/\((\d+)(?:,(\d+))?\)/', $type, $matches) !== 1) {
-            return [];
-        }
-        $parameters = [(int) $matches[1]];
-        if (isset($matches[2])) {
-            $parameters[] = (int) $matches[2];
-        }
-        return $parameters;
-    }
-    /**
      * Parses a default value expression as given by PostgreSQL
      */
-    private function parseDefaultExpression(?string $expression): mixed
+    private function parseDefaultExpression(?string $default): ?string
     {
-        if ($expression === null || str_starts_with($expression, 'NULL::')) {
-            return null;
+        if ($default === null) {
+            return $default;
         }
-        if ($expression === 'true') {
-            return \true;
-        }
-        if ($expression === 'false') {
-            return \false;
-        }
-        if (preg_match("/^'(.*)'::/s", $expression, $matches) === 1) {
-            return str_replace("''", "'", $matches[1]);
-        }
-        return $expression;
+        return str_replace("''", "'", $default);
     }
     protected function selectTableNames(string $databaseName): Result
     {
@@ -260,126 +298,116 @@ SQL;
     }
     protected function selectTableColumns(string $databaseName, ?string $tableName = null): Result
     {
-        $params = [];
-        $sql = sprintf(<<<'SQL'
-SELECT quote_ident(n.nspname)               AS schema_name,
-       quote_ident(c.relname)               AS table_name,
-       quote_ident(a.attname)               AS field,
-       t.typname                            AS type,
-       format_type(a.atttypid, a.atttypmod) AS complete_type,
-       bt.typname                           AS domain_type,
-       format_type(bt.oid, t.typtypmod)     AS domain_complete_type,
-       a.attnotnull                         AS isnotnull,
-       a.attidentity,
-       (%s)                                 AS "default",
-       dsc.description                      AS comment,
-       CASE
-           WHEN coll.collprovider = 'c'
-               THEN coll.collcollate
-           WHEN coll.collprovider = 'd'
-               THEN NULL
-           ELSE coll.collname
-           END                              AS collation
+        $sql = 'SELECT ';
+        if ($tableName === null) {
+            $sql .= 'quote_ident(c.relname) AS table_name, quote_ident(n.nspname) AS schema_name,';
+        }
+        $sql .= sprintf(<<<'SQL'
+a.attnum,
+quote_ident(a.attname) AS field,
+t.typname AS type,
+format_type(a.atttypid, a.atttypmod) AS complete_type,
+(SELECT tc.collcollate FROM pg_catalog.pg_collation tc WHERE tc.oid = a.attcollation) AS collation,
+(SELECT t1.typname FROM pg_catalog.pg_type t1 WHERE t1.oid = t.typbasetype) AS domain_type,
+(SELECT format_type(t2.typbasetype, t2.typtypmod) FROM
+  pg_catalog.pg_type t2 WHERE t2.typtype = 'd' AND t2.oid = a.atttypid) AS domain_complete_type,
+a.attnotnull AS isnotnull,
+a.attidentity,
+(SELECT 't'
+ FROM pg_index
+ WHERE c.oid = pg_index.indrelid
+    AND pg_index.indkey[0] = a.attnum
+    AND pg_index.indisprimary = 't'
+) AS pri,
+(%s) AS default,
+(SELECT pg_description.description
+    FROM pg_description WHERE pg_description.objoid = c.oid AND a.attnum = pg_description.objsubid
+) AS comment
 FROM pg_attribute a
-         JOIN pg_class c
-              ON c.oid = a.attrelid
-         JOIN pg_namespace n
-              ON n.oid = c.relnamespace
-         JOIN pg_type t
-              ON t.oid = a.atttypid
-         LEFT JOIN pg_type bt
-                   ON t.typtype = 'd'
-                       AND bt.oid = t.typbasetype
-         LEFT JOIN pg_collation coll
-                   ON coll.oid = a.attcollation
-         LEFT JOIN pg_depend dep
-                   ON dep.objid = c.oid
-                       AND dep.deptype = 'e'
-                       AND dep.classid = (SELECT oid FROM pg_class WHERE relname = 'pg_class')
-         LEFT JOIN pg_description dsc
-                   ON dsc.objoid = c.oid AND dsc.objsubid = a.attnum
-         LEFT JOIN pg_inherits i
-                   ON i.inhrelid = c.oid
-         LEFT JOIN pg_class p
-                   ON i.inhparent = p.oid
-                       AND p.relkind = 'p'
-WHERE %s
-  -- 'r' for regular tables - 'p' for partitioned tables
-  AND c.relkind IN ('r', 'p')
-  AND a.attnum > 0
-  AND dep.refobjid IS NULL
-  -- exclude partitions (tables that inherit from partitioned tables)
-  AND p.oid IS NULL
-ORDER BY n.nspname,
-    c.relname,
-    a.attnum
+    INNER JOIN pg_class c
+        ON c.oid = a.attrelid
+    INNER JOIN pg_type t
+        ON t.oid = a.atttypid
+    INNER JOIN pg_namespace n
+        ON n.oid = c.relnamespace
+    LEFT JOIN pg_depend d
+        ON d.objid = c.oid
+            AND d.deptype = 'e'
+            AND d.classid = (SELECT oid FROM pg_class WHERE relname = 'pg_class')
 SQL
-, $this->platform->getDefaultColumnValueSQLSnippet(), implode(' AND ', $this->buildQueryConditions($tableName, $params)));
-        return $this->connection->executeQuery($sql, $params);
+, $this->platform->getDefaultColumnValueSQLSnippet());
+        $conditions = array_merge([
+            'a.attnum > 0',
+            'd.refobjid IS NULL',
+            // 'r' for regular tables - 'p' for partitioned tables
+            "c.relkind IN('r', 'p')",
+            // exclude partitions (tables that inherit from partitioned tables)
+            <<<'SQL'
+NOT EXISTS (
+    SELECT 1 
+    FROM pg_inherits 
+    INNER JOIN pg_class parent on pg_inherits.inhparent = parent.oid 
+        AND parent.relkind = 'p' 
+    WHERE inhrelid = c.oid
+)
+SQL
+,
+        ], $this->buildQueryConditions($tableName));
+        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ' ORDER BY a.attnum';
+        return $this->connection->executeQuery($sql);
     }
     protected function selectIndexColumns(string $databaseName, ?string $tableName = null): Result
     {
-        $params = [];
-        $sql = sprintf(<<<'SQL'
-SELECT
-       quote_ident(n.nspname) AS schema_name,
-       quote_ident(c.relname) AS table_name,
-       quote_ident(ic.relname) AS relname,
-       i.indisunique,
-       i.indisprimary,
-       i.indkey,
-       i.indrelid,
-       pg_get_expr(indpred, indrelid) AS "where",
-       quote_ident(attname) AS attname
-  FROM pg_index i
-       JOIN pg_class AS c ON c.oid = i.indrelid
-       JOIN pg_namespace n ON n.oid = c.relnamespace
-       JOIN pg_class AS ic ON ic.oid = i.indexrelid
-       JOIN LATERAL UNNEST(i.indkey) WITH ORDINALITY AS keys(attnum, ord)
-            ON TRUE
-       JOIN pg_attribute a
-            ON a.attrelid = c.oid
-                AND a.attnum = keys.attnum
- WHERE %s
- ORDER BY 1, 2, keys.ord;
-SQL
-, implode(' AND ', $this->buildQueryConditions($tableName, $params)));
-        return $this->connection->executeQuery($sql, $params);
+        $sql = 'SELECT';
+        if ($tableName === null) {
+            $sql .= ' quote_ident(tc.relname) AS table_name, quote_ident(tn.nspname) AS schema_name,';
+        }
+        $sql .= <<<'SQL'
+                   quote_ident(ic.relname) AS relname,
+                   i.indisunique,
+                   i.indisprimary,
+                   i.indkey,
+                   i.indrelid,
+                   pg_get_expr(indpred, indrelid) AS "where"
+              FROM pg_index i
+                   JOIN pg_class AS tc ON tc.oid = i.indrelid
+                   JOIN pg_namespace tn ON tn.oid = tc.relnamespace
+                   JOIN pg_class AS ic ON ic.oid = i.indexrelid
+             WHERE ic.oid IN (
+                SELECT indexrelid
+                FROM pg_index i, pg_class c, pg_namespace n
+SQL;
+        $conditions = array_merge(['c.oid = i.indrelid', 'c.relnamespace = n.oid'], $this->buildQueryConditions($tableName));
+        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ') ORDER BY quote_ident(ic.relname)';
+        return $this->connection->executeQuery($sql);
     }
     protected function selectForeignKeyColumns(string $databaseName, ?string $tableName = null): Result
     {
-        $params = [];
-        $sql = sprintf(<<<'SQL'
-   SELECT
-          quote_ident(tn.nspname) AS schema_name,
-          quote_ident(tc.relname) AS table_name,
-          quote_ident(r.conname) as conname,
-          pg_get_constraintdef(r.oid, true) as condef,
-          r.condeferrable,
-          r.condeferred
-          FROM pg_constraint r
-              JOIN pg_class AS tc ON tc.oid = r.conrelid
-              JOIN pg_namespace tn ON tn.oid = tc.relnamespace
-          WHERE r.conrelid IN
-          (
-              SELECT c.oid
-              FROM pg_class c
-                JOIN pg_namespace n
-                    ON n.oid = c.relnamespace
-                WHERE %s)
-          AND r.contype = 'f'
-          ORDER BY 1, 2
-SQL
-, implode(' AND ', $this->buildQueryConditions($tableName, $params)));
-        return $this->connection->executeQuery($sql, $params);
+        $sql = 'SELECT';
+        if ($tableName === null) {
+            $sql .= ' quote_ident(tc.relname) AS table_name, quote_ident(tn.nspname) AS schema_name,';
+        }
+        $sql .= <<<'SQL'
+                  quote_ident(r.conname) as conname,
+                  pg_get_constraintdef(r.oid, true) as condef
+                  FROM pg_constraint r
+                      JOIN pg_class AS tc ON tc.oid = r.conrelid
+                      JOIN pg_namespace tn ON tn.oid = tc.relnamespace
+                  WHERE r.conrelid IN
+                  (
+                      SELECT c.oid
+                      FROM pg_class c, pg_namespace n
+SQL;
+        $conditions = array_merge(['n.oid = c.relnamespace'], $this->buildQueryConditions($tableName));
+        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ") AND r.contype = 'f' ORDER BY quote_ident(r.conname)";
+        return $this->connection->executeQuery($sql);
     }
     /**
      * {@inheritDoc}
      */
     protected function fetchTableOptionsByTable(string $databaseName, ?string $tableName = null): array
     {
-        $params = [];
-        $sql = sprintf(<<<'SQL'
+        $sql = <<<'SQL'
 SELECT quote_ident(n.nspname) AS schema_name,
        quote_ident(c.relname) AS table_name,
        CASE c.relpersistence WHEN 'u' THEN true ELSE false END as unlogged,
@@ -387,35 +415,28 @@ SELECT quote_ident(n.nspname) AS schema_name,
 FROM pg_class c
      INNER JOIN pg_namespace n
          ON n.oid = c.relnamespace
-WHERE
-      c.relkind = 'r'
-  AND %s
-SQL
-, implode(' AND ', $this->buildQueryConditions($tableName, $params)));
+SQL;
+        $conditions = array_merge(["c.relkind = 'r'"], $this->buildQueryConditions($tableName));
+        $sql .= ' WHERE ' . implode(' AND ', $conditions);
         $tableOptions = [];
-        foreach ($this->connection->iterateAssociative($sql, $params) as $row) {
+        foreach ($this->connection->iterateAssociative($sql) as $row) {
             $tableOptions[$this->_getPortableTableDefinition($row)] = $row;
         }
         return $tableOptions;
     }
-    /**
-     * @param list<int|string> $params
-     *
-     * @return non-empty-list<string>
-     */
-    private function buildQueryConditions(?string $tableName, array &$params): array
+    /** @return list<string> */
+    private function buildQueryConditions(?string $tableName): array
     {
         $conditions = [];
         if ($tableName !== null) {
             if (str_contains($tableName, '.')) {
                 [$schemaName, $tableName] = explode('.', $tableName);
-                $conditions[] = 'n.nspname = ?';
-                $params[] = $schemaName;
+                $conditions[] = 'n.nspname = ' . $this->platform->quoteStringLiteral($schemaName);
             } else {
                 $conditions[] = 'n.nspname = ANY(current_schemas(false))';
             }
-            $conditions[] = 'c.relname = ?';
-            $params[] = $tableName;
+            $identifier = new Identifier($tableName);
+            $conditions[] = 'c.relname = ' . $this->platform->quoteStringLiteral($identifier->getName());
         }
         $conditions[] = "n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')";
         return $conditions;

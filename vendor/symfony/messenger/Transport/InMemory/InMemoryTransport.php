@@ -46,20 +46,13 @@ class InMemoryTransport implements TransportInterface, ResetInterface
     public function __construct(private ?SerializerInterface $serializer = null, private ?ClockInterface $clock = null)
     {
     }
-    /**
-     * @param int $fetchSize Best-effort hint about how many messages can be received in one call
-     */
     public function get(): iterable
     {
-        $fetchSize = \func_num_args() > 0 ? max(1, func_get_arg(0)) : 1;
         $envelopes = [];
         $now = $this->clock?->now() ?? new \DateTimeImmutable();
         foreach ($this->decode($this->queue) as $id => $envelope) {
             if (!isset($this->availableAt[$id]) || $now > $this->availableAt[$id]) {
                 $envelopes[] = $envelope;
-                if (\count($envelopes) >= $fetchSize) {
-                    break;
-                }
             }
         }
         return $envelopes;
@@ -94,7 +87,10 @@ class InMemoryTransport implements TransportInterface, ResetInterface
         }
         return $envelope;
     }
-    public function reset(): void
+    /**
+     * @return void
+     */
+    public function reset()
     {
         $this->sent = $this->queue = $this->rejected = $this->acknowledged = [];
     }

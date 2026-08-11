@@ -18,9 +18,11 @@ use JooosiMailDeps\Symfony\Component\Messenger\Envelope;
  */
 class ActivationMiddleware implements MiddlewareInterface
 {
+    private MiddlewareInterface $inner;
     private \Closure|bool $activated;
-    public function __construct(private MiddlewareInterface $inner, bool|callable $activated)
+    public function __construct(MiddlewareInterface $inner, bool|callable $activated)
     {
+        $this->inner = $inner;
         $this->activated = \is_bool($activated) ? $activated : $activated(...);
     }
     public function handle(Envelope $envelope, StackInterface $stack): Envelope

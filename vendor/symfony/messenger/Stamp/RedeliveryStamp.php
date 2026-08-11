@@ -10,17 +10,18 @@
  */
 namespace JooosiMailDeps\Symfony\Component\Messenger\Stamp;
 
-use JooosiMailDeps\Symfony\Component\Clock\Clock;
 use JooosiMailDeps\Symfony\Component\Messenger\Envelope;
 /**
  * Stamp applied when a messages needs to be redelivered.
  */
 final class RedeliveryStamp implements StampInterface
 {
+    private int $retryCount;
     private \DateTimeInterface $redeliveredAt;
-    public function __construct(private int $retryCount, ?\DateTimeInterface $redeliveredAt = null)
+    public function __construct(int $retryCount, ?\DateTimeInterface $redeliveredAt = null)
     {
-        $this->redeliveredAt = $redeliveredAt ?? Clock::get()->now();
+        $this->retryCount = $retryCount;
+        $this->redeliveredAt = $redeliveredAt ?? new \DateTimeImmutable();
     }
     public static function getRetryCountFromEnvelope(Envelope $envelope): int
     {

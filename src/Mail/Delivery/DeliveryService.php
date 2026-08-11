@@ -27,9 +27,9 @@ use Throwable;
  * @since 0.1.0
  */
 #[Service]
-final readonly class DeliveryService
+final class DeliveryService
 {
-    public function __construct(private MailLogRepository $mailLogRepository, private MailAttemptRepository $mailAttemptRepository, private ConnectionResolver $connectionResolver, private ConnectionStatusReporter $connectionStatusReporter, private ConnectionRateLimiter $connectionRateLimiter, private ConnectionCircuitBreaker $connectionCircuitBreaker, private RoutingPolicyResolver $routingPolicyResolver, private ConnectionDsnResolver $connectionDsnResolver, private TransportRegistry $transportRegistry, private \JooosiMail\Mail\Delivery\EmailFactory $emailFactory, private SenderPolicyResolver $senderPolicyResolver, private EventPublisherInterface $eventPublisher, private MailLogRetentionService $mailLogRetentionService)
+    public function __construct(private readonly MailLogRepository $mailLogRepository, private readonly MailAttemptRepository $mailAttemptRepository, private readonly ConnectionResolver $connectionResolver, private readonly ConnectionStatusReporter $connectionStatusReporter, private readonly ConnectionRateLimiter $connectionRateLimiter, private readonly ConnectionCircuitBreaker $connectionCircuitBreaker, private readonly RoutingPolicyResolver $routingPolicyResolver, private readonly ConnectionDsnResolver $connectionDsnResolver, private readonly TransportRegistry $transportRegistry, private readonly \JooosiMail\Mail\Delivery\EmailFactory $emailFactory, private readonly SenderPolicyResolver $senderPolicyResolver, private readonly EventPublisherInterface $eventPublisher, private readonly MailLogRetentionService $mailLogRetentionService)
     {
     }
     /**

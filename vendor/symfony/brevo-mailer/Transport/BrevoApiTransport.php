@@ -30,14 +30,10 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class BrevoApiTransport extends AbstractApiTransport
 {
-    public function __construct(
-        #[\SensitiveParameter]
-        private string $key,
-        ?HttpClientInterface $client = null,
-        ?EventDispatcherInterface $dispatcher = null,
-        ?LoggerInterface $logger = null
-    )
+    private string $key;
+    public function __construct(string $key, ?HttpClientInterface $client = null, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
     {
+        $this->key = $key;
         parent::__construct($client, $dispatcher, $logger);
     }
     public function __toString(): string
@@ -75,8 +71,8 @@ final class BrevoApiTransport extends AbstractApiTransport
     private function getPayload(Email $email, Envelope $envelope): array
     {
         $payload = ['sender' => $this->formatAddress($envelope->getSender()), 'to' => $this->formatAddresses($this->getRecipients($email, $envelope)), 'subject' => $email->getSubject()];
-        if ($attachments = $this->prepareAttachments($email)) {
-            $payload['attachment'] = $attachments;
+        if ($attachements = $this->prepareAttachments($email)) {
+            $payload['attachment'] = $attachements;
         }
         if ($emails = $email->getReplyTo()) {
             $payload['replyTo'] = current($this->formatAddresses($emails));
@@ -112,8 +108,9 @@ final class BrevoApiTransport extends AbstractApiTransport
     private function prepareHeadersAndTags(Headers $headers): array
     {
         $headersAndTags = [];
+        $headersToBypass = ['from', 'sender', 'to', 'cc', 'bcc', 'subject', 'reply-to', 'content-type', 'accept', 'api-key'];
         foreach ($headers->all() as $name => $header) {
-            if (\in_array($name, ['from', 'sender', 'to', 'cc', 'bcc', 'subject', 'reply-to', 'content-type', 'accept', 'api-key'], \true)) {
+            if (\in_array($name, $headersToBypass, \true)) {
                 continue;
             }
             if ($header instanceof TagHeader) {

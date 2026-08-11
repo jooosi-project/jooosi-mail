@@ -5,7 +5,6 @@ namespace JooosiMailDeps\Doctrine\DBAL\Platforms\SQLServer;
 
 use JooosiMailDeps\Doctrine\DBAL\Platforms\SQLServerPlatform;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Comparator as BaseComparator;
-use JooosiMailDeps\Doctrine\DBAL\Schema\ComparatorConfig;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Table;
 use JooosiMailDeps\Doctrine\DBAL\Schema\TableDiff;
 /**
@@ -16,9 +15,9 @@ use JooosiMailDeps\Doctrine\DBAL\Schema\TableDiff;
 class Comparator extends BaseComparator
 {
     /** @internal The comparator can be only instantiated by a schema manager. */
-    public function __construct(SQLServerPlatform $platform, private readonly string $databaseCollation, ComparatorConfig $config = new ComparatorConfig())
+    public function __construct(SQLServerPlatform $platform, private readonly string $databaseCollation)
     {
-        parent::__construct($platform, $config);
+        parent::__construct($platform);
     }
     public function compareTables(Table $oldTable, Table $newTable): TableDiff
     {

@@ -7,12 +7,12 @@ use JooosiMailDeps\AsyncAws\Core\Input;
 use JooosiMailDeps\AsyncAws\Core\Request;
 use JooosiMailDeps\AsyncAws\Core\Stream\StreamFactory;
 /**
- * A request to remove an email address from the suppression list for your account or for a specific tenant.
+ * A request to remove an email address from the suppression list for your account.
  */
 final class DeleteSuppressedDestinationRequest extends Input
 {
     /**
-     * The suppressed email destination to remove from the suppression list for your account or for the specified tenant.
+     * The suppressed email destination to remove from the account suppression list.
      *
      * @required
      *
@@ -20,29 +20,19 @@ final class DeleteSuppressedDestinationRequest extends Input
      */
     private $emailAddress;
     /**
-     * The name of the tenant whose suppression list you want to remove the address from. If you omit this parameter, the
-     * address is removed from the account-level suppression list.
-     *
-     * @var string|null
-     */
-    private $tenantName;
-    /**
      * @param array{
      *   EmailAddress?: string,
-     *   TenantName?: string|null,
      *   '@region'?: string|null,
      * } $input
      */
     public function __construct(array $input = [])
     {
         $this->emailAddress = $input['EmailAddress'] ?? null;
-        $this->tenantName = $input['TenantName'] ?? null;
         parent::__construct($input);
     }
     /**
      * @param array{
      *   EmailAddress?: string,
-     *   TenantName?: string|null,
      *   '@region'?: string|null,
      * }|DeleteSuppressedDestinationRequest $input
      */
@@ -54,10 +44,6 @@ final class DeleteSuppressedDestinationRequest extends Input
     {
         return $this->emailAddress;
     }
-    public function getTenantName(): ?string
-    {
-        return $this->tenantName;
-    }
     /**
      * @internal
      */
@@ -67,9 +53,6 @@ final class DeleteSuppressedDestinationRequest extends Input
         $headers = ['Content-Type' => 'application/json', 'Accept' => 'application/json'];
         // Prepare query
         $query = [];
-        if (null !== $this->tenantName) {
-            $query['TenantName'] = $this->tenantName;
-        }
         // Prepare URI
         $uri = [];
         if (null === $v = $this->emailAddress) {
@@ -85,11 +68,6 @@ final class DeleteSuppressedDestinationRequest extends Input
     public function setEmailAddress(?string $value): self
     {
         $this->emailAddress = $value;
-        return $this;
-    }
-    public function setTenantName(?string $value): self
-    {
-        $this->tenantName = $value;
         return $this;
     }
 }

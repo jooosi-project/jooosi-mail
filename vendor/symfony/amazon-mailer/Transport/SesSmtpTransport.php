@@ -24,10 +24,7 @@ use JooosiMailDeps\Symfony\Component\Mime\RawMessage;
 class SesSmtpTransport extends EsmtpTransport
 {
     /**
-     * @param string|null $region Amazon SES region (default `eu-west-1`)
-     * @param string      $host   SMTP host; `'default'` resolves to `email-smtp.<region>.amazonaws.com`
-     * @param int         $port   SMTP port; `465`/`2465` use implicit TLS, any other port starts plain and
-     *                            requires STARTTLS (via `setRequireTls(true)`) unless overridden by the caller
+     * @param string|null $region Amazon SES region
      */
     public function __construct(
         string $username,
@@ -36,25 +33,19 @@ class SesSmtpTransport extends EsmtpTransport
         ?string $region = null,
         ?EventDispatcherInterface $dispatcher = null,
         ?LoggerInterface $logger = null,
-        string $host = 'default',
-        int $port = 465
+        string $host = 'default'
     )
     {
         if ('default' === $host) {
             $host = \sprintf('email-smtp.%s.amazonaws.com', $region ?: 'eu-west-1');
         }
-        $tls = \in_array($port, [465, 2465], \true);
-        parent::__construct($host, $port, $tls, $dispatcher, $logger);
-        if (!$tls) {
-            $this->setRequireTls(\true);
-        }
+        parent::__construct($host, 465, \true, $dispatcher, $logger);
         $this->setUsername($username);
         $this->setPassword($password);
     }
     public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
     {
         if ($message instanceof Message) {
-            $message = clone $message;
             $this->addSesHeaders($message);
         }
         return parent::send($message, $envelope);

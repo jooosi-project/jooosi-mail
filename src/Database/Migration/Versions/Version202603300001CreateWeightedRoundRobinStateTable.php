@@ -11,7 +11,7 @@ use JooosiMail\Infrastructure\Database\TableNameResolver;
  *
  * @since 0.1.0
  */
-final readonly class Version202603300001CreateWeightedRoundRobinStateTable implements MigrationInterface
+final class Version202603300001CreateWeightedRoundRobinStateTable implements MigrationInterface
 {
     public function getVersion(): string
     {

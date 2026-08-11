@@ -27,14 +27,31 @@ final class DatePoint extends \DateTimeImmutable
             if (!$now instanceof static) {
                 $now = static::createFromInterface($now);
             }
-            $builtInDate = new parent($datetime, $timezone ?? $now->getTimezone());
-            $timezone = $builtInDate->getTimezone();
+            if (\PHP_VERSION_ID < 80300) {
+                try {
+                    $builtInDate = new parent($datetime, $timezone ?? $now->getTimezone());
+                    $timezone = $builtInDate->getTimezone();
+                } catch (\Exception $e) {
+                    throw new \DateMalformedStringException($e->getMessage(), $e->getCode(), $e);
+                }
+            } else {
+                $builtInDate = new parent($datetime, $timezone ?? $now->getTimezone());
+                $timezone = $builtInDate->getTimezone();
+            }
             $now = $now->setTimezone($timezone)->modify($datetime);
             if ('00:00:00.000000' === $builtInDate->format('H:i:s.u')) {
                 $now = $now->setTime(0, 0);
             }
         } elseif (null !== $timezone) {
             $now = $now->setTimezone($timezone);
+        }
+        if (\PHP_VERSION_ID < 80200) {
+            $now = (array) $now;
+            $this->date = $now['date'];
+            $this->timezone_type = $now['timezone_type'];
+            $this->timezone = $now['timezone'];
+            $this->__wakeup();
+            return;
         }
         $this->__unserialize((array) $now);
     }
@@ -53,10 +70,6 @@ final class DatePoint extends \DateTimeImmutable
     {
         return parent::createFromMutable($object);
     }
-    public static function createFromTimestamp(int|float $timestamp): static
-    {
-        return parent::createFromTimestamp($timestamp);
-    }
     public function add(\DateInterval $interval): static
     {
         return parent::add($interval);
@@ -70,6 +83,9 @@ final class DatePoint extends \DateTimeImmutable
      */
     public function modify(string $modifier): static
     {
+        if (\PHP_VERSION_ID < 80300) {
+            return @parent::modify($modifier) ?: throw new \DateMalformedStringException(error_get_last()['message'] ?? \sprintf('Invalid modifier: "%s".', $modifier));
+        }
         return parent::modify($modifier);
     }
     public function setTimestamp(int $value): static
@@ -95,12 +111,5 @@ final class DatePoint extends \DateTimeImmutable
     public function getTimezone(): \DateTimeZone
     {
         return parent::getTimezone() ?: throw new \DateInvalidTimeZoneException('The DatePoint object has no timezone.');
-    }
-    public function setMicrosecond(int $microsecond): static
-    {
-        if ($microsecond < 0 || $microsecond > 999999) {
-            throw new \DateRangeError('DatePoint::setMicrosecond(): Argument #1 ($microsecond) must be between 0 and 999999, ' . $microsecond . ' given');
-        }
-        return parent::setMicrosecond($microsecond);
     }
 }

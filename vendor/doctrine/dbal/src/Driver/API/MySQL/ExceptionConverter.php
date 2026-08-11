@@ -20,7 +20,6 @@ use JooosiMailDeps\Doctrine\DBAL\Exception\TableExistsException;
 use JooosiMailDeps\Doctrine\DBAL\Exception\TableNotFoundException;
 use JooosiMailDeps\Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use JooosiMailDeps\Doctrine\DBAL\Query;
-use function str_contains;
 /** @internal */
 final class ExceptionConverter implements ExceptionConverterInterface
 {
@@ -30,11 +29,6 @@ final class ExceptionConverter implements ExceptionConverterInterface
      */
     public function convert(Exception $exception, ?Query $query): DriverException
     {
-        if ($exception->getCode() === 1524 && str_contains($exception->getMessage(), 'Plugin \'mysql_native_password\' is not loaded')) {
-            // Workaround for MySQL 8.4 if we request an unknown user.
-            // https://bugs.mysql.com/bug.php?id=114876
-            return new ConnectionException($exception, $query);
-        }
         return match ($exception->getCode()) {
             1008 => new DatabaseDoesNotExist($exception, $query),
             1213 => new DeadlockException($exception, $query),

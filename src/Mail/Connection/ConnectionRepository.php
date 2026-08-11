@@ -13,9 +13,9 @@ use JooosiMail\Infrastructure\Security\SecretCipher;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionRepository
+final class ConnectionRepository
 {
-    public function __construct(private DbalConnection $connection, private TableNameResolver $tableNameResolver, private SecretCipher $secretCipher)
+    public function __construct(private readonly DbalConnection $connection, private readonly TableNameResolver $tableNameResolver, private readonly SecretCipher $secretCipher)
     {
     }
     /**

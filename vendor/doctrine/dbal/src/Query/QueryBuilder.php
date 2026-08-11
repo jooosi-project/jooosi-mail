@@ -16,8 +16,6 @@ use JooosiMailDeps\Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
 use JooosiMailDeps\Doctrine\DBAL\Result;
 use JooosiMailDeps\Doctrine\DBAL\Statement;
 use JooosiMailDeps\Doctrine\DBAL\Types\Type;
-use function array_filter;
-use function array_intersect;
 use function array_key_exists;
 use function array_keys;
 use function array_merge;
@@ -25,7 +23,6 @@ use function array_unshift;
 use function count;
 use function implode;
 use function is_object;
-use function sprintf;
 use function substr;
 /**
  * QueryBuilder class is responsible to dynamically create SQL queries.
@@ -141,12 +138,6 @@ class QueryBuilder
      */
     private array $unionParts = [];
     /**
-     * The common table expression parts.
-     *
-     * @var CommonTableExpression[]
-     */
-    private array $commonTableExpressions = [];
-    /**
      * The query cache profile used for caching results.
      */
     private ?QueryCacheProfile $resultCacheProfile = null;
@@ -175,13 +166,6 @@ class QueryBuilder
     public function expr(): ExpressionBuilder
     {
         return $this->connection->createExpressionBuilder();
-    }
-    /**
-     * Returns a fresh query builder instance that can be used to build a subquery.
-     */
-    public function sub(): self
-    {
-        return $this->connection->createQueryBuilder();
     }
     /**
      * Prepares and executes an SQL query and returns the first row of the result
@@ -310,8 +294,6 @@ class QueryBuilder
      * </code>
      *
      * @return string The SQL query string.
-     *
-     * @throws Exception
      */
     public function getSQL(): string
     {
@@ -494,8 +476,6 @@ class QueryBuilder
      * </code>
      *
      * @return $this
-     *
-     * @throws QueryException
      */
     public function addUnion(string|QueryBuilder $part, UnionType $type = UnionType::DISTINCT): self
     {
@@ -504,33 +484,6 @@ class QueryBuilder
             throw new QueryException('No initial UNION part set, use union() to set one first.');
         }
         $this->unionParts[] = new Union($part, $type);
-        $this->sql = null;
-        return $this;
-    }
-    /**
-     * Add a Common Table Expression to be used for a select query.
-     *
-     * <code>
-     *     // WITH cte_name AS (SELECT id AS column1 FROM table_a)
-     *     $qb = $conn->createQueryBuilder()
-     *         ->with('cte_name', 'SELECT id AS column1 FROM table_a');
-     *
-     *     // WITH cte_name(column1) AS (SELECT id AS column1 FROM table_a)
-     *     $qb = $conn->createQueryBuilder()
-     *         ->with('cte_name', 'SELECT id AS column1 FROM table_a', ['column1']);
-     * </code>
-     *
-     * @param string        $name    The name of the CTE
-     * @param string[]|null $columns The optional columns list to select in the CTE.
-     *                               If not provided, the columns are inferred from the CTE.
-     *
-     * @return $this This QueryBuilder instance.
-     *
-     * @throws QueryException Setting an empty array as columns is not allowed.
-     */
-    public function with(string $name, string|QueryBuilder $part, ?array $columns = null): self
-    {
-        $this->commonTableExpressions[] = new CommonTableExpression($name, $part, $columns);
         $this->sql = null;
         return $this;
     }
@@ -1132,13 +1085,7 @@ class QueryBuilder
         if (count($this->select) === 0) {
             throw new QueryException('No SELECT expressions given. Please use select() or addSelect().');
         }
-        $databasePlatform = $this->connection->getDatabasePlatform();
-        $selectParts = [];
-        if (count($this->commonTableExpressions) > 0) {
-            $selectParts[] = $databasePlatform->createWithSQLBuilder()->buildSQL(...$this->commonTableExpressions);
-        }
-        $selectParts[] = $databasePlatform->createSelectSQLBuilder()->buildSQL(new SelectQuery($this->distinct, $this->select, $this->getFromClauses(), $this->where !== null ? (string) $this->where : null, $this->groupBy, $this->having !== null ? (string) $this->having : null, $this->orderBy, new Limit($this->maxResults, $this->firstResult), $this->forUpdate));
-        return implode(' ', $selectParts);
+        return $this->connection->getDatabasePlatform()->createSelectSQLBuilder()->buildSQL(new SelectQuery($this->distinct, $this->select, $this->getFromClauses(), $this->where !== null ? (string) $this->where : null, $this->groupBy, $this->having !== null ? (string) $this->having : null, $this->orderBy, new Limit($this->maxResults, $this->firstResult), $this->forUpdate));
     }
     /**
      * @return array<string, string>
@@ -1207,8 +1154,6 @@ class QueryBuilder
     }
     /**
      * Converts this instance into a UNION string in SQL.
-     *
-     * @throws Exception
      */
     private function getSQLForUnion(): string
     {
@@ -1216,21 +1161,13 @@ class QueryBuilder
         if ($countUnions < 2) {
             throw new QueryException('Insufficient UNION parts give, need at least 2.' . ' Please use union() and addUnion() to set enough UNION parts.');
         }
-        $databasePlatform = $this->connection->getDatabasePlatform();
-        $unionParts = [];
-        if (count($this->commonTableExpressions) > 0) {
-            $unionParts[] = $databasePlatform->createWithSQLBuilder()->buildSQL(...$this->commonTableExpressions);
-        }
-        $unionParts[] = $databasePlatform->createUnionSQLBuilder()->buildSQL(new UnionQuery($this->unionParts, $this->orderBy, new Limit($this->maxResults, $this->firstResult)));
-        return implode(' ', $unionParts);
+        return $this->connection->getDatabasePlatform()->createUnionSQLBuilder()->buildSQL(new UnionQuery($this->unionParts, $this->orderBy, new Limit($this->maxResults, $this->firstResult)));
     }
     /**
      * Gets a string representation of this QueryBuilder which corresponds to
      * the final SQL query being constructed.
      *
      * @return string The string representation of this QueryBuilder.
-     *
-     * @throws Exception
      */
     public function __toString(): string
     {

@@ -28,16 +28,14 @@ class MailgunHttpTransport extends AbstractHttpTransport
 {
     use MailgunHeadersTrait;
     private const HOST = 'api.%region_dot%mailgun.net';
-    public function __construct(
-        #[\SensitiveParameter]
-        private string $key,
-        private string $domain,
-        private ?string $region = null,
-        ?HttpClientInterface $client = null,
-        ?EventDispatcherInterface $dispatcher = null,
-        ?LoggerInterface $logger = null
-    )
+    private string $key;
+    private string $domain;
+    private ?string $region;
+    public function __construct(string $key, string $domain, ?string $region = null, ?HttpClientInterface $client = null, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
     {
+        $this->key = $key;
+        $this->domain = $domain;
+        $this->region = $region;
         parent::__construct($client, $dispatcher, $logger);
     }
     public function __toString(): string

@@ -6,6 +6,5 @@ namespace JooosiMailDeps\Doctrine\DBAL\Platforms\MySQL;
 /** @internal */
 interface CharsetMetadataProvider
 {
-    /** @return ?non-empty-string */
     public function getDefaultCharsetCollation(string $charset): ?string;
 }

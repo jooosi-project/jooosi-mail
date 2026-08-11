@@ -20,13 +20,14 @@ use JooosiMailDeps\Symfony\Component\Messenger\Envelope;
  */
 class SingleMessageReceiver implements ReceiverInterface
 {
+    private ReceiverInterface $receiver;
+    private Envelope $envelope;
     private bool $hasReceived = \false;
-    public function __construct(private ReceiverInterface $receiver, private Envelope $envelope)
+    public function __construct(ReceiverInterface $receiver, Envelope $envelope)
     {
+        $this->receiver = $receiver;
+        $this->envelope = $envelope;
     }
-    /**
-     * @param int $fetchSize
-     */
     public function get(): iterable
     {
         if ($this->hasReceived) {

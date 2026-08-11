@@ -4,7 +4,6 @@ declare (strict_types=1);
 namespace JooosiMailDeps\Doctrine\DBAL\Connection;
 
 use JooosiMailDeps\Doctrine\DBAL\ServerVersionProvider;
-/** @final */
 class StaticServerVersionProvider implements ServerVersionProvider
 {
     public function __construct(private readonly string $version)

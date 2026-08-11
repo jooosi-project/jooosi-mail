@@ -12,12 +12,21 @@ use JooosiMail\Queue\Trigger\ActionSchedulerTrigger;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MailLogRetentionScheduler
+final class MailLogRetentionScheduler
 {
-    private const int HOUR_IN_SECONDS = 3600;
-    private const int DAY_IN_SECONDS = 86400;
-    public const string RUN_HOOK = 'jooosi_mail_mail_logs_prune';
-    public function __construct(private \JooosiMail\Mail\Logging\MailLogRetentionService $retentionService)
+    /**
+     * @var int
+     */
+    private const HOUR_IN_SECONDS = 3600;
+    /**
+     * @var int
+     */
+    private const DAY_IN_SECONDS = 86400;
+    /**
+     * @var string
+     */
+    public const RUN_HOOK = 'jooosi_mail_mail_logs_prune';
+    public function __construct(private readonly \JooosiMail\Mail\Logging\MailLogRetentionService $retentionService)
     {
     }
     /**

@@ -74,7 +74,11 @@ final class Result implements ResultInterface
     }
     public function columnCount(): int
     {
-        return oci_num_fields($this->statement);
+        $count = oci_num_fields($this->statement);
+        if ($count !== \false) {
+            return $count;
+        }
+        return 0;
     }
     public function getColumnName(int $index): string
     {

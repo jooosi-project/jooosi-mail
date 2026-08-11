@@ -3,6 +3,7 @@
 declare (strict_types=1);
 namespace JooosiMailDeps\Doctrine\DBAL\Schema;
 
+use JooosiMailDeps\Doctrine\DBAL\Exception;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\DB2Platform;
 use JooosiMailDeps\Doctrine\DBAL\Result;
 use JooosiMailDeps\Doctrine\DBAL\Types\Type;
@@ -10,7 +11,6 @@ use JooosiMailDeps\Doctrine\DBAL\Types\Types;
 use function array_change_key_case;
 use function implode;
 use function preg_match;
-use function sprintf;
 use function str_replace;
 use function strpos;
 use function strtolower;
@@ -18,9 +18,7 @@ use function strtoupper;
 use function substr;
 use const CASE_LOWER;
 /**
- * Db2 Schema Manager.
- *
- * @link https://www.ibm.com/docs/en/db2/11.5?topic=sql-catalog-views
+ * IBM Db2 Schema Manager.
  *
  * @extends AbstractSchemaManager<DB2Platform>
  */
@@ -28,6 +26,8 @@ class DB2SchemaManager extends AbstractSchemaManager
 {
     /**
      * {@inheritDoc}
+     *
+     * @throws Exception
      */
     protected function _getPortableTableColumnDefinition(array $tableColumn): Column
     {
@@ -66,8 +66,8 @@ class DB2SchemaManager extends AbstractSchemaManager
                 $precision = $tableColumn['length'];
                 break;
         }
-        $options = ['length' => $length, 'fixed' => $fixed, 'default' => $default, 'autoincrement' => (bool) $tableColumn['autoincrement'], 'notnull' => $tableColumn['nulls'] === 'N'];
-        if ($tableColumn['comment'] !== null) {
+        $options = ['length' => $length, 'unsigned' => \false, 'fixed' => $fixed, 'default' => $default, 'autoincrement' => (bool) $tableColumn['autoincrement'], 'notnull' => $tableColumn['nulls'] === 'N', 'platformOptions' => []];
+        if (isset($tableColumn['comment'])) {
             $options['comment'] = $tableColumn['comment'];
         }
         if ($scale !== null && $precision !== null) {
@@ -77,8 +77,6 @@ class DB2SchemaManager extends AbstractSchemaManager
         return new Column($tableColumn['colname'], Type::getType($type), $options);
     }
     /**
-     * @deprecated Use the schema name and the unqualified table name separately instead.
-     *
      * {@inheritDoc}
      */
     protected function _getPortableTableDefinition(array $table): string
@@ -89,13 +87,13 @@ class DB2SchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableIndexesList(array $rows, string $tableName): array
+    protected function _getPortableTableIndexesList(array $tableIndexes, string $tableName): array
     {
-        foreach ($rows as &$row) {
-            $row = array_change_key_case($row, CASE_LOWER);
-            $row['primary'] = (bool) $row['primary'];
+        foreach ($tableIndexes as &$tableIndexRow) {
+            $tableIndexRow = array_change_key_case($tableIndexRow, CASE_LOWER);
+            $tableIndexRow['primary'] = (bool) $tableIndexRow['primary'];
         }
-        return parent::_getPortableTableIndexesList($rows, $tableName);
+        return parent::_getPortableTableIndexesList($tableIndexes, $tableName);
     }
     /**
      * {@inheritDoc}
@@ -107,10 +105,10 @@ class DB2SchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableForeignKeysList(array $rows): array
+    protected function _getPortableTableForeignKeysList(array $tableForeignKeys): array
     {
         $foreignKeys = [];
-        foreach ($rows as $tableForeignKey) {
+        foreach ($tableForeignKeys as $tableForeignKey) {
             $tableForeignKey = array_change_key_case($tableForeignKey, CASE_LOWER);
             if (!isset($foreignKeys[$tableForeignKey['index_name']])) {
                 $foreignKeys[$tableForeignKey['index_name']] = ['local_columns' => [$tableForeignKey['local_column']], 'foreign_table' => $tableForeignKey['foreign_table'], 'foreign_columns' => [$tableForeignKey['foreign_column']], 'name' => $tableForeignKey['index_name'], 'options' => ['onUpdate' => $tableForeignKey['on_update'], 'onDelete' => $tableForeignKey['on_delete']]];
@@ -134,7 +132,6 @@ class DB2SchemaManager extends AbstractSchemaManager
         }
         return new View($view['name'], $sql);
     }
-    /** @deprecated Use {@see Identifier::toNormalizedValue()} instead. */
     protected function normalizeName(string $name): string
     {
         $identifier = new Identifier($name);
@@ -143,24 +140,20 @@ class DB2SchemaManager extends AbstractSchemaManager
     protected function selectTableNames(string $databaseName): Result
     {
         $sql = <<<'SQL'
-SELECT TABNAME AS NAME
-FROM SYSCAT.TABLES
+SELECT NAME
+FROM SYSIBM.SYSTABLES
 WHERE TYPE = 'T'
-  AND TABSCHEMA = ?
+  AND CREATOR = ?
 SQL;
         return $this->connection->executeQuery($sql, [$databaseName]);
     }
     protected function selectTableColumns(string $databaseName, ?string $tableName = null): Result
     {
-        $conditions = ['C.TABSCHEMA = ?'];
-        $params = [$databaseName];
-        if ($tableName !== null) {
-            $conditions[] = 'C.TABNAME = ?';
-            $params[] = $tableName;
+        $sql = 'SELECT';
+        if ($tableName === null) {
+            $sql .= ' C.TABNAME AS NAME,';
         }
-        $sql = sprintf(<<<'SQL'
-SELECT
-       C.TABNAME AS NAME,
+        $sql .= <<<'SQL'
        C.COLNAME,
        C.TYPENAME,
        C.CODEPAGE,
@@ -177,24 +170,23 @@ FROM SYSCAT.COLUMNS C
          JOIN SYSCAT.TABLES AS T
               ON T.TABSCHEMA = C.TABSCHEMA
                   AND T.TABNAME = C.TABNAME
- WHERE %s
-   AND T.TYPE = 'T'
-ORDER BY C.TABNAME, C.COLNO
-SQL
-, implode(' AND ', $conditions));
+SQL;
+        $conditions = ['C.TABSCHEMA = ?', "T.TYPE = 'T'"];
+        $params = [$databaseName];
+        if ($tableName !== null) {
+            $conditions[] = 'C.TABNAME = ?';
+            $params[] = $tableName;
+        }
+        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ' ORDER BY C.TABNAME, C.COLNO';
         return $this->connection->executeQuery($sql, $params);
     }
     protected function selectIndexColumns(string $databaseName, ?string $tableName = null): Result
     {
-        $conditions = ['IDX.TABSCHEMA = ?'];
-        $params = [$databaseName];
-        if ($tableName !== null) {
-            $conditions[] = 'IDX.TABNAME = ?';
-            $params[] = $tableName;
+        $sql = 'SELECT';
+        if ($tableName === null) {
+            $sql .= ' IDX.TABNAME AS NAME,';
         }
-        $sql = sprintf(<<<'SQL'
-      SELECT
-             IDX.TABNAME AS NAME,
+        $sql .= <<<'SQL'
              IDX.INDNAME AS KEY_NAME,
              IDXCOL.COLNAME AS COLUMN_NAME,
              CASE
@@ -210,26 +202,23 @@ SQL
           ON IDX.TABSCHEMA = T.TABSCHEMA AND IDX.TABNAME = T.TABNAME
         JOIN SYSCAT.INDEXCOLUSE AS IDXCOL
           ON IDX.INDSCHEMA = IDXCOL.INDSCHEMA AND IDX.INDNAME = IDXCOL.INDNAME
-       WHERE %s
-         AND T.TYPE = 'T'
-    ORDER BY IDX.TABNAME,
-             IDX.INDNAME,
-             IDXCOL.COLSEQ
-SQL
-, implode(' AND ', $conditions));
+SQL;
+        $conditions = ['IDX.TABSCHEMA = ?', "T.TYPE = 'T'"];
+        $params = [$databaseName];
+        if ($tableName !== null) {
+            $conditions[] = 'IDX.TABNAME = ?';
+            $params[] = $tableName;
+        }
+        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ' ORDER BY IDX.INDNAME, IDXCOL.COLSEQ';
         return $this->connection->executeQuery($sql, $params);
     }
     protected function selectForeignKeyColumns(string $databaseName, ?string $tableName = null): Result
     {
-        $conditions = ['R.TABSCHEMA = ?'];
-        $params = [$databaseName];
-        if ($tableName !== null) {
-            $conditions[] = 'R.TABNAME = ?';
-            $params[] = $tableName;
+        $sql = 'SELECT';
+        if ($tableName === null) {
+            $sql .= ' R.TABNAME AS NAME,';
         }
-        $sql = sprintf(<<<'SQL'
-      SELECT
-             R.TABNAME AS NAME,
+        $sql .= <<<'SQL'
              FKCOL.COLNAME AS LOCAL_COLUMN,
              R.REFTABNAME AS FOREIGN_TABLE,
              PKCOL.COLNAME AS FOREIGN_COLUMN,
@@ -255,13 +244,14 @@ SQL
                   AND PKCOL.TABSCHEMA = R.REFTABSCHEMA
                   AND PKCOL.TABNAME = R.REFTABNAME
                   AND PKCOL.COLSEQ = FKCOL.COLSEQ
-      WHERE %s
-        AND T.TYPE = 'T'
-   ORDER BY R.TABNAME,
-            R.CONSTNAME,
-            FKCOL.COLSEQ
-SQL
-, implode(' AND ', $conditions));
+SQL;
+        $conditions = ['R.TABSCHEMA = ?', "T.TYPE = 'T'"];
+        $params = [$databaseName];
+        if ($tableName !== null) {
+            $conditions[] = 'R.TABNAME = ?';
+            $params[] = $tableName;
+        }
+        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ' ORDER BY R.CONSTNAME, FKCOL.COLSEQ';
         return $this->connection->executeQuery($sql, $params);
     }
     /**
@@ -269,24 +259,23 @@ SQL
      */
     protected function fetchTableOptionsByTable(string $databaseName, ?string $tableName = null): array
     {
-        $conditions = ['TABSCHEMA = ?'];
-        $params = [$databaseName];
+        $sql = 'SELECT NAME, REMARKS';
+        $conditions = [];
+        $params = [];
         if ($tableName !== null) {
-            $conditions[] = 'TABNAME = ?';
+            $conditions[] = 'NAME = ?';
             $params[] = $tableName;
         }
-        $sql = sprintf(<<<'SQL'
-      SELECT TABNAME,
-             REMARKS
-        FROM SYSCAT.TABLES
-      WHERE %s
-        AND TYPE = 'T'
-   ORDER BY TABNAME
-SQL
-, implode(' AND ', $conditions));
+        $sql .= ' FROM SYSIBM.SYSTABLES';
+        if ($conditions !== []) {
+            $sql .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+        /** @var array<string,array<string,mixed>> $metadata */
+        $metadata = $this->connection->executeQuery($sql, $params)->fetchAllAssociativeIndexed();
         $tableOptions = [];
-        foreach ($this->connection->iterateKeyValue($sql, $params) as $table => $remarks) {
-            $tableOptions[$table] = ['comment' => $remarks];
+        foreach ($metadata as $table => $data) {
+            $data = array_change_key_case($data, CASE_LOWER);
+            $tableOptions[$table] = ['comment' => $data['remarks']];
         }
         return $tableOptions;
     }

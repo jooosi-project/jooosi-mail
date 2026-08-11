@@ -16,20 +16,9 @@ namespace JooosiMailDeps\Symfony\Component\DependencyInjection\Attribute;
  * @author Alan Poulain <contact@alanpoulain.eu>
  */
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::IS_REPEATABLE)]
-class AsAlias
+final class AsAlias
 {
-    /**
-     * @var list<string>
-     */
-    public array $when = [];
-    /**
-     * @param string|null         $id     The id of the alias
-     * @param bool                $public Whether to declare the alias public
-     * @param string|list<string> $when   The environments under which the class will be registered as a service (i.e. "dev", "test", "prod")
-     * @param string|null         $target The name of the target to bind the alias to
-     */
-    public function __construct(public ?string $id = null, public bool $public = \false, string|array $when = [], public ?string $target = null)
+    public function __construct(public ?string $id = null, public bool $public = \false)
     {
-        $this->when = (array) $when;
     }
 }

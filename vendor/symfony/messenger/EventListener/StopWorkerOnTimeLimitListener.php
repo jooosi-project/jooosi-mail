@@ -15,18 +15,19 @@ use JooosiMailDeps\Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerRunningEvent;
 use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerStartedEvent;
 use JooosiMailDeps\Symfony\Component\Messenger\Exception\InvalidArgumentException;
-trigger_deprecation('symfony/messenger', '8.1', '"%s" is deprecated, use the "time_limit" worker option instead.', StopWorkerOnTimeLimitListener::class);
 /**
  * @author Simon Delicata <simon.delicata@free.fr>
  * @author Tobias Schultze <http://tobion.de>
- *
- * @deprecated since Symfony 8.1, use the "time_limit" worker option instead
  */
 class StopWorkerOnTimeLimitListener implements EventSubscriberInterface
 {
+    private int $timeLimitInSeconds;
+    private ?LoggerInterface $logger;
     private float $endTime = 0;
-    public function __construct(private int $timeLimitInSeconds, private ?LoggerInterface $logger = null)
+    public function __construct(int $timeLimitInSeconds, ?LoggerInterface $logger = null)
     {
+        $this->timeLimitInSeconds = $timeLimitInSeconds;
+        $this->logger = $logger;
         if ($timeLimitInSeconds <= 0) {
             throw new InvalidArgumentException('Time limit must be greater than zero.');
         }

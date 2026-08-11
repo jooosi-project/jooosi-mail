@@ -6,15 +6,19 @@ $loader = (static function () {
     // Backup the autoloaded Composer files
     $existingComposerAutoloadFiles = isset($GLOBALS['__composer_autoload_files']) ? $GLOBALS['__composer_autoload_files'] : [];
 
+    $GLOBALS['__composer_autoload_files'] = $GLOBALS['__composer_autoload_files_jooosi_mail_deps'] ?? [];
+
     $loader = require_once __DIR__.'/autoload.php';
     // Ensure InstalledVersions is available
     $installedVersionsPath = __DIR__.'/composer/InstalledVersions.php';
     if (file_exists($installedVersionsPath)) require_once $installedVersionsPath;
 
+    $GLOBALS['__composer_autoload_files_jooosi_mail_deps'] = $GLOBALS['__composer_autoload_files'];
+
     // Restore the backup and ensure the excluded files are properly marked as loaded
     $GLOBALS['__composer_autoload_files'] = \array_merge(
         $existingComposerAutoloadFiles,
-        \array_fill_keys(['320cde22f66dd4f5d3fd621d3e88b98f', '9eaa6b0f3f04e58e17ae5ecb754ea313', 'dc93cc088a6453750f51c8358b6135d2', 'deecf9d6b2672fb73429f9b28fdee35f', '80dfc307f8b4b13bcd033cef5c977d19', '8825ede83f2f289127722d4e842cf7e8', 'acbe0d033c55cd0a032b415e08d14f4c', 'f598d06aa772fa33d905e87be6398fb1', 'b48cbeb76a71e226a23fa64ac2b94dc6', 'e69f7f6ee287b969198c3c9d6777bd38', '36dfd6ed9dd74e8062aa61f09caf8554', '0e6d7bf4a5811bfa5cf40c5ccd6fae6a', 'e4e9c4430b5a6c815e77a26074c8155a', '5928a00fa978807cf85d90ec3f4b0147', '09f6b20656683369174dd6fa83b7e5fb', 'ecbd807f4f8310e9d7f9fa9cb55b281c', '87ed5539667499ce820f0ba05ab1868e', '1ace5e3c0c697ae31a92d1f0438d9732', '54b9ab13bc86d8251a04a939888e357e'], true)
+        \array_fill_keys(['9eaa6b0f3f04e58e17ae5ecb754ea313', '320cde22f66dd4f5d3fd621d3e88b98f', '80dfc307f8b4b13bcd033cef5c977d19', 'acbe0d033c55cd0a032b415e08d14f4c', '8825ede83f2f289127722d4e842cf7e8', 'b48cbeb76a71e226a23fa64ac2b94dc6', 'f598d06aa772fa33d905e87be6398fb1', '36dfd6ed9dd74e8062aa61f09caf8554', 'e69f7f6ee287b969198c3c9d6777bd38', '5928a00fa978807cf85d90ec3f4b0147', '0e6d7bf4a5811bfa5cf40c5ccd6fae6a', 'e4e9c4430b5a6c815e77a26074c8155a', '439927d75b11a5dc11560cd0ea0a9599', '662a729f963d39afe703c9d9b7ab4a8c', '349f46cdd3aa6f0d9979a148196c28e8', '54b9ab13bc86d8251a04a939888e357e', '299128432f1508b581080d7faecb94e6', 'b12cc48dd13968c20d14f4fdf56ced96', 'df0fb630b0bc80f94ae5f46644b0587b', '0f0a493ec6424b03b28812b12c3a3083', '2ce7b16f239603c90fab694e15bb9a83', '0728099c86c7da9b043674ffe354abee', 'd348f2569bd50bd17f658b9fced73856', '963ad795d6b67b0f3b5bdb455e2783ae', 'e071a82732d15e17758a292fa42671d2', '5d061a676f0194f3638848e71a903ec7', 'b2f9f3fd5c396f96fa6e1e2bd938d3d0'], true)
     );
 
     return $loader;
@@ -29,7 +33,19 @@ if (!function_exists('humbug_phpscoper_expose_class')) {
         }
     }
 }
+humbug_phpscoper_expose_class('ValueError', 'JooosiMailDeps\ValueError');
 humbug_phpscoper_expose_class('Normalizer', 'JooosiMailDeps\Normalizer');
+humbug_phpscoper_expose_class('DateError', 'JooosiMailDeps\DateError');
+humbug_phpscoper_expose_class('DateException', 'JooosiMailDeps\DateException');
+humbug_phpscoper_expose_class('DateInvalidOperationException', 'JooosiMailDeps\DateInvalidOperationException');
+humbug_phpscoper_expose_class('DateInvalidTimeZoneException', 'JooosiMailDeps\DateInvalidTimeZoneException');
+humbug_phpscoper_expose_class('DateMalformedIntervalStringException', 'JooosiMailDeps\DateMalformedIntervalStringException');
+humbug_phpscoper_expose_class('DateMalformedPeriodStringException', 'JooosiMailDeps\DateMalformedPeriodStringException');
+humbug_phpscoper_expose_class('DateMalformedStringException', 'JooosiMailDeps\DateMalformedStringException');
+humbug_phpscoper_expose_class('DateObjectError', 'JooosiMailDeps\DateObjectError');
+humbug_phpscoper_expose_class('DateRangeError', 'JooosiMailDeps\DateRangeError');
+humbug_phpscoper_expose_class('Override', 'JooosiMailDeps\Override');
+humbug_phpscoper_expose_class('SQLite3Exception', 'JooosiMailDeps\SQLite3Exception');
 
 // Function aliases. For more information see:
 // https://github.com/humbug/php-scoper/blob/master/docs/further-reading.md#function-aliases
@@ -57,6 +73,9 @@ if (!function_exists('grapheme_strstr')) { function grapheme_strstr() { return \
 if (!function_exists('grapheme_substr')) { function grapheme_substr() { return \JooosiMailDeps\grapheme_substr(...func_get_args()); } }
 if (!function_exists('idn_to_ascii')) { function idn_to_ascii() { return \JooosiMailDeps\idn_to_ascii(...func_get_args()); } }
 if (!function_exists('idn_to_utf8')) { function idn_to_utf8() { return \JooosiMailDeps\idn_to_utf8(...func_get_args()); } }
+if (!function_exists('json_validate')) { function json_validate() { return \JooosiMailDeps\json_validate(...func_get_args()); } }
+if (!function_exists('ldap_connect_wallet')) { function ldap_connect_wallet() { return \JooosiMailDeps\ldap_connect_wallet(...func_get_args()); } }
+if (!function_exists('ldap_exop_sync')) { function ldap_exop_sync() { return \JooosiMailDeps\ldap_exop_sync(...func_get_args()); } }
 if (!function_exists('mb_check_encoding')) { function mb_check_encoding() { return \JooosiMailDeps\mb_check_encoding(...func_get_args()); } }
 if (!function_exists('mb_chr')) { function mb_chr() { return \JooosiMailDeps\mb_chr(...func_get_args()); } }
 if (!function_exists('mb_convert_case')) { function mb_convert_case() { return \JooosiMailDeps\mb_convert_case(...func_get_args()); } }
@@ -104,17 +123,8 @@ if (!function_exists('mb_ucfirst')) { function mb_ucfirst() { return \JooosiMail
 if (!function_exists('normalizer_get_raw_decomposition')) { function normalizer_get_raw_decomposition() { return \JooosiMailDeps\normalizer_get_raw_decomposition(...func_get_args()); } }
 if (!function_exists('normalizer_is_normalized')) { function normalizer_is_normalized() { return \JooosiMailDeps\normalizer_is_normalized(...func_get_args()); } }
 if (!function_exists('normalizer_normalize')) { function normalizer_normalize() { return \JooosiMailDeps\normalizer_normalize(...func_get_args()); } }
-if (!function_exists('uuid_compare')) { function uuid_compare() { return \JooosiMailDeps\uuid_compare(...func_get_args()); } }
-if (!function_exists('uuid_create')) { function uuid_create() { return \JooosiMailDeps\uuid_create(...func_get_args()); } }
-if (!function_exists('uuid_generate_md5')) { function uuid_generate_md5() { return \JooosiMailDeps\uuid_generate_md5(...func_get_args()); } }
-if (!function_exists('uuid_generate_sha1')) { function uuid_generate_sha1() { return \JooosiMailDeps\uuid_generate_sha1(...func_get_args()); } }
-if (!function_exists('uuid_is_null')) { function uuid_is_null() { return \JooosiMailDeps\uuid_is_null(...func_get_args()); } }
-if (!function_exists('uuid_is_valid')) { function uuid_is_valid() { return \JooosiMailDeps\uuid_is_valid(...func_get_args()); } }
-if (!function_exists('uuid_mac')) { function uuid_mac() { return \JooosiMailDeps\uuid_mac(...func_get_args()); } }
-if (!function_exists('uuid_parse')) { function uuid_parse() { return \JooosiMailDeps\uuid_parse(...func_get_args()); } }
-if (!function_exists('uuid_time')) { function uuid_time() { return \JooosiMailDeps\uuid_time(...func_get_args()); } }
-if (!function_exists('uuid_type')) { function uuid_type() { return \JooosiMailDeps\uuid_type(...func_get_args()); } }
-if (!function_exists('uuid_unparse')) { function uuid_unparse() { return \JooosiMailDeps\uuid_unparse(...func_get_args()); } }
-if (!function_exists('uuid_variant')) { function uuid_variant() { return \JooosiMailDeps\uuid_variant(...func_get_args()); } }
+if (!function_exists('str_decrement')) { function str_decrement() { return \JooosiMailDeps\str_decrement(...func_get_args()); } }
+if (!function_exists('str_increment')) { function str_increment() { return \JooosiMailDeps\str_increment(...func_get_args()); } }
+if (!function_exists('stream_context_set_options')) { function stream_context_set_options() { return \JooosiMailDeps\stream_context_set_options(...func_get_args()); } }
 
 return $loader;

@@ -7,18 +7,15 @@ use JooosiMailDeps\Doctrine\DBAL\Connection;
 use JooosiMailDeps\Doctrine\DBAL\Exception\InvalidColumnType\ColumnLengthRequired;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords\OracleKeywords;
-use JooosiMailDeps\Doctrine\DBAL\Platforms\Oracle\OracleMetadataProvider;
 use JooosiMailDeps\Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Identifier;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Index;
-use JooosiMailDeps\Doctrine\DBAL\Schema\Name\UnquotedIdentifierFolding;
 use JooosiMailDeps\Doctrine\DBAL\Schema\OracleSchemaManager;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Sequence;
 use JooosiMailDeps\Doctrine\DBAL\Schema\TableDiff;
 use JooosiMailDeps\Doctrine\DBAL\TransactionIsolationLevel;
 use JooosiMailDeps\Doctrine\DBAL\Types\BinaryType;
 use JooosiMailDeps\Doctrine\DBAL\Types\Types;
-use JooosiMailDeps\Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
 use function array_merge;
 use function count;
@@ -34,10 +31,6 @@ use function substr;
  */
 class OraclePlatform extends AbstractPlatform
 {
-    public function __construct()
-    {
-        parent::__construct(UnquotedIdentifierFolding::UPPER);
-    }
     public function getSubstringExpression(string $string, string $start, ?string $length = null): string
     {
         if ($length === null) {
@@ -102,10 +95,8 @@ class OraclePlatform extends AbstractPlatform
     {
         return '(' . $value1 . '-' . $this->getBitAndComparisonExpression($value1, $value2) . '+' . $value2 . ')';
     }
-    /** @deprecated */
     public function getCreatePrimaryKeySQL(Index $index, string $table): string
     {
-        Deprecation::triggerIfCalledFromOutside('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6867', '%s() is deprecated.', __METHOD__);
         return 'ALTER TABLE ' . $table . ' ADD CONSTRAINT ' . $index->getQuotedName($this) . ' PRIMARY KEY (' . implode(', ', $index->getQuotedColumns($this)) . ')';
     }
     /**
@@ -117,22 +108,25 @@ class OraclePlatform extends AbstractPlatform
      */
     public function getCreateSequenceSQL(Sequence $sequence): string
     {
-        return 'CREATE SEQUENCE ' . $sequence->getQuotedName($this) . ' START WITH ' . $sequence->getInitialValue() . ' MINVALUE ' . $sequence->getInitialValue() . ' INCREMENT BY ' . $sequence->getAllocationSize() . $this->getSequenceCacheSQL($sequence->getCacheSize());
+        return 'CREATE SEQUENCE ' . $sequence->getQuotedName($this) . ' START WITH ' . $sequence->getInitialValue() . ' MINVALUE ' . $sequence->getInitialValue() . ' INCREMENT BY ' . $sequence->getAllocationSize() . $this->getSequenceCacheSQL($sequence);
     }
     public function getAlterSequenceSQL(Sequence $sequence): string
     {
-        return 'ALTER SEQUENCE ' . $sequence->getQuotedName($this) . ' INCREMENT BY ' . $sequence->getAllocationSize() . $this->getSequenceCacheSQL($sequence->getCacheSize());
+        return 'ALTER SEQUENCE ' . $sequence->getQuotedName($this) . ' INCREMENT BY ' . $sequence->getAllocationSize() . $this->getSequenceCacheSQL($sequence);
     }
     /**
      * Cache definition for sequences
      */
-    private function getSequenceCacheSQL(?int $cacheSize): string
+    private function getSequenceCacheSQL(Sequence $sequence): string
     {
-        if ($cacheSize === 0 || $cacheSize === 1) {
+        if ($sequence->getCache() === 0) {
             return ' NOCACHE';
         }
-        if ($cacheSize > 1) {
-            return ' CACHE ' . $cacheSize;
+        if ($sequence->getCache() === 1) {
+            return ' NOCACHE';
+        }
+        if ($sequence->getCache() > 1) {
+            return ' CACHE ' . $sequence->getCache();
         }
         return '';
     }
@@ -255,7 +249,6 @@ class OraclePlatform extends AbstractPlatform
      */
     protected function _getCreateTableSQL(string $name, array $columns, array $options = []): array
     {
-        $this->validateCreateTableOptions($options, __METHOD__);
         $indexes = $options['indexes'] ?? [];
         $options['indexes'] = [];
         $sql = parent::_getCreateTableSQL($name, $columns, $options);
@@ -278,11 +271,7 @@ class OraclePlatform extends AbstractPlatform
     {
         return 'SELECT view_name, text FROM sys.user_views';
     }
-    /**
-     * @internal The method should be only used by the {@see OraclePlatform} class.
-     *
-     * @return array<int, string>
-     */
+    /** @return array<int, string> */
     protected function getCreateAutoincrementSql(string $name, string $table, int $start = 1): array
     {
         $tableIdentifier = $this->normalizeIdentifier($table);
@@ -290,49 +279,34 @@ class OraclePlatform extends AbstractPlatform
         $unquotedTableName = $tableIdentifier->getName();
         $nameIdentifier = $this->normalizeIdentifier($name);
         $quotedName = $nameIdentifier->getQuotedName($this);
+        $unquotedName = $nameIdentifier->getName();
         $sql = [];
         $autoincrementIdentifierName = $this->getAutoincrementIdentifierName($tableIdentifier);
         $idx = new Index($autoincrementIdentifierName, [$quotedName], \true, \true);
-        $sql[] = sprintf(<<<'SQL'
-DECLARE
-  CONSTRAINTS_COUNT NUMBER;
-BEGIN
-  SELECT COUNT(CONSTRAINT_NAME) INTO CONSTRAINTS_COUNT
-    FROM USER_CONSTRAINTS
-   WHERE TABLE_NAME = %s
-     AND CONSTRAINT_TYPE = 'P';
-  IF CONSTRAINTS_COUNT = 0 THEN
-    EXECUTE IMMEDIATE %s;
-  END IF;
-END;
-SQL
-, $this->quoteStringLiteral($unquotedTableName), $this->quoteStringLiteral($this->getCreateIndexSQL($idx, $quotedTableName)));
+        $sql[] = "DECLARE\n  constraints_Count NUMBER;\nBEGIN\n  SELECT COUNT(CONSTRAINT_NAME) INTO constraints_Count\n    FROM USER_CONSTRAINTS\n   WHERE TABLE_NAME = '" . $unquotedTableName . "'\n     AND CONSTRAINT_TYPE = 'P';\n  IF constraints_Count = 0 OR constraints_Count = '' THEN\n    EXECUTE IMMEDIATE '" . $this->getCreateIndexSQL($idx, $quotedTableName) . "';\n  END IF;\nEND;";
         $sequenceName = $this->getIdentitySequenceName($tableIdentifier->isQuoted() ? $quotedTableName : $unquotedTableName);
         $sequence = new Sequence($sequenceName, $start);
         $sql[] = $this->getCreateSequenceSQL($sequence);
-        $sql[] = sprintf(<<<'SQL'
-CREATE TRIGGER %1$s
+        $sql[] = 'CREATE TRIGGER ' . $autoincrementIdentifierName . '
    BEFORE INSERT
-   ON %2$s
+   ON ' . $quotedTableName . '
    FOR EACH ROW
 DECLARE
    last_Sequence NUMBER;
    last_InsertID NUMBER;
 BEGIN
-   IF (:NEW.%3$s IS NULL OR :NEW.%3$s = 0) THEN
-      SELECT %4$s.NEXTVAL INTO :NEW.%3$s FROM DUAL;
+   IF (:NEW.' . $quotedName . ' IS NULL OR :NEW.' . $quotedName . ' = 0) THEN
+      SELECT ' . $sequenceName . '.NEXTVAL INTO :NEW.' . $quotedName . ' FROM DUAL;
    ELSE
       SELECT NVL(Last_Number, 0) INTO last_Sequence
-        FROM USER_SEQUENCES
-       WHERE Sequence_Name = %5$s;
-      SELECT :NEW.%3$s INTO last_InsertID FROM DUAL;
+        FROM User_Sequences
+       WHERE Sequence_Name = \'' . $sequence->getName() . '\';
+      SELECT :NEW.' . $quotedName . ' INTO last_InsertID FROM DUAL;
       WHILE (last_InsertID > last_Sequence) LOOP
-         SELECT %4$s.NEXTVAL INTO last_Sequence FROM DUAL;
+         SELECT ' . $sequenceName . '.NEXTVAL INTO last_Sequence FROM DUAL;
       END LOOP;
    END IF;
-END;
-SQL
-, $autoincrementIdentifierName, $quotedTableName, $quotedName, $sequenceName, $this->quoteStringLiteral($sequence->getName()));
+END;';
         return $sql;
     }
     /**
@@ -369,8 +343,6 @@ SQL
      *
      * if the new string exceeds max identifier length,
      * keeps $suffix, cuts from $identifier as much as the part exceeding.
-     *
-     * @param non-empty-string $suffix
      */
     private function addSuffix(string $identifier, string $suffix): string
     {
@@ -398,26 +370,19 @@ SQL
     /** @internal The method should be only used from within the {@see AbstractPlatform} class hierarchy. */
     public function getAdvancedForeignKeyOptionsSQL(ForeignKeyConstraint $foreignKey): string
     {
-        $sql = '';
+        $referentialAction = '';
         if ($foreignKey->hasOption('onDelete')) {
             $referentialAction = $this->getForeignKeyReferentialActionSQL($foreignKey->getOption('onDelete'));
-            if ($referentialAction !== '') {
-                $sql .= ' ON DELETE ' . $referentialAction;
-            }
         }
-        $deferrabilitySQL = $this->getConstraintDeferrabilitySQL($foreignKey);
-        if ($deferrabilitySQL !== '') {
-            $sql .= $deferrabilitySQL;
+        if ($referentialAction !== '') {
+            return ' ON DELETE ' . $referentialAction;
         }
-        return $sql;
+        return '';
     }
     /** @internal The method should be only used from within the {@see AbstractPlatform} class hierarchy. */
     public function getForeignKeyReferentialActionSQL(string $action): string
     {
         $action = strtoupper($action);
-        if ($action === 'RESTRICT') {
-            Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6707', 'Relying on automatic conversion of RESTRICT to NO ACTION for Oracle is deprecated.' . ' Use NO ACTION explicitly instead.');
-        }
         return match ($action) {
             'RESTRICT', 'NO ACTION' => '',
             'CASCADE', 'SET NULL' => $action,
@@ -533,7 +498,6 @@ SQL
         }
         return ['ALTER INDEX ' . $oldIndexName . ' RENAME TO ' . $index->getQuotedName($this)];
     }
-    /** @internal The method should be only used by the {@see OraclePlatform} class. */
     protected function getIdentitySequenceName(string $tableName): string
     {
         $table = new Identifier($tableName);
@@ -605,10 +569,8 @@ SQL
     {
         return '';
     }
-    /** @deprecated */
     protected function createReservedKeywordsList(): KeywordList
     {
-        Deprecation::triggerIfCalledFromOutside('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6607', '%s is deprecated.', __METHOD__);
         return new OracleKeywords();
     }
     /**
@@ -617,10 +579,6 @@ SQL
     public function getBlobTypeDeclarationSQL(array $column): string
     {
         return 'BLOB';
-    }
-    public function createMetadataProvider(Connection $connection): OracleMetadataProvider
-    {
-        return new OracleMetadataProvider($connection, $this);
     }
     public function createSchemaManager(Connection $connection): OracleSchemaManager
     {

@@ -14,9 +14,9 @@ use JooosiMail\Queue\Trigger\ActionSchedulerTrigger;
  *
  * @since 0.1.0
  */
-final readonly class LifecycleManager
+final class LifecycleManager
 {
-    public function __construct(private HookRegistrar $hookRegistrar, private RestRouteRegistrar $restRouteRegistrar, private CommandRegistrar $commandRegistrar, private MigrationRunner $migrationRunner, private ActionSchedulerTrigger $actionSchedulerTrigger, private MailLogRetentionScheduler $mailLogRetentionScheduler)
+    public function __construct(private readonly HookRegistrar $hookRegistrar, private readonly RestRouteRegistrar $restRouteRegistrar, private readonly CommandRegistrar $commandRegistrar, private readonly MigrationRunner $migrationRunner, private readonly ActionSchedulerTrigger $actionSchedulerTrigger, private readonly MailLogRetentionScheduler $mailLogRetentionScheduler)
     {
     }
     /**

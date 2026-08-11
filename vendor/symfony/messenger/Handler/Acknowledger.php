@@ -10,24 +10,22 @@
  */
 namespace JooosiMailDeps\Symfony\Component\Messenger\Handler;
 
-use JooosiMailDeps\Symfony\Component\Clock\Clock;
-use JooosiMailDeps\Symfony\Component\Clock\ClockInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Exception\LogicException;
 /**
  * @author Nicolas Grekas <p@tchwork.com>
  */
 class Acknowledger
 {
-    public readonly ClockInterface $clock;
+    private string $handlerClass;
     private ?\Closure $ack;
     private \Throwable|false|null $error = null;
     private mixed $result = null;
     /**
      * @param \Closure(\Throwable|null, mixed):void|null $ack
      */
-    public function __construct(private string $handlerClass, ?\Closure $ack = null, ?ClockInterface $clock = null)
+    public function __construct(string $handlerClass, ?\Closure $ack = null)
     {
-        $this->clock = $clock ?? Clock::get();
+        $this->handlerClass = $handlerClass;
         $this->ack = $ack ?? static function () {
         };
     }

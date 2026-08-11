@@ -20,11 +20,13 @@ use JooosiMailDeps\Symfony\Component\Messenger\Stamp\ReceivedStamp;
  */
 class HandlersLocator implements HandlersLocatorInterface
 {
+    private array $handlers;
     /**
      * @param HandlerDescriptor[][]|callable[][] $handlers
      */
-    public function __construct(private array $handlers)
+    public function __construct(array $handlers)
     {
+        $this->handlers = $handlers;
     }
     public function getHandlers(Envelope $envelope): iterable
     {
@@ -38,7 +40,7 @@ class HandlersLocator implements HandlersLocatorInterface
                     continue;
                 }
                 $name = $handlerDescriptor->getName();
-                if (\in_array($name, $seen, \true)) {
+                if (\in_array($name, $seen)) {
                     continue;
                 }
                 $seen[] = $name;

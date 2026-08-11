@@ -15,8 +15,8 @@ use JooosiMailDeps\Psr\Container\NotFoundExceptionInterface;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Exception\RuntimeException;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Exception\ServiceCircularReferenceException;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
-use JooosiMailDeps\Symfony\Contracts\Service\ServiceCollectionInterface;
 use JooosiMailDeps\Symfony\Contracts\Service\ServiceLocatorTrait;
+use JooosiMailDeps\Symfony\Contracts\Service\ServiceProviderInterface;
 use JooosiMailDeps\Symfony\Contracts\Service\ServiceSubscriberInterface;
 /**
  * @author Robin Chalas <robin.chalas@gmail.com>
@@ -24,9 +24,9 @@ use JooosiMailDeps\Symfony\Contracts\Service\ServiceSubscriberInterface;
  *
  * @template-covariant T of mixed
  *
- * @implements ServiceCollectionInterface<T>
+ * @implements ServiceProviderInterface<T>
  */
-class ServiceLocator implements ServiceCollectionInterface
+class ServiceLocator implements ServiceProviderInterface, \Countable
 {
     use ServiceLocatorTrait {
         get as private doGet;
@@ -51,7 +51,10 @@ class ServiceLocator implements ServiceCollectionInterface
             throw $e;
         }
     }
-    public function __invoke(string $id): mixed
+    /**
+     * @return mixed
+     */
+    public function __invoke(string $id)
     {
         return isset($this->factories[$id]) ? $this->get($id) : null;
     }
@@ -68,12 +71,6 @@ class ServiceLocator implements ServiceCollectionInterface
     public function count(): int
     {
         return \count($this->getProvidedServices());
-    }
-    public function getIterator(): \Traversable
-    {
-        foreach ($this->getProvidedServices() as $id => $config) {
-            yield $id => $this->get($id);
-        }
     }
     private function createNotFoundException(string $id): NotFoundExceptionInterface
     {

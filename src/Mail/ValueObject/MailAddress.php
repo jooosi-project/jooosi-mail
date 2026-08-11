@@ -9,9 +9,9 @@ use JooosiMailDeps\Symfony\Component\Mime\Address;
  *
  * @since 0.1.0
  */
-final readonly class MailAddress
+final class MailAddress
 {
-    public function __construct(public string $address, public ?string $name = null)
+    public function __construct(public readonly string $address, public readonly ?string $name = null)
     {
     }
     /**

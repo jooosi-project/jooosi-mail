@@ -9,19 +9,16 @@ use JooosiMailDeps\Doctrine\DBAL\LockMode;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords\SQLServerKeywords;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\SQLServer\SQL\Builder\SQLServerSelectSQLBuilder;
-use JooosiMailDeps\Doctrine\DBAL\Platforms\SQLServer\SQLServerMetadataProvider;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Column;
 use JooosiMailDeps\Doctrine\DBAL\Schema\ColumnDiff;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Identifier;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Index;
-use JooosiMailDeps\Doctrine\DBAL\Schema\Name\UnquotedIdentifierFolding;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Sequence;
 use JooosiMailDeps\Doctrine\DBAL\Schema\SQLServerSchemaManager;
 use JooosiMailDeps\Doctrine\DBAL\Schema\TableDiff;
 use JooosiMailDeps\Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use JooosiMailDeps\Doctrine\DBAL\TransactionIsolationLevel;
 use JooosiMailDeps\Doctrine\DBAL\Types\Types;
-use JooosiMailDeps\Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
 use function array_map;
 use function array_merge;
@@ -51,10 +48,6 @@ class SQLServerPlatform extends AbstractPlatform
 {
     /** @internal Should be used only from within the {@see AbstractSchemaManager} class hierarchy. */
     public const OPTION_DEFAULT_CONSTRAINT_NAME = 'default_constraint_name';
-    public function __construct()
-    {
-        parent::__construct(UnquotedIdentifierFolding::NONE);
-    }
     public function createSelectSQLBuilder(): SelectSQLBuilder
     {
         return new SQLServerSelectSQLBuilder($this);
@@ -152,7 +145,6 @@ class SQLServerPlatform extends AbstractPlatform
      */
     protected function _getCreateTableSQL(string $name, array $columns, array $options = []): array
     {
-        $this->validateCreateTableOptions($options, __METHOD__);
         $defaultConstraintsSql = [];
         $commentsSql = [];
         $tableComment = $options['comment'] ?? null;
@@ -175,12 +167,12 @@ class SQLServerPlatform extends AbstractPlatform
             $commentsSql[] = $this->getCreateColumnCommentSQL($name, $column['name'], $column['comment']);
         }
         $columnListSql = $this->getColumnDeclarationListSQL($columns);
-        if (!empty($options['uniqueConstraints'])) {
+        if (isset($options['uniqueConstraints']) && !empty($options['uniqueConstraints'])) {
             foreach ($options['uniqueConstraints'] as $definition) {
                 $columnListSql .= ', ' . $this->getUniqueConstraintDeclarationSQL($definition);
             }
         }
-        if (!empty($options['primary'])) {
+        if (isset($options['primary']) && !empty($options['primary'])) {
             $flags = '';
             if (isset($options['primary_index']) && $options['primary_index']->hasFlag('nonclustered')) {
                 $flags = ' NONCLUSTERED';
@@ -194,7 +186,7 @@ class SQLServerPlatform extends AbstractPlatform
         }
         $query .= ')';
         $sql = [$query];
-        if (!empty($options['indexes'])) {
+        if (isset($options['indexes']) && !empty($options['indexes'])) {
             foreach ($options['indexes'] as $index) {
                 $sql[] = $this->getCreateIndexSQL($index, $name);
             }
@@ -206,10 +198,8 @@ class SQLServerPlatform extends AbstractPlatform
         }
         return array_merge($sql, $commentsSql, $defaultConstraintsSql);
     }
-    /** @deprecated */
     public function getCreatePrimaryKeySQL(Index $index, string $table): string
     {
-        Deprecation::triggerIfCalledFromOutside('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6867', '%s() is deprecated.', __METHOD__);
         $sql = 'ALTER TABLE ' . $table . ' ADD PRIMARY KEY';
         if ($index->hasFlag('nonclustered')) {
             $sql .= ' NONCLUSTERED';
@@ -231,8 +221,6 @@ class SQLServerPlatform extends AbstractPlatform
      * as column comments are stored in the same property there when
      * specifying a column's "Description" attribute.
      *
-     * @internal The method should be only used by the {@see SQLServerPlatform} class.
-     *
      * @param string $tableName  The quoted table name to which the column belongs.
      * @param string $columnName The quoted column name to create the comment for.
      * @param string $comment    The column's comment.
@@ -248,8 +236,6 @@ class SQLServerPlatform extends AbstractPlatform
     }
     /**
      * Returns the SQL snippet for declaring a default constraint.
-     *
-     * @internal The method should be only used by the {@see SQLServerPlatform} class.
      *
      * @param mixed[] $column Column definition.
      */
@@ -394,7 +380,7 @@ class SQLServerPlatform extends AbstractPlatform
         if (!$column->hasPlatformOption(self::OPTION_DEFAULT_CONSTRAINT_NAME)) {
             throw new InvalidArgumentException('Column ' . $column->getName() . ' was not properly introspected as it has a default value' . ' but does not have the default constraint name.');
         }
-        return 'DROP CONSTRAINT ' . $this->quoteSingleIdentifier($column->getPlatformOption(self::OPTION_DEFAULT_CONSTRAINT_NAME));
+        return 'DROP CONSTRAINT ' . $this->quoteIdentifier($column->getPlatformOption(self::OPTION_DEFAULT_CONSTRAINT_NAME));
     }
     /**
      * Checks whether a column alteration requires dropping its default constraint first.
@@ -431,8 +417,6 @@ class SQLServerPlatform extends AbstractPlatform
      * as column comments are stored in the same property there when
      * specifying a column's "Description" attribute.
      *
-     * @internal The method should be only used by the {@see SQLServerPlatform} class.
-     *
      * @param string $tableName  The quoted table name to which the column belongs.
      * @param string $columnName The quoted column name to alter the comment for.
      * @param string $comment    The column's comment.
@@ -456,8 +440,6 @@ class SQLServerPlatform extends AbstractPlatform
      * which provides compatibility with SQL Server Management Studio,
      * as column comments are stored in the same property there when
      * specifying a column's "Description" attribute.
-     *
-     * @internal The method should be only used by the {@see SQLServerPlatform} class.
      *
      * @param string $tableName  The quoted table name to which the column belongs.
      * @param string $columnName The quoted column name to drop the comment for.
@@ -496,14 +478,12 @@ class SQLServerPlatform extends AbstractPlatform
      */
     private function getRenameSQL(string ...$arguments): string
     {
-        return $this->getExecSQL('sp_rename', ...array_map(function (string $argument): string {
-            return $this->quoteNationalStringLiteral($argument);
+        return 'EXEC sp_rename ' . implode(', ', array_map(function (string $argument): string {
+            return 'N' . $this->quoteStringLiteral($argument);
         }, $arguments));
     }
     /**
      * Returns the SQL statement for adding an extended property to a database object.
-     *
-     * @internal The method should be only used by the {@see SQLServerPlatform} class.
      *
      * @link http://msdn.microsoft.com/en-us/library/ms180047%28v=sql.90%29.aspx
      *
@@ -518,17 +498,10 @@ class SQLServerPlatform extends AbstractPlatform
      */
     protected function getAddExtendedPropertySQL(string $name, ?string $value = null, ?string $level0Type = null, ?string $level0Name = null, ?string $level1Type = null, ?string $level1Name = null, ?string $level2Type = null, ?string $level2Name = null): string
     {
-        $arguments = [$this->quoteNationalStringLiteral($name), $this->quoteNationalStringLiteral($value ?? ''), $this->quoteNationalStringLiteral($level0Type ?? ''), $level0Name ?? '', $this->quoteNationalStringLiteral($level1Type ?? ''), $level1Name ?? ''];
-        if ($level2Type !== null || $level2Name !== null) {
-            $arguments[] = $this->quoteNationalStringLiteral($level2Type ?? '');
-            $arguments[] = $level2Name ?? '';
-        }
-        return $this->getExecSQL('sp_addextendedproperty', ...$arguments);
+        return 'EXEC sp_addextendedproperty ' . 'N' . $this->quoteStringLiteral($name) . ', N' . $this->quoteStringLiteral($value ?? '') . ', ' . 'N' . $this->quoteStringLiteral($level0Type ?? '') . ', ' . $level0Name . ', ' . 'N' . $this->quoteStringLiteral($level1Type ?? '') . ', ' . $level1Name . ($level2Type !== null || $level2Name !== null ? ', N' . $this->quoteStringLiteral($level2Type ?? '') . ', ' . $level2Name : '');
     }
     /**
      * Returns the SQL statement for dropping an extended property from a database object.
-     *
-     * @internal The method should be only used by the {@see SQLServerPlatform} class.
      *
      * @link http://technet.microsoft.com/en-gb/library/ms178595%28v=sql.90%29.aspx
      *
@@ -542,17 +515,10 @@ class SQLServerPlatform extends AbstractPlatform
      */
     protected function getDropExtendedPropertySQL(string $name, ?string $level0Type = null, ?string $level0Name = null, ?string $level1Type = null, ?string $level1Name = null, ?string $level2Type = null, ?string $level2Name = null): string
     {
-        $arguments = [$this->quoteNationalStringLiteral($name), $this->quoteNationalStringLiteral($level0Type ?? ''), $level0Name ?? '', $this->quoteNationalStringLiteral($level1Type ?? ''), $level1Name ?? ''];
-        if ($level2Type !== null || $level2Name !== null) {
-            $arguments[] = $this->quoteNationalStringLiteral($level2Type ?? '');
-            $arguments[] = $level2Name ?? '';
-        }
-        return $this->getExecSQL('sp_dropextendedproperty', ...$arguments);
+        return 'EXEC sp_dropextendedproperty ' . 'N' . $this->quoteStringLiteral($name) . ', ' . 'N' . $this->quoteStringLiteral($level0Type ?? '') . ', ' . $level0Name . ', ' . 'N' . $this->quoteStringLiteral($level1Type ?? '') . ', ' . $level1Name . ($level2Type !== null || $level2Name !== null ? ', N' . $this->quoteStringLiteral($level2Type ?? '') . ', ' . $level2Name : '');
     }
     /**
      * Returns the SQL statement for updating an extended property of a database object.
-     *
-     * @internal The method should be only used by the {@see SQLServerPlatform} class.
      *
      * @link http://msdn.microsoft.com/en-us/library/ms186885%28v=sql.90%29.aspx
      *
@@ -567,26 +533,7 @@ class SQLServerPlatform extends AbstractPlatform
      */
     protected function getUpdateExtendedPropertySQL(string $name, ?string $value = null, ?string $level0Type = null, ?string $level0Name = null, ?string $level1Type = null, ?string $level1Name = null, ?string $level2Type = null, ?string $level2Name = null): string
     {
-        $arguments = [$this->quoteNationalStringLiteral($name), $this->quoteNationalStringLiteral($value ?? ''), $this->quoteNationalStringLiteral($level0Type ?? ''), $level0Name ?? '', $this->quoteNationalStringLiteral($level1Type ?? ''), $level1Name ?? ''];
-        if ($level2Type !== null || $level2Name !== null) {
-            $arguments[] = $this->quoteNationalStringLiteral($level2Type ?? '');
-            $arguments[] = $level2Name ?? '';
-        }
-        return $this->getExecSQL('sp_updateextendedproperty', ...$arguments);
-    }
-    /**
-     * Returns the SQL statement that will execute the given stored procedure with the given arguments.
-     *
-     * @param string $procedureName The name of the stored procedure to execute.
-     * @param string ...$arguments  The SQL fragments representing the arguments to pass to the stored procedure.
-     */
-    private function getExecSQL(string $procedureName, string ...$arguments): string
-    {
-        return 'EXEC ' . $this->quoteSingleIdentifier($procedureName) . ' ' . implode(', ', $arguments);
-    }
-    private function quoteNationalStringLiteral(string $value): string
-    {
-        return 'N' . $this->quoteStringLiteral($value);
+        return 'EXEC sp_updateextendedproperty ' . 'N' . $this->quoteStringLiteral($name) . ', N' . $this->quoteStringLiteral($value ?? '') . ', ' . 'N' . $this->quoteStringLiteral($level0Type ?? '') . ', ' . $level0Name . ', ' . 'N' . $this->quoteStringLiteral($level1Type ?? '') . ', ' . $level1Name . ($level2Type !== null || $level2Name !== null ? ', N' . $this->quoteStringLiteral($level2Type ?? '') . ', ' . $level2Name : '');
     }
     public function getEmptyIdentityInsertSQL(string $quotedTableName, string $quotedIdentifierColumnName): string
     {
@@ -727,10 +674,7 @@ class SQLServerPlatform extends AbstractPlatform
      */
     protected function _getCommonIntegerTypeDeclarationSQL(array $column): string
     {
-        if (!empty($column['autoincrement'])) {
-            return ' IDENTITY';
-        }
-        return '';
+        return !empty($column['autoincrement']) ? ' IDENTITY' : '';
     }
     /**
      * {@inheritDoc}
@@ -849,7 +793,6 @@ class SQLServerPlatform extends AbstractPlatform
     {
         // RESTRICT is not supported, therefore falling back to NO ACTION.
         if (strtoupper($action) === 'RESTRICT') {
-            Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6707', 'Relying on automatic conversion of RESTRICT to NO ACTION for SQL Server is deprecated.' . ' Use NO ACTION explicitly instead.');
             return 'NO ACTION';
         }
         return parent::getForeignKeyReferentialActionSQL($action);
@@ -862,10 +805,8 @@ class SQLServerPlatform extends AbstractPlatform
             LockMode::PESSIMISTIC_WRITE => $fromClause . ' WITH (UPDLOCK, ROWLOCK)',
         };
     }
-    /** @deprecated */
     protected function createReservedKeywordsList(): KeywordList
     {
-        Deprecation::triggerIfCalledFromOutside('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6607', '%s is deprecated.', __METHOD__);
         return new SQLServerKeywords();
     }
     public function quoteSingleIdentifier(string $str): string
@@ -915,14 +856,9 @@ class SQLServerPlatform extends AbstractPlatform
         }
         return $this->getDefaultValueDeclarationSQL($column1->toArray()) === $this->getDefaultValueDeclarationSQL($column2->toArray());
     }
-    /**
-     * The <code>[</code> character is used in SQL Server's extended pattern syntax to define character ranges or sets.
-     *
-     * @link https://learn.microsoft.com/en-us/sql/t-sql/language-elements/like-transact-sql#pattern
-     */
     protected function getLikeWildcardCharacters(): string
     {
-        return parent::getLikeWildcardCharacters() . '[';
+        return parent::getLikeWildcardCharacters() . '[]^';
     }
     protected function getCommentOnTableSQL(string $tableName, string $comment): string
     {
@@ -957,10 +893,6 @@ class SQLServerPlatform extends AbstractPlatform
             }
         }
         return \true;
-    }
-    public function createMetadataProvider(Connection $connection): SQLServerMetadataProvider
-    {
-        return new SQLServerMetadataProvider($connection, $this);
     }
     public function createSchemaManager(Connection $connection): SQLServerSchemaManager
     {

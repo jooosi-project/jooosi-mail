@@ -3,20 +3,13 @@
 declare (strict_types=1);
 namespace JooosiMailDeps\Doctrine\DBAL\Schema;
 
-use JooosiMailDeps\Doctrine\DBAL\Schema\Name\GenericName;
-use JooosiMailDeps\Doctrine\DBAL\Schema\Name\Parser\GenericNameParser;
-use JooosiMailDeps\Doctrine\DBAL\Schema\Name\Parsers;
 /**
  * An abstraction class for an asset identifier.
  *
  * Wraps identifier names like column names in indexes / foreign keys
  * in an abstract class for proper quotation capabilities.
- *
- * @internal
- *
- * @extends AbstractNamedObject<GenericName>
  */
-class Identifier extends AbstractNamedObject
+class Identifier extends AbstractAsset
 {
     /**
      * @param string $identifier Identifier name to wrap.
@@ -24,14 +17,10 @@ class Identifier extends AbstractNamedObject
      */
     public function __construct(string $identifier, bool $quote = \false)
     {
-        parent::__construct($identifier);
+        $this->_setName($identifier);
         if (!$quote || $this->_quoted) {
             return;
         }
         $this->_setName('"' . $this->getName() . '"');
-    }
-    protected function getNameParser(): GenericNameParser
-    {
-        return Parsers::getGenericNameParser();
     }
 }

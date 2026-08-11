@@ -25,15 +25,24 @@ use WP_CLI;
  * @since 0.1.0
  */
 #[Service]
-final readonly class SeedCommand
+final class SeedCommand
 {
-    private const array CONNECTION_NAMES = ['Seed Primary Route', 'Seed Backup Route', 'Seed Bulk Route'];
-    private const array MAIL_STATUSES = ['pending', 'sent', 'queued', 'processing', 'failed'];
-    private const array WEBHOOK_EVENT_TYPES = ['delivered', 'opened', 'clicked', 'processed', 'bounce', 'complained', 'deferred', 'spam_report'];
+    /**
+     * @var mixed[]
+     */
+    private const CONNECTION_NAMES = ['Seed Primary Route', 'Seed Backup Route', 'Seed Bulk Route'];
+    /**
+     * @var mixed[]
+     */
+    private const MAIL_STATUSES = ['pending', 'sent', 'queued', 'processing', 'failed'];
+    /**
+     * @var mixed[]
+     */
+    private const WEBHOOK_EVENT_TYPES = ['delivered', 'opened', 'clicked', 'processed', 'bounce', 'complained', 'deferred', 'spam_report'];
     /**
      * @since 0.1.0
      */
-    public function __construct(private DbalConnection $connection, private TableNameResolver $tableNameResolver, private SerializerInterface $serializer)
+    public function __construct(private readonly DbalConnection $connection, private readonly TableNameResolver $tableNameResolver, private readonly SerializerInterface $serializer)
     {
     }
     /**

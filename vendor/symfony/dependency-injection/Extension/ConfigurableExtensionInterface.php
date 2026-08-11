@@ -21,9 +21,9 @@ interface ConfigurableExtensionInterface extends ConfigurableInterface
     /**
      * Allows an extension to prepend the extension configurations.
      */
-    public function prependExtension(ContainerConfigurator $configurator, ContainerBuilder $container): void;
+    public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void;
     /**
      * Loads a specific configuration.
      */
-    public function loadExtension(array $config, ContainerConfigurator $configurator, ContainerBuilder $container): void;
+    public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void;
 }

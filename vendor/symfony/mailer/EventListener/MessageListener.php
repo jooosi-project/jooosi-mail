@@ -29,9 +29,13 @@ class MessageListener implements EventSubscriberInterface
     public const HEADER_ADD = 2;
     public const HEADER_REPLACE = 3;
     public const DEFAULT_RULES = ['from' => self::HEADER_SET_IF_EMPTY, 'return-path' => self::HEADER_SET_IF_EMPTY, 'reply-to' => self::HEADER_ADD, 'to' => self::HEADER_SET_IF_EMPTY, 'cc' => self::HEADER_ADD, 'bcc' => self::HEADER_ADD];
+    private ?Headers $headers;
     private array $headerRules = [];
-    public function __construct(private ?Headers $headers = null, private ?BodyRendererInterface $renderer = null, array $headerRules = self::DEFAULT_RULES)
+    private ?BodyRendererInterface $renderer;
+    public function __construct(?Headers $headers = null, ?BodyRendererInterface $renderer = null, array $headerRules = self::DEFAULT_RULES)
     {
+        $this->headers = $headers;
+        $this->renderer = $renderer;
         foreach ($headerRules as $headerName => $rule) {
             $this->addHeaderRule($headerName, $rule);
         }

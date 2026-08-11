@@ -10,7 +10,6 @@
  */
 namespace JooosiMailDeps\Symfony\Component\Messenger\Transport\InMemory;
 
-use JooosiMailDeps\Psr\Clock\ClockInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Transport\TransportFactoryInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Transport\TransportInterface;
@@ -26,19 +25,19 @@ class InMemoryTransportFactory implements TransportFactoryInterface, ResetInterf
      * @var InMemoryTransport[]
      */
     private array $createdTransports = [];
-    public function __construct(private readonly ?ClockInterface $clock = null)
-    {
-    }
     public function createTransport(string $dsn, array $options, SerializerInterface $serializer): TransportInterface
     {
         ['serialize' => $serialize] = $this->parseDsn($dsn);
-        return $this->createdTransports[] = new InMemoryTransport($serialize ? $serializer : null, $this->clock);
+        return $this->createdTransports[] = new InMemoryTransport($serialize ? $serializer : null);
     }
     public function supports(string $dsn, array $options): bool
     {
         return str_starts_with($dsn, 'in-memory://');
     }
-    public function reset(): void
+    /**
+     * @return void
+     */
+    public function reset()
     {
         foreach ($this->createdTransports as $transport) {
             $transport->reset();

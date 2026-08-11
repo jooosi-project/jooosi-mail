@@ -11,7 +11,7 @@ use JooosiMail\Infrastructure\Database\TableNameResolver;
  *
  * @since 0.1.0
  */
-final readonly class Version202603220001CreateRoutingStateTables implements MigrationInterface
+final class Version202603220001CreateRoutingStateTables implements MigrationInterface
 {
     public function getVersion(): string
     {

@@ -11,9 +11,9 @@ use JooosiMail\Infrastructure\Event\EventPublisherInterface;
  * @since 0.1.0
  */
 #[Service]
-final readonly class WebhookEventProjector
+final class WebhookEventProjector
 {
-    public function __construct(private EventPublisherInterface $eventPublisher)
+    public function __construct(private readonly EventPublisherInterface $eventPublisher)
     {
     }
     /**

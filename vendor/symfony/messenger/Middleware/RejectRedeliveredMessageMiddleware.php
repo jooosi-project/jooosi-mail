@@ -31,7 +31,8 @@ class RejectRedeliveredMessageMiddleware implements MiddlewareInterface
 {
     public function handle(Envelope $envelope, StackInterface $stack): Envelope
     {
-        if ($envelope->last(AmqpReceivedStamp::class)?->getAmqpEnvelope()->isRedelivery()) {
+        $amqpReceivedStamp = $envelope->last(AmqpReceivedStamp::class);
+        if ($amqpReceivedStamp instanceof AmqpReceivedStamp && $amqpReceivedStamp->getAmqpEnvelope()->isRedelivery()) {
             throw new RejectRedeliveredMessageException('Redelivered message from AMQP detected that will be rejected and trigger the retry logic.');
         }
         return $stack->next()->handle($envelope, $stack);

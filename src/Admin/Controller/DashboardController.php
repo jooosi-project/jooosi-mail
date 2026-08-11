@@ -24,12 +24,12 @@ use WP_REST_Response;
  * @since 0.1.0
  */
 #[Controller(namespace: 'jooosi-mail/v1', prefix: 'admin/dashboard')]
-final readonly class DashboardController
+final class DashboardController
 {
     /**
      * @since 0.1.0
      */
-    public function __construct(private DbalConnection $connection, private TableNameResolver $tableNameResolver, private OptionStore $optionStore, private ConnectionStatusReporter $connectionStatusReporter, private AdminConnectionPayloadFactory $connectionPayloadFactory, private QueueMessageQuery $queueMessageQuery, private MailAttemptRepository $mailAttemptRepository, private WebhookEventRepository $webhookEventRepository)
+    public function __construct(private readonly DbalConnection $connection, private readonly TableNameResolver $tableNameResolver, private readonly OptionStore $optionStore, private readonly ConnectionStatusReporter $connectionStatusReporter, private readonly AdminConnectionPayloadFactory $connectionPayloadFactory, private readonly QueueMessageQuery $queueMessageQuery, private readonly MailAttemptRepository $mailAttemptRepository, private readonly WebhookEventRepository $webhookEventRepository)
     {
     }
     /**

@@ -21,10 +21,9 @@ use JooosiMailDeps\Symfony\Component\Console\Output\OutputInterface;
 use JooosiMailDeps\Symfony\Component\Console\Style\SymfonyStyle;
 use JooosiMailDeps\Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerMessageReceivedEvent;
-use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerMessageSkipEvent;
 use JooosiMailDeps\Symfony\Component\Messenger\EventListener\StopWorkerOnMessageLimitListener;
 use JooosiMailDeps\Symfony\Component\Messenger\MessageBusInterface;
-use JooosiMailDeps\Symfony\Component\Messenger\Stamp\SentToFailureTransportStamp;
+use JooosiMailDeps\Symfony\Component\Messenger\Stamp\MessageDecodingFailedStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Transport\Receiver\ListableReceiverInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Transport\Receiver\SingleMessageReceiver;
@@ -37,23 +36,30 @@ use JooosiMailDeps\Symfony\Contracts\Service\ServiceProviderInterface;
 #[AsCommand(name: 'messenger:failed:retry', description: 'Retry one or more messages from the failure transport')]
 class FailedMessagesRetryCommand extends AbstractFailedMessagesCommand implements SignalableCommandInterface
 {
-    private const DEFAULT_KEEPALIVE_INTERVAL = 5;
+    private EventDispatcherInterface $eventDispatcher;
+    private MessageBusInterface $messageBus;
+    private ?LoggerInterface $logger;
+    private ?array $signals;
     private bool $shouldStop = \false;
     private bool $forceExit = \false;
     private ?Worker $worker = null;
-    public function __construct(?string $globalReceiverName, ServiceProviderInterface $failureTransports, private MessageBusInterface $messageBus, private EventDispatcherInterface $eventDispatcher, private ?LoggerInterface $logger = null, ?PhpSerializer $phpSerializer = null, private ?array $signals = null)
+    public function __construct(?string $globalReceiverName, ServiceProviderInterface $failureTransports, MessageBusInterface $messageBus, EventDispatcherInterface $eventDispatcher, ?LoggerInterface $logger = null, ?PhpSerializer $phpSerializer = null, ?array $signals = null)
     {
+        $this->eventDispatcher = $eventDispatcher;
+        $this->messageBus = $messageBus;
+        $this->logger = $logger;
+        $this->signals = $signals;
         parent::__construct($globalReceiverName, $failureTransports, $phpSerializer);
     }
     protected function configure(): void
     {
-        $this->setDefinition([new InputArgument('id', InputArgument::IS_ARRAY, 'Specific message id(s) to retry'), new InputOption('force', null, InputOption::VALUE_NONE, 'Force action without confirmation'), new InputOption('transport', null, InputOption::VALUE_REQUIRED, 'Use a specific failure transport', self::DEFAULT_TRANSPORT_OPTION), new InputOption('keepalive', null, InputOption::VALUE_REQUIRED, 'Whether to use the transport\'s keepalive mechanism if implemented', self::DEFAULT_KEEPALIVE_INTERVAL)])->setHelp(<<<'EOF'
+        $this->setDefinition([new InputArgument('id', InputArgument::IS_ARRAY, 'Specific message id(s) to retry'), new InputOption('force', null, InputOption::VALUE_NONE, 'Force action without confirmation'), new InputOption('transport', null, InputOption::VALUE_REQUIRED, 'Use a specific failure transport', self::DEFAULT_TRANSPORT_OPTION)])->setHelp(<<<'EOF'
 The <info>%command.name%</info> retries message in the failure transport.
 
     <info>php %command.full_name%</info>
 
-The command will interactively ask if each message should be retried,
-discarded or skipped.
+The command will interactively ask if each message should be retried
+or discarded.
 
 Some transports support retrying a specific message id, which comes
 from the <info>messenger:failed:show</info> command.
@@ -66,12 +72,6 @@ Or pass multiple ids at once to process multiple messages:
 
 EOF
 );
-    }
-    protected function initialize(InputInterface $input, OutputInterface $output): void
-    {
-        if ($input->hasParameterOption('--keepalive')) {
-            $this->getApplication()->setAlarmInterval((int) ($input->getOption('keepalive') ?? self::DEFAULT_KEEPALIVE_INTERVAL));
-        }
     }
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -110,16 +110,11 @@ EOF
     }
     public function getSubscribedSignals(): array
     {
-        return $this->signals ?? (\extension_loaded('pcntl') ? [\SIGTERM, \SIGINT, \SIGQUIT, \SIGALRM] : []);
+        return $this->signals ?? (\extension_loaded('pcntl') ? [\SIGTERM, \SIGINT] : []);
     }
     public function handleSignal(int $signal, int|false $previousExitCode = 0): int|false
     {
         if (!$this->worker) {
-            return \false;
-        }
-        if (\SIGALRM === $signal) {
-            $this->logger?->info('Sending keepalive request.', ['transport_names' => $this->worker->getMetadata()->getTransportNames()]);
-            $this->worker->keepalive($this->getApplication()->getAlarmInterval());
             return \false;
         }
         $this->logger?->info('Received signal {signal}.', ['signal' => $signal, 'transport_names' => $this->worker->getMetadata()->getTransportNames()]);
@@ -170,18 +165,17 @@ EOF
             ++$count;
             $envelope = $messageReceivedEvent->getEnvelope();
             $this->displaySingleMessage($envelope, $io, $errorIo);
+            if ($envelope->last(MessageDecodingFailedStamp::class)) {
+                throw new \RuntimeException(\sprintf('The message with id "%s" could not decoded, it can only be shown or removed.', $this->getMessageId($envelope) ?? '?'));
+            }
             $this->forceExit = \true;
             try {
-                $choice = $shouldForce ? 'retry' : $errorIo->choice('Please select an action', ['retry', 'delete', 'skip'], 'retry');
-                $shouldHandle = 'retry' === $choice;
+                $shouldHandle = $shouldForce || 'retry' === $errorIo->choice('Please select an action', ['retry', 'delete'], 'retry');
             } finally {
                 $this->forceExit = \false;
             }
             if ($shouldHandle) {
                 return;
-            }
-            if ('skip' === $choice) {
-                $this->eventDispatcher->dispatch(new WorkerMessageSkipEvent($envelope, $envelope->last(SentToFailureTransportStamp::class)->getOriginalReceiverName()));
             }
             $messageReceivedEvent->shouldHandle(\false);
             $receiver->reject($envelope);

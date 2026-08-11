@@ -12,9 +12,9 @@ use JooosiMail\Mail\Connection\ConnectionRepository;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionStatusReporter
+final class ConnectionStatusReporter
 {
-    public function __construct(private ConnectionRepository $connectionRepository, private \JooosiMail\Mail\Routing\ConnectionAvailabilityDecider $connectionAvailabilityDecider, private \JooosiMail\Mail\Routing\ConnectionHealthScorer $connectionHealthScorer)
+    public function __construct(private readonly ConnectionRepository $connectionRepository, private readonly \JooosiMail\Mail\Routing\ConnectionAvailabilityDecider $connectionAvailabilityDecider, private readonly \JooosiMail\Mail\Routing\ConnectionHealthScorer $connectionHealthScorer)
     {
     }
     /**

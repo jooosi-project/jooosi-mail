@@ -10,7 +10,7 @@
  */
 namespace JooosiMailDeps\Symfony\Component\String\Slugger;
 
-use JooosiMailDeps\Symfony\Component\Emoji\EmojiTransliterator;
+use JooosiMailDeps\Symfony\Component\Intl\Transliterator\EmojiTransliterator;
 use JooosiMailDeps\Symfony\Component\String\AbstractUnicodeString;
 use JooosiMailDeps\Symfony\Component\String\UnicodeString;
 use JooosiMailDeps\Symfony\Contracts\Translation\LocaleAwareInterface;
@@ -23,6 +23,7 @@ if (!interface_exists(LocaleAwareInterface::class)) {
 class AsciiSlugger implements SluggerInterface, LocaleAwareInterface
 {
     private const LOCALE_TO_TRANSLITERATOR_ID = ['am' => 'Amharic-Latin', 'ar' => 'Arabic-Latin', 'az' => 'Azerbaijani-Latin', 'be' => 'Belarusian-Latin', 'bg' => 'Bulgarian-Latin', 'bn' => 'Bengali-Latin', 'de' => 'de-ASCII', 'el' => 'Greek-Latin', 'fa' => 'Persian-Latin', 'he' => 'Hebrew-Latin', 'hy' => 'Armenian-Latin', 'ka' => 'Georgian-Latin', 'kk' => 'Kazakh-Latin', 'ky' => 'Kirghiz-Latin', 'ko' => 'Korean-Latin', 'mk' => 'Macedonian-Latin', 'mn' => 'Mongolian-Latin', 'or' => 'Oriya-Latin', 'ps' => 'Pashto-Latin', 'ru' => 'Russian-Latin', 'sr' => 'Serbian-Latin', 'sr_Cyrl' => 'Serbian-Latin', 'th' => 'Thai-Latin', 'tk' => 'Turkmen-Latin', 'uk' => 'Ukrainian-Latin', 'uz' => 'Uzbek-Latin', 'zh' => 'Han-Latin'];
+    private ?string $defaultLocale;
     private \Closure|array $symbolsMap = ['en' => ['@' => 'at', '&' => 'and']];
     private bool|string $emoji = \false;
     /**
@@ -31,17 +32,21 @@ class AsciiSlugger implements SluggerInterface, LocaleAwareInterface
      * @var \Transliterator[]
      */
     private array $transliterators = [];
-    public function __construct(private ?string $defaultLocale = null, array|\Closure|null $symbolsMap = null)
+    public function __construct(?string $defaultLocale = null, array|\Closure|null $symbolsMap = null)
     {
+        $this->defaultLocale = $defaultLocale;
         $this->symbolsMap = $symbolsMap ?? $this->symbolsMap;
     }
-    public function setLocale(string $locale): void
+    /**
+     * @return void
+     */
+    public function setLocale(string $locale)
     {
         $this->defaultLocale = $locale;
     }
     public function getLocale(): string
     {
-        return $this->defaultLocale;
+        return $this->defaultLocale ?? '';
     }
     /**
      * @param bool|string $emoji true will use the same locale,
@@ -51,7 +56,7 @@ class AsciiSlugger implements SluggerInterface, LocaleAwareInterface
     public function withEmoji(bool|string $emoji = \true): static
     {
         if (\false !== $emoji && !class_exists(EmojiTransliterator::class)) {
-            throw new \LogicException(\sprintf('You cannot use the "%s()" method as the "symfony/emoji" package is not installed. Try running "composer require symfony/emoji".', __METHOD__));
+            throw new \LogicException(\sprintf('You cannot use the "%s()" method as the "symfony/intl" package is not installed. Try running "composer require symfony/intl".', __METHOD__));
         }
         $new = clone $this;
         $new->emoji = $emoji;

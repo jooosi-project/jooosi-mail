@@ -27,9 +27,12 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class CloudflareApiTransport extends AbstractApiTransport
 {
-    private const string HOST = 'api.cloudflare.com';
+    /**
+     * @var string
+     */
+    private const HOST = 'api.cloudflare.com';
     /** @var list<string> */
-    private const array ALLOWED_HEADERS = ['archived-at', 'auto-submitted', 'comments', 'content-language', 'importance', 'in-reply-to', 'keywords', 'list-archive', 'list-help', 'list-id', 'list-owner', 'list-post', 'list-subscribe', 'list-unsubscribe', 'list-unsubscribe-post', 'organization', 'precedence', 'references', 'require-recipient-valid-since', 'sensitivity'];
+    private const ALLOWED_HEADERS = ['archived-at', 'auto-submitted', 'comments', 'content-language', 'importance', 'in-reply-to', 'keywords', 'list-archive', 'list-help', 'list-id', 'list-owner', 'list-post', 'list-subscribe', 'list-unsubscribe', 'list-unsubscribe-post', 'organization', 'precedence', 'references', 'require-recipient-valid-since', 'sensitivity'];
     public function __construct(private readonly string $accountId, private readonly string $apiToken, ?HttpClientInterface $httpClient = null, ?EventDispatcherInterface $eventDispatcher = null, ?LoggerInterface $logger = null)
     {
         parent::__construct($httpClient, $eventDispatcher, $logger);

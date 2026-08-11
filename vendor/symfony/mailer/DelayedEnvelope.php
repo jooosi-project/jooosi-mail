@@ -23,8 +23,10 @@ final class DelayedEnvelope extends Envelope
 {
     private bool $senderSet = \false;
     private bool $recipientsSet = \false;
-    public function __construct(private Message $message)
+    private Message $message;
+    public function __construct(Message $message)
     {
+        $this->message = $message;
     }
     public function setSender(Address $sender): void
     {

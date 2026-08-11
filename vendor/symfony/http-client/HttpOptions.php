@@ -62,14 +62,6 @@ class HttpOptions
     /**
      * @return $this
      */
-    public function setHeader(string $key, string $value): static
-    {
-        $this->options['headers'][$key] = $value;
-        return $this;
-    }
-    /**
-     * @return $this
-     */
     public function setHeaders(iterable $headers): static
     {
         $this->options['headers'] = $headers;
@@ -189,14 +181,6 @@ class HttpOptions
     public function setMaxDuration(float $maxDuration): static
     {
         $this->options['max_duration'] = $maxDuration;
-        return $this;
-    }
-    /**
-     * @return $this
-     */
-    public function setMaxConnectDuration(float $maxConnectDuration): static
-    {
-        $this->options['max_connect_duration'] = $maxConnectDuration;
         return $this;
     }
     /**

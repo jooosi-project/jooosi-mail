@@ -28,16 +28,13 @@ use JooosiMailDeps\AsyncAws\Ses\ValueObject\MessageTag;
 class SesClient extends AbstractApi
 {
     /**
-     * Removes an email address from the suppression list for your account or for a specific tenant. To target a tenant's
-     * suppression list, specify the `TenantName` parameter. If you omit `TenantName`, the address is removed from the
-     * account-level suppression list.
+     * Removes an email address from the suppression list for your account.
      *
      * @see https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_DeleteSuppressedDestination.html
      * @see https://docs.aws.amazon.com/aws-sdk-php/v3/api/api-email-2019-09-27.html#deletesuppresseddestination
      *
      * @param array{
      *   EmailAddress: string,
-     *   TenantName?: string|null,
      *   '@region'?: string|null,
      * }|DeleteSuppressedDestinationRequest $input
      *
@@ -52,16 +49,13 @@ class SesClient extends AbstractApi
         return new DeleteSuppressedDestinationResponse($response);
     }
     /**
-     * Retrieves information about a specific email address that's on the suppression list for your account or for a
-     * specific tenant. To target a tenant's suppression list, specify the `TenantName` parameter. If you omit `TenantName`,
-     * the operation targets the account-level suppression list.
+     * Retrieves information about a specific email address that's on the suppression list for your account.
      *
      * @see https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_GetSuppressedDestination.html
      * @see https://docs.aws.amazon.com/aws-sdk-php/v3/api/api-email-2019-09-27.html#getsuppresseddestination
      *
      * @param array{
      *   EmailAddress: string,
-     *   TenantName?: string|null,
      *   '@region'?: string|null,
      * }|GetSuppressedDestinationRequest $input
      *
@@ -90,18 +84,18 @@ class SesClient extends AbstractApi
      * @see https://docs.aws.amazon.com/aws-sdk-php/v3/api/api-email-2019-09-27.html#sendemail
      *
      * @param array{
-     *   FromEmailAddress?: string|null,
-     *   FromEmailAddressIdentityArn?: string|null,
-     *   Destination?: Destination|array|null,
-     *   ReplyToAddresses?: string[]|null,
-     *   FeedbackForwardingEmailAddress?: string|null,
-     *   FeedbackForwardingEmailAddressIdentityArn?: string|null,
+     *   FromEmailAddress?: null|string,
+     *   FromEmailAddressIdentityArn?: null|string,
+     *   Destination?: null|Destination|array,
+     *   ReplyToAddresses?: null|string[],
+     *   FeedbackForwardingEmailAddress?: null|string,
+     *   FeedbackForwardingEmailAddressIdentityArn?: null|string,
      *   Content: EmailContent|array,
-     *   EmailTags?: array<MessageTag|array>|null,
-     *   ConfigurationSetName?: string|null,
-     *   EndpointId?: string|null,
-     *   TenantName?: string|null,
-     *   ListManagementOptions?: ListManagementOptions|array|null,
+     *   EmailTags?: null|array<MessageTag|array>,
+     *   ConfigurationSetName?: null|string,
+     *   EndpointId?: null|string,
+     *   TenantName?: null|string,
+     *   ListManagementOptions?: null|ListManagementOptions|array,
      *   '@region'?: string|null,
      * }|SendEmailRequest $input
      *
@@ -130,8 +124,6 @@ class SesClient extends AbstractApi
             $region = Configuration::DEFAULT_REGION;
         }
         switch ($region) {
-            case 'eusc-de-east-1':
-                return ['endpoint' => 'https://email.eusc-de-east-1.amazonaws.eu', 'signRegion' => 'eusc-de-east-1', 'signService' => 'ses', 'signVersions' => ['v4']];
             case 'fips-ca-central-1':
                 return ['endpoint' => 'https://email-fips.ca-central-1.amazonaws.com', 'signRegion' => 'ca-central-1', 'signService' => 'ses', 'signVersions' => ['v4']];
             case 'fips-us-east-1':

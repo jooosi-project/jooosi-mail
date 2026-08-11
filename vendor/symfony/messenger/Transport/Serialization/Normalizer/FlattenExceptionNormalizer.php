@@ -23,9 +23,10 @@ use JooosiMailDeps\Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 final class FlattenExceptionNormalizer implements DenormalizerInterface, NormalizerInterface
 {
     use NormalizerAwareTrait;
-    public function normalize(mixed $data, ?string $format = null, array $context = []): array
+    public function normalize(mixed $object, ?string $format = null, array $context = []): array
     {
-        return ['message' => $data->getMessage(), 'code' => $data->getCode(), 'headers' => $data->getHeaders(), 'class' => $data->getClass(), 'file' => $data->getFile(), 'line' => $data->getLine(), 'previous' => null === $data->getPrevious() ? null : $this->normalize($data->getPrevious(), $format, $context), 'status' => $data->getStatusCode(), 'status_text' => $data->getStatusText(), 'trace' => self::sanitizeTrace($data->getTrace()), 'trace_as_string' => $data->getTraceAsString()];
+        $normalized = ['message' => $object->getMessage(), 'code' => $object->getCode(), 'headers' => $object->getHeaders(), 'class' => $object->getClass(), 'file' => $object->getFile(), 'line' => $object->getLine(), 'previous' => null === $object->getPrevious() ? null : $this->normalize($object->getPrevious(), $format, $context), 'status' => $object->getStatusCode(), 'status_text' => $object->getStatusText(), 'trace' => self::sanitizeTrace($object->getTrace()), 'trace_as_string' => $object->getTraceAsString()];
+        return $normalized;
     }
     public function getSupportedTypes(?string $format): array
     {

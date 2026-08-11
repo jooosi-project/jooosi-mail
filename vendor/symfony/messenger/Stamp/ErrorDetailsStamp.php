@@ -18,8 +18,16 @@ use JooosiMailDeps\Symfony\Component\Messenger\Exception\RecoverableExceptionInt
  */
 final class ErrorDetailsStamp implements StampInterface
 {
-    public function __construct(private string $exceptionClass, private int|string $exceptionCode, private string $exceptionMessage, private ?FlattenException $flattenException = null)
+    private string $exceptionClass;
+    private int|string $exceptionCode;
+    private string $exceptionMessage;
+    private ?FlattenException $flattenException;
+    public function __construct(string $exceptionClass, int|string $exceptionCode, string $exceptionMessage, ?FlattenException $flattenException = null)
     {
+        $this->exceptionClass = $exceptionClass;
+        $this->exceptionCode = $exceptionCode;
+        $this->exceptionMessage = $exceptionMessage;
+        $this->flattenException = $flattenException;
     }
     public static function create(\Throwable $throwable): self
     {
@@ -30,6 +38,9 @@ final class ErrorDetailsStamp implements StampInterface
         if (!$throwable instanceof RecoverableExceptionInterface && class_exists(FlattenException::class)) {
             $flattenException = FlattenException::createFromThrowable($throwable);
             $flattenException->setTrace([], $throwable->getFile(), $throwable->getLine());
+            foreach ($flattenException->getAllPrevious() as $previous) {
+                $previous->setTrace([], $previous->getFile(), $previous->getLine());
+            }
         }
         return new self($throwable::class, $throwable->getCode(), $throwable->getMessage(), $flattenException);
     }

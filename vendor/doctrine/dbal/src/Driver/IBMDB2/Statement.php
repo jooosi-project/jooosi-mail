@@ -90,8 +90,7 @@ final class Statement implements StatementInterface
         foreach ($this->lobs as $param => $value) {
             if (is_resource($value)) {
                 $handle = $handles[] = $this->createTemporaryFile();
-                $path = stream_get_meta_data($handle)['uri'] ?? null;
-                assert($path !== null);
+                $path = stream_get_meta_data($handle)['uri'];
                 $this->copyStreamToStream($value, $handle);
                 $this->bind($param, $path, DB2_PARAM_FILE, DB2_BINARY);
             } else {

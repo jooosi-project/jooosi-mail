@@ -24,9 +24,9 @@ use WP_CLI;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ContainerCommand
+final class ContainerCommand
 {
-    public function __construct(private ContainerCache $containerCache)
+    public function __construct(private readonly ContainerCache $containerCache)
     {
     }
     /**

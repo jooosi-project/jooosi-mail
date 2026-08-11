@@ -15,9 +15,9 @@ use ReflectionMethod;
  *
  * @since 0.1.0
  */
-final readonly class RestRouteRegistrar
+final class RestRouteRegistrar
 {
-    public function __construct(private ContainerInterface $container, private DiscoveryManifest $manifest)
+    public function __construct(private readonly ContainerInterface $container, private readonly DiscoveryManifest $manifest)
     {
     }
     /**
@@ -40,7 +40,8 @@ final readonly class RestRouteRegistrar
     {
         foreach ($this->manifest->controllers as $className) {
             $reflectionClass = new ReflectionClass($className);
-            $controller = $reflectionClass->getAttributes(Controller::class)[array_key_first($reflectionClass->getAttributes(Controller::class))]?->newInstance();
+            $attributes = $reflectionClass->getAttributes(Controller::class);
+            $controller = $attributes === [] ? null : $attributes[0]->newInstance();
             if (!$controller instanceof Controller) {
                 continue;
             }

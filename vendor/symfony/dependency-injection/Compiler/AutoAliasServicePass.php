@@ -18,7 +18,10 @@ use JooosiMailDeps\Symfony\Component\DependencyInjection\Exception\InvalidArgume
  */
 class AutoAliasServicePass implements CompilerPassInterface
 {
-    public function process(ContainerBuilder $container): void
+    /**
+     * @return void
+     */
+    public function process(ContainerBuilder $container)
     {
         foreach ($container->findTaggedServiceIds('auto_alias') as $serviceId => $tags) {
             foreach ($tags as $tag) {

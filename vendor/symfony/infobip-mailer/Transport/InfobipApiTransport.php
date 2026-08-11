@@ -30,15 +30,11 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\ResponseInterface;
 final class InfobipApiTransport extends AbstractApiTransport
 {
     private const API_VERSION = '3';
-    private const HEADER_TO_MESSAGE = ['X-Infobip-IntermediateReport' => 'intermediateReport', 'X-Infobip-NotifyUrl' => 'notifyUrl', 'X-Infobip-NotifyContentType' => 'notifyContentType', 'X-Infobip-MessageId' => 'messageId', 'X-Infobip-Track' => 'track', 'X-Infobip-TrackingUrl' => 'trackingUrl', 'X-Infobip-TrackClicks' => 'trackClicks', 'X-Infobip-TrackOpens' => 'trackOpens', 'X-Infobip-IpPoolId' => 'ipPoolId'];
-    public function __construct(
-        #[\SensitiveParameter]
-        private string $key,
-        ?HttpClientInterface $client = null,
-        ?EventDispatcherInterface $dispatcher = null,
-        ?LoggerInterface $logger = null
-    )
+    private const HEADER_TO_MESSAGE = ['X-Infobip-IntermediateReport' => 'intermediateReport', 'X-Infobip-NotifyUrl' => 'notifyUrl', 'X-Infobip-NotifyContentType' => 'notifyContentType', 'X-Infobip-MessageId' => 'messageId', 'X-Infobip-Track' => 'track'];
+    private string $key;
+    public function __construct(string $key, ?HttpClientInterface $client = null, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
     {
+        $this->key = $key;
         parent::__construct($client, $dispatcher, $logger);
     }
     public function __toString(): string

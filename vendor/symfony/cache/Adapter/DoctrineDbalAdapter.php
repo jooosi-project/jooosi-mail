@@ -13,19 +13,19 @@ namespace JooosiMailDeps\Symfony\Component\Cache\Adapter;
 use JooosiMailDeps\Doctrine\DBAL\ArrayParameterType;
 use JooosiMailDeps\Doctrine\DBAL\Configuration;
 use JooosiMailDeps\Doctrine\DBAL\Connection;
+use JooosiMailDeps\Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use JooosiMailDeps\Doctrine\DBAL\DriverManager;
 use JooosiMailDeps\Doctrine\DBAL\Exception as DBALException;
 use JooosiMailDeps\Doctrine\DBAL\Exception\TableNotFoundException;
 use JooosiMailDeps\Doctrine\DBAL\ParameterType;
-use JooosiMailDeps\Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use JooosiMailDeps\Doctrine\DBAL\Platforms\OraclePlatform;
-use JooosiMailDeps\Doctrine\DBAL\Platforms\PostgreSQLPlatform;
-use JooosiMailDeps\Doctrine\DBAL\Platforms\SQLServerPlatform;
+use JooosiMailDeps\Doctrine\DBAL\Schema\Column;
 use JooosiMailDeps\Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Name\Identifier;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use JooosiMailDeps\Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Schema;
+use JooosiMailDeps\Doctrine\DBAL\Schema\Table;
+use JooosiMailDeps\Doctrine\DBAL\ServerVersionProvider;
 use JooosiMailDeps\Doctrine\DBAL\Tools\DsnParser;
 use JooosiMailDeps\Symfony\Component\Cache\Exception\InvalidArgumentException;
 use JooosiMailDeps\Symfony\Component\Cache\Marshaller\DefaultMarshaller;
@@ -38,11 +38,13 @@ class DoctrineDbalAdapter extends AbstractAdapter implements PruneableInterface
     private MarshallerInterface $marshaller;
     private Connection $conn;
     private string $platformName;
+    private string $serverVersion;
     private string $table = 'cache_items';
     private string $idCol = 'item_id';
     private string $dataCol = 'item_data';
     private string $lifetimeCol = 'item_lifetime';
     private string $timeCol = 'item_time';
+    private string $namespace;
     /**
      * You can either pass an existing database Doctrine DBAL Connection or
      * a DSN string that will be used to connect to the database.
@@ -59,7 +61,7 @@ class DoctrineDbalAdapter extends AbstractAdapter implements PruneableInterface
      *
      * @throws InvalidArgumentException When namespace contains invalid characters
      */
-    public function __construct(Connection|string $connOrDsn, private string $namespace = '', int $defaultLifetime = 0, array $options = [], ?MarshallerInterface $marshaller = null)
+    public function __construct(Connection|string $connOrDsn, string $namespace = '', int $defaultLifetime = 0, array $options = [], ?MarshallerInterface $marshaller = null)
     {
         if (isset($namespace[0]) && preg_match('#[^-+.A-Za-z0-9]#', $namespace, $match)) {
             throw new InvalidArgumentException(\sprintf('Namespace contains "%s" but only characters in [-+.A-Za-z0-9] are allowed.', $match[0]));
@@ -70,9 +72,15 @@ class DoctrineDbalAdapter extends AbstractAdapter implements PruneableInterface
             if (!class_exists(DriverManager::class)) {
                 throw new InvalidArgumentException('Failed to parse DSN. Try running "composer require doctrine/dbal".');
             }
-            $params = (new DsnParser(['db2' => 'ibm_db2', 'mssql' => 'pdo_sqlsrv', 'mysql' => 'pdo_mysql', 'mysql2' => 'pdo_mysql', 'postgres' => 'pdo_pgsql', 'postgresql' => 'pdo_pgsql', 'pgsql' => 'pdo_pgsql', 'sqlite' => 'pdo_sqlite', 'sqlite3' => 'pdo_sqlite']))->parse($connOrDsn);
+            if (class_exists(DsnParser::class)) {
+                $params = (new DsnParser(['db2' => 'ibm_db2', 'mssql' => 'pdo_sqlsrv', 'mysql' => 'pdo_mysql', 'mysql2' => 'pdo_mysql', 'postgres' => 'pdo_pgsql', 'postgresql' => 'pdo_pgsql', 'pgsql' => 'pdo_pgsql', 'sqlite' => 'pdo_sqlite', 'sqlite3' => 'pdo_sqlite']))->parse($connOrDsn);
+            } else {
+                $params = ['url' => $connOrDsn];
+            }
             $config = new Configuration();
-            $config->setSchemaManagerFactory(new DefaultSchemaManagerFactory());
+            if (class_exists(DefaultSchemaManagerFactory::class)) {
+                $config->setSchemaManagerFactory(new DefaultSchemaManagerFactory());
+            }
             $this->conn = DriverManager::getConnection($params, $config);
         }
         $this->maxIdLength = self::MAX_KEY_LENGTH;
@@ -81,6 +89,7 @@ class DoctrineDbalAdapter extends AbstractAdapter implements PruneableInterface
         $this->dataCol = $options['db_data_col'] ?? $this->dataCol;
         $this->lifetimeCol = $options['db_lifetime_col'] ?? $this->lifetimeCol;
         $this->timeCol = $options['db_time_col'] ?? $this->timeCol;
+        $this->namespace = $namespace;
         $this->marshaller = $marshaller ?? new DefaultMarshaller();
         parent::__construct($namespace, $defaultLifetime);
     }
@@ -94,21 +103,26 @@ class DoctrineDbalAdapter extends AbstractAdapter implements PruneableInterface
      */
     public function createTable(): void
     {
-        $schema = new Schema();
-        $this->addTableToSchema($schema);
+        $schema = $this->addTableToSchema(new Schema());
         foreach ($schema->toSql($this->conn->getDatabasePlatform()) as $sql) {
             $this->conn->executeStatement($sql);
         }
     }
-    public function configureSchema(Schema $schema, Connection $forConnection, \Closure $isSameDatabase): void
+    /**
+     * @param \Closure $isSameDatabase
+     *
+     * @return Schema The (possibly new) schema with the table added
+     */
+    public function configureSchema(Schema $schema, Connection $forConnection)
     {
         if ($schema->hasTable($this->table)) {
-            return;
+            return $schema;
         }
+        $isSameDatabase = 2 < \func_num_args() ? func_get_arg(2) : static fn() => \false;
         if ($forConnection !== $this->conn && !$isSameDatabase($this->conn->executeStatement(...))) {
-            return;
+            return $schema;
         }
-        $this->addTableToSchema($schema);
+        return $this->addTableToSchema($schema);
     }
     public function prune(): bool
     {
@@ -131,7 +145,7 @@ class DoctrineDbalAdapter extends AbstractAdapter implements PruneableInterface
         $now = time();
         $expired = [];
         $sql = "SELECT {$this->idCol}, CASE WHEN {$this->lifetimeCol} IS NULL OR {$this->lifetimeCol} + {$this->timeCol} > ? THEN {$this->dataCol} ELSE NULL END FROM {$this->table} WHERE {$this->idCol} IN (?)";
-        $result = $this->conn->executeQuery($sql, [$now, $ids], [ParameterType::INTEGER, ArrayParameterType::STRING])->iterateNumeric();
+        $result = $this->conn->executeQuery($sql, [$now, $ids], [ParameterType::INTEGER, class_exists(ArrayParameterType::class) ? ArrayParameterType::STRING : Connection::PARAM_STR_ARRAY])->iterateNumeric();
         foreach ($result as $row) {
             if (null === $row[1]) {
                 $expired[] = $row[0];
@@ -141,7 +155,7 @@ class DoctrineDbalAdapter extends AbstractAdapter implements PruneableInterface
         }
         if ($expired) {
             $sql = "DELETE FROM {$this->table} WHERE {$this->lifetimeCol} + {$this->timeCol} <= ? AND {$this->idCol} IN (?)";
-            $this->conn->executeStatement($sql, [$now, $expired], [ParameterType::INTEGER, ArrayParameterType::STRING]);
+            $this->conn->executeStatement($sql, [$now, $expired], [ParameterType::INTEGER, class_exists(ArrayParameterType::class) ? ArrayParameterType::STRING : Connection::PARAM_STR_ARRAY]);
         }
     }
     protected function doHave(string $id): bool
@@ -168,7 +182,7 @@ class DoctrineDbalAdapter extends AbstractAdapter implements PruneableInterface
     {
         $sql = "DELETE FROM {$this->table} WHERE {$this->idCol} IN (?)";
         try {
-            $this->conn->executeStatement($sql, [array_values($ids)], [ArrayParameterType::STRING]);
+            $this->conn->executeStatement($sql, [array_values($ids)], [class_exists(ArrayParameterType::class) ? ArrayParameterType::STRING : Connection::PARAM_STR_ARRAY]);
         } catch (TableNotFoundException) {
         }
         return \true;
@@ -196,23 +210,23 @@ class DoctrineDbalAdapter extends AbstractAdapter implements PruneableInterface
     {
         $platformName = $this->getPlatformName();
         $insertSql = "INSERT INTO {$this->table} ({$this->idCol}, {$this->dataCol}, {$this->lifetimeCol}, {$this->timeCol}) VALUES (?, ?, ?, ?)";
-        switch ($platformName) {
-            case 'mysql':
+        switch (\true) {
+            case 'mysql' === $platformName:
                 $sql = $insertSql . " ON DUPLICATE KEY UPDATE {$this->dataCol} = VALUES({$this->dataCol}), {$this->lifetimeCol} = VALUES({$this->lifetimeCol}), {$this->timeCol} = VALUES({$this->timeCol})";
                 break;
-            case 'oci':
+            case 'oci' === $platformName:
                 // DUAL is Oracle specific dummy table
                 $sql = "MERGE INTO {$this->table} USING DUAL ON ({$this->idCol} = ?) " . "WHEN NOT MATCHED THEN INSERT ({$this->idCol}, {$this->dataCol}, {$this->lifetimeCol}, {$this->timeCol}) VALUES (?, ?, ?, ?) " . "WHEN MATCHED THEN UPDATE SET {$this->dataCol} = ?, {$this->lifetimeCol} = ?, {$this->timeCol} = ?";
                 break;
-            case 'sqlsrv':
+            case 'sqlsrv' === $platformName && version_compare($this->getServerVersion(), '10', '>='):
                 // MERGE is only available since SQL Server 2008 and must be terminated by semicolon
                 // It also requires HOLDLOCK according to http://weblogs.sqlteam.com/dang/archive/2009/01/31/UPSERT-Race-Condition-With-MERGE.aspx
                 $sql = "MERGE INTO {$this->table} WITH (HOLDLOCK) USING (SELECT 1 AS dummy) AS src ON ({$this->idCol} = ?) " . "WHEN NOT MATCHED THEN INSERT ({$this->idCol}, {$this->dataCol}, {$this->lifetimeCol}, {$this->timeCol}) VALUES (?, ?, ?, ?) " . "WHEN MATCHED THEN UPDATE SET {$this->dataCol} = ?, {$this->lifetimeCol} = ?, {$this->timeCol} = ?;";
                 break;
-            case 'sqlite':
+            case 'sqlite' === $platformName:
                 $sql = 'INSERT OR REPLACE' . substr($insertSql, 6);
                 break;
-            case 'pgsql':
+            case 'pgsql' === $platformName && version_compare($this->getServerVersion(), '9.5', '>='):
                 $sql = $insertSql . " ON CONFLICT ({$this->idCol}) DO UPDATE SET ({$this->dataCol}, {$this->lifetimeCol}, {$this->timeCol}) = (EXCLUDED.{$this->dataCol}, EXCLUDED.{$this->lifetimeCol}, EXCLUDED.{$this->timeCol})";
                 break;
             default:
@@ -284,15 +298,15 @@ class DoctrineDbalAdapter extends AbstractAdapter implements PruneableInterface
     /**
      * @internal
      */
-    protected function getId(mixed $key, ?string $namespace = null): string
+    protected function getId(mixed $key): string
     {
         if ('pgsql' !== $this->platformName ??= $this->getPlatformName()) {
-            return parent::getId($key, $namespace);
+            return parent::getId($key);
         }
         if (str_contains($key, "\x00") || str_contains($key, '%') || !preg_match('//u', $key)) {
             $key = rawurlencode($key);
         }
-        return parent::getId($key, $namespace);
+        return parent::getId($key);
     }
     private function getPlatformName(): string
     {
@@ -300,25 +314,46 @@ class DoctrineDbalAdapter extends AbstractAdapter implements PruneableInterface
             return $this->platformName;
         }
         $platform = $this->conn->getDatabasePlatform();
-        if (interface_exists(DBALException::class)) {
-            // DBAL 4+
-            $sqlitePlatformClass = 'JooosiMailDeps\Doctrine\DBAL\Platforms\SQLitePlatform';
-        } else {
-            $sqlitePlatformClass = 'JooosiMailDeps\Doctrine\DBAL\Platforms\SqlitePlatform';
-        }
         return $this->platformName = match (\true) {
-            $platform instanceof AbstractMySQLPlatform => 'mysql',
-            $platform instanceof $sqlitePlatformClass => 'sqlite',
-            $platform instanceof PostgreSQLPlatform => 'pgsql',
-            $platform instanceof OraclePlatform => 'oci',
-            $platform instanceof SQLServerPlatform => 'sqlsrv',
+            $platform instanceof \JooosiMailDeps\Doctrine\DBAL\Platforms\MySQLPlatform, $platform instanceof \JooosiMailDeps\Doctrine\DBAL\Platforms\MySQL57Platform => 'mysql',
+            $platform instanceof \JooosiMailDeps\Doctrine\DBAL\Platforms\SqlitePlatform => 'sqlite',
+            $platform instanceof \JooosiMailDeps\Doctrine\DBAL\Platforms\PostgreSQLPlatform, $platform instanceof \JooosiMailDeps\Doctrine\DBAL\Platforms\PostgreSQL94Platform => 'pgsql',
+            $platform instanceof \JooosiMailDeps\Doctrine\DBAL\Platforms\OraclePlatform => 'oci',
+            $platform instanceof \JooosiMailDeps\Doctrine\DBAL\Platforms\SQLServerPlatform, $platform instanceof \JooosiMailDeps\Doctrine\DBAL\Platforms\SQLServer2012Platform => 'sqlsrv',
             default => $platform::class,
         };
     }
-    private function addTableToSchema(Schema $schema): void
+    private function getServerVersion(): string
+    {
+        if (isset($this->serverVersion)) {
+            return $this->serverVersion;
+        }
+        if ($this->conn instanceof ServerVersionProvider || $this->conn instanceof ServerInfoAwareConnection) {
+            return $this->serverVersion = $this->conn->getServerVersion();
+        }
+        // The condition should be removed once support for DBAL <3.3 is dropped
+        $conn = method_exists($this->conn, 'getNativeConnection') ? $this->conn->getNativeConnection() : $this->conn->getWrappedConnection();
+        return $this->serverVersion = $conn->getAttribute(\PDO::ATTR_SERVER_VERSION);
+    }
+    private function addTableToSchema(Schema $schema): Schema
+    {
+        if (method_exists($schema, 'edit')) {
+            return $schema->edit()->addTable($this->buildSchemaTable())->create();
+        }
+        $this->configureSchemaTable($schema->createTable($this->table));
+        return $schema;
+    }
+    private function buildSchemaTable(): Table
     {
         $types = ['mysql' => 'binary', 'sqlite' => 'text'];
-        $table = $schema->createTable($this->table);
+        return Table::editor()->setUnquotedName($this->table)->addColumn(Column::editor()->setUnquotedName($this->idCol)->setTypeName($types[$this->getPlatformName()] ?? 'string')->setLength(255)->create())->addColumn(Column::editor()->setUnquotedName($this->dataCol)->setTypeName('blob')->setLength(16777215)->create())->addColumn(Column::editor()->setUnquotedName($this->lifetimeCol)->setTypeName('integer')->setUnsigned(\true)->setNotNull(\false)->create())->addColumn(Column::editor()->setUnquotedName($this->timeCol)->setTypeName('integer')->setUnsigned(\true)->create())->addPrimaryKeyConstraint(new PrimaryKeyConstraint(null, [new UnqualifiedName(Identifier::unquoted($this->idCol))], \true))->create();
+    }
+    /**
+     * To be removed when doctrine/dbal minimum is bumped to ^4.5.
+     */
+    private function configureSchemaTable(Table $table): void
+    {
+        $types = ['mysql' => 'binary', 'sqlite' => 'text'];
         $table->addColumn($this->idCol, $types[$this->getPlatformName()] ?? 'string', ['length' => 255]);
         $table->addColumn($this->dataCol, 'blob', ['length' => 16777215]);
         $table->addColumn($this->lifetimeCol, 'integer', ['unsigned' => \true, 'notnull' => \false]);

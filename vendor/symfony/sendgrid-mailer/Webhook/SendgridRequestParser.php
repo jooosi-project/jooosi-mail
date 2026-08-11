@@ -33,10 +33,7 @@ final class SendgridRequestParser extends AbstractRequestParser
     {
         return new ChainRequestMatcher([new MethodRequestMatcher('POST'), new IsJsonRequestMatcher()]);
     }
-    /**
-     * @return AbstractMailerEvent[]
-     */
-    protected function doParse(Request $request, string $secret): array
+    protected function doParse(Request $request, string $secret): ?AbstractMailerEvent
     {
         $content = $request->toArray();
         if (!isset($content[0]['email']) || !isset($content[0]['timestamp']) || !isset($content[0]['event']) || !isset($content[0]['sg_event_id'])) {
@@ -49,7 +46,7 @@ final class SendgridRequestParser extends AbstractRequestParser
             $this->validateSignature($request->headers->get('X-Twilio-Email-Event-Webhook-Signature'), $request->headers->get('X-Twilio-Email-Event-Webhook-Timestamp'), $request->getContent(), $secret);
         }
         try {
-            return array_map($this->converter->convert(...), $content);
+            return $this->converter->convert($content[0]);
         } catch (ParseException $e) {
             throw new RejectWebhookException(406, $e->getMessage(), $e);
         }

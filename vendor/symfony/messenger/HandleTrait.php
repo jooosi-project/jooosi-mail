@@ -12,7 +12,6 @@ namespace JooosiMailDeps\Symfony\Component\Messenger;
 
 use JooosiMailDeps\Symfony\Component\Messenger\Exception\LogicException;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\HandledStamp;
-use JooosiMailDeps\Symfony\Component\Messenger\Stamp\StampInterface;
 /**
  * Leverages a message bus to expect a single, synchronous message handling and return its result.
  *
@@ -27,15 +26,14 @@ trait HandleTrait
      * This behavior is useful for both synchronous command & query buses,
      * the last one usually returning the handler result.
      *
-     * @param object|Envelope  $message The message or the message pre-wrapped in an envelope
-     * @param StampInterface[] $stamps  Stamps to be set on the Envelope which are used to control middleware behavior
+     * @param object|Envelope $message The message or the message pre-wrapped in an envelope
      */
-    private function handle(object $message, array $stamps = []): mixed
+    private function handle(object $message): mixed
     {
         if (!isset($this->messageBus)) {
             throw new LogicException(\sprintf('You must provide a "%s" instance in the "%s::$messageBus" property, but that property has not been initialized yet.', MessageBusInterface::class, static::class));
         }
-        $envelope = $this->messageBus->dispatch($message, $stamps);
+        $envelope = $this->messageBus->dispatch($message);
         /** @var HandledStamp[] $handledStamps */
         $handledStamps = $envelope->all(HandledStamp::class);
         if (!$handledStamps) {

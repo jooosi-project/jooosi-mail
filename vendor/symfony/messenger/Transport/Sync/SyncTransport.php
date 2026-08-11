@@ -23,12 +23,11 @@ use JooosiMailDeps\Symfony\Component\Messenger\Transport\TransportInterface;
  */
 class SyncTransport implements TransportInterface
 {
-    public function __construct(private MessageBusInterface $messageBus)
+    private MessageBusInterface $messageBus;
+    public function __construct(MessageBusInterface $messageBus)
     {
+        $this->messageBus = $messageBus;
     }
-    /**
-     * @param int $fetchSize
-     */
     public function get(): iterable
     {
         throw new InvalidArgumentException('You cannot receive messages from the Messenger SyncTransport.');

@@ -19,8 +19,6 @@ namespace JooosiMailDeps\Symfony\Component\VarExporter\Internal;
  */
 class LazyObjectRegistry
 {
-    public const PROPERTY_HAS_HOOKS = 1;
-    public const PROPERTY_NOT_BY_REF = 2;
     /**
      * @var array<class-string, \ReflectionClass>
      */
@@ -38,54 +36,10 @@ class LazyObjectRegistry
      */
     public static array $classAccessors = [];
     /**
-     * @var array<class-string, int>
+     * @var array<class-string, array{set: bool, isset: bool, unset: bool, clone: bool, serialize: bool, unserialize: bool, sleep: bool, wakeup: bool, destruct: bool, get: int}>
      */
-    public static array $parentGet = [];
-    public static array $propertyScopes = [];
-    public static function getPropertyScopes($class): array
-    {
-        $propertyScopes = [];
-        $r = new \ReflectionClass($class);
-        foreach ($r->getProperties() as $property) {
-            $flags = $property->getModifiers();
-            if (\ReflectionProperty::IS_STATIC & $flags) {
-                continue;
-            }
-            $name = $property->name;
-            $access = $flags << 2 | ($flags & \ReflectionProperty::IS_READONLY ? self::PROPERTY_NOT_BY_REF : 0);
-            if (!$property->isAbstract() && $h = $property->getHooks()) {
-                $access |= self::PROPERTY_HAS_HOOKS | (isset($h['get']) && !$h['get']->returnsReference() ? self::PROPERTY_NOT_BY_REF : 0);
-            }
-            if (\ReflectionProperty::IS_PRIVATE & $flags) {
-                $propertyScopes["\x00{$class}\x00{$name}"] = $propertyScopes[$name] = [$class, $name, null, $access, $property];
-                continue;
-            }
-            $propertyScopes[$name] = [$class, $name, null, $access, $property];
-            if ($flags & \ReflectionProperty::IS_PRIVATE_SET) {
-                $propertyScopes[$name][2] = $property->class;
-            }
-            if (\ReflectionProperty::IS_PROTECTED & $flags) {
-                $propertyScopes["\x00*\x00{$name}"] = $propertyScopes[$name];
-            }
-        }
-        while ($r = $r->getParentClass()) {
-            $class = $r->name;
-            foreach ($r->getProperties(\ReflectionProperty::IS_PRIVATE) as $property) {
-                $flags = $property->getModifiers();
-                if (\ReflectionProperty::IS_STATIC & $flags) {
-                    continue;
-                }
-                $name = $property->name;
-                $access = $flags << 2 | ($flags & \ReflectionProperty::IS_READONLY ? self::PROPERTY_NOT_BY_REF : 0);
-                if ($h = $property->getHooks()) {
-                    $access |= self::PROPERTY_HAS_HOOKS | (isset($h['get']) && !$h['get']->returnsReference() ? self::PROPERTY_NOT_BY_REF : 0);
-                }
-                $propertyScopes["\x00{$class}\x00{$name}"] = [$class, $name, null, $access, $property];
-                $propertyScopes[$name] ??= $propertyScopes["\x00{$class}\x00{$name}"];
-            }
-        }
-        return $propertyScopes;
-    }
+    public static array $parentMethods = [];
+    public static ?\Closure $noInitializerState = null;
     public static function getClassResetters($class)
     {
         $classProperties = [];
@@ -93,14 +47,14 @@ class LazyObjectRegistry
         if ((self::$classReflectors[$class] ??= new \ReflectionClass($class))->isInternal()) {
             $propertyScopes = [];
         } else {
-            $propertyScopes = self::$propertyScopes[$class] ??= self::getPropertyScopes($class);
+            $propertyScopes = Hydrator::$propertyScopes[$class] ??= Hydrator::getPropertyScopes($class);
         }
         foreach ($propertyScopes as $key => [$scope, $name, $writeScope, $access]) {
             $propertyScopes[$k = "\x00{$scope}\x00{$name}"] ?? $propertyScopes[$k = "\x00*\x00{$name}"] ?? $k = $name;
             if ($k !== $key || "\x00{$class}\x00lazyObjectState" === $k) {
                 continue;
             }
-            if ($access & self::PROPERTY_HAS_HOOKS) {
+            if ($access & Hydrator::PROPERTY_HAS_HOOKS) {
                 $hookedProperties[$k] = \true;
             } else {
                 $classProperties[$writeScope ?? $scope][$name] = $key;
@@ -108,23 +62,81 @@ class LazyObjectRegistry
         }
         $resetters = [];
         foreach ($classProperties as $scope => $properties) {
-            $resetters[] = \Closure::bind(static function ($instance, $skippedProperties) use ($properties) {
+            $resetters[] = \Closure::bind(static function ($instance, $skippedProperties, $onlyProperties = null) use ($properties) {
                 foreach ($properties as $name => $key) {
-                    if (!\array_key_exists($key, $skippedProperties)) {
+                    if (!\array_key_exists($key, $skippedProperties) && (null === $onlyProperties || \array_key_exists($key, $onlyProperties))) {
                         unset($instance->{$name});
                     }
                 }
             }, null, $scope);
         }
+        $resetters[] = static function ($instance, $skippedProperties, $onlyProperties = null) use ($hookedProperties) {
+            foreach ((array) $instance as $name => $value) {
+                if ("\x00" !== ($name[0] ?? '') && !\array_key_exists($name, $skippedProperties) && (null === $onlyProperties || \array_key_exists($name, $onlyProperties)) && !isset($hookedProperties[$name])) {
+                    unset($instance->{$name});
+                }
+            }
+        };
         return $resetters;
     }
-    public static function getParentGet($class): int
+    public static function getClassAccessors($class)
+    {
+        return \Closure::bind(static fn() => ['get' => static function &($instance, $name, $notByRef) {
+            if (!$notByRef) {
+                return $instance->{$name};
+            }
+            $value = $instance->{$name};
+            return $value;
+        }, 'set' => static function ($instance, $name, $value) {
+            $instance->{$name} = $value;
+        }, 'isset' => static fn($instance, $name) => isset($instance->{$name}), 'unset' => static function ($instance, $name) {
+            unset($instance->{$name});
+        }], null, \Closure::class === $class ? null : $class)();
+    }
+    public static function getParentMethods($class)
     {
         $parent = get_parent_class($class);
-        if (!$parent || !method_exists($parent, '__get')) {
-            return 0;
+        $methods = [];
+        foreach (['set', 'isset', 'unset', 'clone', 'serialize', 'unserialize', 'sleep', 'wakeup', 'destruct', 'get'] as $method) {
+            if (!$parent || !method_exists($parent, '__' . $method)) {
+                $methods[$method] = \false;
+            } else {
+                $m = new \ReflectionMethod($parent, '__' . $method);
+                $methods[$method] = !$m->isAbstract() && !$m->isPrivate();
+            }
         }
-        $m = new \ReflectionMethod($parent, '__get');
-        return !$m->isAbstract() && !$m->isPrivate() ? $m->returnsReference() ? 2 : 1 : 0;
+        $methods['get'] = $methods['get'] ? $m->returnsReference() ? 2 : 1 : 0;
+        return $methods;
+    }
+    public static function getScopeForRead($propertyScopes, $class, $property)
+    {
+        if (!isset($propertyScopes[$k = "\x00{$class}\x00{$property}"]) && !isset($propertyScopes[$k = "\x00*\x00{$property}"])) {
+            return null;
+        }
+        $frame = debug_backtrace(\DEBUG_BACKTRACE_PROVIDE_OBJECT | \DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2];
+        if (\ReflectionProperty::class === $scope = $frame['class'] ?? \Closure::class) {
+            $scope = $frame['object']->class;
+        }
+        if ('*' === $k[1] && ($class === $scope || is_subclass_of($class, $scope) && !isset($propertyScopes["\x00{$scope}\x00{$property}"]))) {
+            return null;
+        }
+        return $scope;
+    }
+    public static function getScopeForWrite($propertyScopes, $class, $property, $flags)
+    {
+        if (!($flags & (\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED | \ReflectionProperty::IS_READONLY | (\PHP_VERSION_ID >= 80400 ? \ReflectionProperty::IS_PRIVATE_SET | \ReflectionProperty::IS_PROTECTED_SET : 0)))) {
+            return null;
+        }
+        $frame = debug_backtrace(\DEBUG_BACKTRACE_PROVIDE_OBJECT | \DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2];
+        if (\ReflectionProperty::class === $scope = $frame['class'] ?? \Closure::class) {
+            $scope = $frame['object']->class;
+        }
+        if ($flags & (\ReflectionProperty::IS_PRIVATE | (\PHP_VERSION_ID >= 80400 ? \ReflectionProperty::IS_PRIVATE_SET : \ReflectionProperty::IS_READONLY))) {
+            return $scope;
+        }
+        if ($flags & (\ReflectionProperty::IS_PROTECTED | (\PHP_VERSION_ID >= 80400 ? \ReflectionProperty::IS_PROTECTED_SET : 0)) && ($class === $scope || is_subclass_of($class, $scope) && !isset($propertyScopes["\x00{$scope}\x00{$property}"]))) {
+            return null;
+        }
+        return $scope;
     }
 }

@@ -11,9 +11,9 @@ namespace JooosiMail\Mail\Routing;
  *
  * @since 0.1.0
  */
-final readonly class DeliveryPlan
+final class DeliveryPlan
 {
-    public function __construct(public \JooosiMail\Mail\Routing\DeliveryMode $mode, public \JooosiMail\Mail\Routing\RoutingStrategy $strategy, public int $priority, public int $delaySeconds, public ?int $preferredConnectionId = null)
+    public function __construct(public readonly \JooosiMail\Mail\Routing\DeliveryMode $mode, public readonly \JooosiMail\Mail\Routing\RoutingStrategy $strategy, public readonly int $priority, public readonly int $delaySeconds, public readonly ?int $preferredConnectionId = null)
     {
     }
     /**

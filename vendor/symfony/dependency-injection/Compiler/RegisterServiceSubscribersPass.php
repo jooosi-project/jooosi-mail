@@ -11,6 +11,7 @@
 namespace JooosiMailDeps\Symfony\Component\DependencyInjection\Compiler;
 
 use JooosiMailDeps\Psr\Container\ContainerInterface as PsrContainerInterface;
+use JooosiMailDeps\Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\BoundArgument;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Attribute\Autowire;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\ContainerInterface;
@@ -18,8 +19,8 @@ use JooosiMailDeps\Symfony\Component\DependencyInjection\Definition;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Reference;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\TypedReference;
+use JooosiMailDeps\Symfony\Component\HttpFoundation\Session\SessionInterface;
 use JooosiMailDeps\Symfony\Contracts\Service\Attribute\SubscribedService;
-use JooosiMailDeps\Symfony\Contracts\Service\ServiceCollectionInterface;
 use JooosiMailDeps\Symfony\Contracts\Service\ServiceProviderInterface;
 use JooosiMailDeps\Symfony\Contracts\Service\ServiceSubscriberInterface;
 /**
@@ -65,6 +66,8 @@ class RegisterServiceSubscribersPass extends AbstractRecursivePass
             throw new InvalidArgumentException(\sprintf('Service "%s" must implement interface "%s".', $this->currentId, ServiceSubscriberInterface::class));
         }
         $class = $r->name;
+        // to remove when symfony/dependency-injection will stop being compatible with symfony/framework-bundle<6.0
+        $replaceDeprecatedSession = $this->container->has('.session.deprecated') && $r->isSubclassOf(AbstractController::class);
         $subscriberMap = [];
         foreach ($class::getSubscribedServices() as $key => $type) {
             $attributes = [];
@@ -93,6 +96,11 @@ class RegisterServiceSubscribersPass extends AbstractRecursivePass
                 if (!$autowire) {
                     throw new InvalidArgumentException(\sprintf('Service "%s" misses a "container.service_subscriber" tag with "key"/"id" attributes corresponding to entry "%s" as returned by "%s::getSubscribedServices()".', $this->currentId, $key, $class));
                 }
+                if ($replaceDeprecatedSession && SessionInterface::class === $type) {
+                    // This prevents triggering the deprecation when building the container
+                    // to remove when symfony/dependency-injection will stop being compatible with symfony/framework-bundle<6.0
+                    $type = '.session.deprecated';
+                }
                 $serviceMap[$key] = new Reference($type);
             }
             if ($name) {
@@ -115,7 +123,7 @@ class RegisterServiceSubscribersPass extends AbstractRecursivePass
         }
         $locatorRef = ServiceLocatorTagPass::register($this->container, $subscriberMap, $this->currentId);
         $value->addTag('container.service_subscriber.locator', ['id' => (string) $locatorRef]);
-        $value->setBindings([PsrContainerInterface::class => new BoundArgument($locatorRef, \false), ServiceProviderInterface::class => new BoundArgument($locatorRef, \false), ServiceCollectionInterface::class => new BoundArgument($locatorRef, \false)] + $value->getBindings());
+        $value->setBindings([PsrContainerInterface::class => new BoundArgument($locatorRef, \false), ServiceProviderInterface::class => new BoundArgument($locatorRef, \false)] + $value->getBindings());
         return parent::processValue($value);
     }
 }

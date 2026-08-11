@@ -20,9 +20,9 @@ use Throwable;
  * @since 0.1.0
  */
 #[Service]
-final readonly class DatabaseReceiver implements ReceiverInterface
+final class DatabaseReceiver implements ReceiverInterface
 {
-    public function __construct(private DbalConnection $connection, private TableNameResolver $tableNameResolver, private SerializerInterface $serializer)
+    public function __construct(private readonly DbalConnection $connection, private readonly TableNameResolver $tableNameResolver, private readonly SerializerInterface $serializer)
     {
     }
     /**

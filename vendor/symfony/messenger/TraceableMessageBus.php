@@ -10,21 +10,19 @@
  */
 namespace JooosiMailDeps\Symfony\Component\Messenger;
 
-use JooosiMailDeps\Symfony\Component\Messenger\Stamp\StampInterface;
 /**
  * @author Samuel Roze <samuel.roze@gmail.com>
  */
 class TraceableMessageBus implements MessageBusInterface
 {
+    private MessageBusInterface $decoratedBus;
     private array $dispatchedMessages = [];
-    public function __construct(private MessageBusInterface $decoratedBus, protected readonly ?\Closure $disabled = null)
+    public function __construct(MessageBusInterface $decoratedBus)
     {
+        $this->decoratedBus = $decoratedBus;
     }
     public function dispatch(object $message, array $stamps = []): Envelope
     {
-        if ($this->disabled?->__invoke()) {
-            return $this->decoratedBus->dispatch($message, $stamps);
-        }
         $envelope = Envelope::wrap($message, $stamps);
         $context = ['stamps' => array_merge([], ...array_values($envelope->all())), 'message' => $envelope->getMessage(), 'caller' => $this->getCaller(), 'callTime' => microtime(\true)];
         try {
@@ -36,27 +34,17 @@ class TraceableMessageBus implements MessageBusInterface
             $this->dispatchedMessages[] = $context + ['stamps_after_dispatch' => array_merge([], ...array_values($envelope->all()))];
         }
     }
-    /**
-     * @return list<array{
-     *     stamps: list<StampInterface>,
-     *     message: object,
-     *     caller: array{name: string, file: string|null, line: int|null},
-     *     callTime: float,
-     *     exception?: \Throwable,
-     *     stamps_after_dispatch: list<StampInterface>,
-     * }>
-     */
     public function getDispatchedMessages(): array
     {
         return $this->dispatchedMessages;
     }
-    public function reset(): void
+    /**
+     * @return void
+     */
+    public function reset()
     {
         $this->dispatchedMessages = [];
     }
-    /**
-     * @return array{name: string, file: string|null, line: int|null}
-     */
     private function getCaller(): array
     {
         $trace = debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS, 8);

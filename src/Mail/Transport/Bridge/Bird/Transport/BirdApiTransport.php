@@ -27,8 +27,14 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class BirdApiTransport extends AbstractApiTransport
 {
-    private const string US_HOST = 'email.us-west-1.api.bird.com';
-    private const string EU_HOST = 'email.eu-west-1.api.bird.com';
+    /**
+     * @var string
+     */
+    private const US_HOST = 'email.us-west-1.api.bird.com';
+    /**
+     * @var string
+     */
+    private const EU_HOST = 'email.eu-west-1.api.bird.com';
     /**
      * @since 0.1.0
      */

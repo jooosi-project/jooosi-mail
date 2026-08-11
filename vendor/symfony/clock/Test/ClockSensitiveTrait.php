@@ -13,8 +13,8 @@ namespace JooosiMailDeps\Symfony\Component\Clock\Test;
 use JooosiMailDeps\PHPUnit\Framework\Attributes\After;
 use JooosiMailDeps\PHPUnit\Framework\Attributes\Before;
 use JooosiMailDeps\PHPUnit\Framework\Attributes\BeforeClass;
+use JooosiMailDeps\Psr\Clock\ClockInterface;
 use JooosiMailDeps\Symfony\Component\Clock\Clock;
-use JooosiMailDeps\Symfony\Component\Clock\ClockInterface;
 use JooosiMailDeps\Symfony\Component\Clock\MockClock;
 use function JooosiMailDeps\Symfony\Component\Clock\now;
 /**

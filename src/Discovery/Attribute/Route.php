@@ -10,7 +10,7 @@ use Attribute;
  * @since 0.1.0
  */
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
-final readonly class Route
+final class Route
 {
     /**
      * @param list<string>|string $methods
@@ -18,7 +18,7 @@ final readonly class Route
      * @param array{0: class-string|object, 1: string}|string $permissionCallback Global function name,
      *                                                                        static callable, or controller/service method reference.
      */
-    public function __construct(public string $path, public array|string $methods = 'GET', public array|string $permissionCallback = '__return_false', public array $args = [])
+    public function __construct(public readonly string $path, public readonly array|string $methods = 'GET', public readonly array|string $permissionCallback = '__return_false', public readonly array $args = [])
     {
     }
 }

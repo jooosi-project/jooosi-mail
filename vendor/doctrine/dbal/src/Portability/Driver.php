@@ -6,9 +6,7 @@ namespace JooosiMailDeps\Doctrine\DBAL\Portability;
 use JooosiMailDeps\Doctrine\DBAL\ColumnCase;
 use JooosiMailDeps\Doctrine\DBAL\Driver as DriverInterface;
 use JooosiMailDeps\Doctrine\DBAL\Driver\Connection as ConnectionInterface;
-use JooosiMailDeps\Doctrine\DBAL\Driver\Exception;
 use JooosiMailDeps\Doctrine\DBAL\Driver\Middleware\AbstractDriverMiddleware;
-use JooosiMailDeps\Doctrine\DBAL\Platforms\Exception\PlatformException;
 use PDO;
 use SensitiveParameter;
 use const CASE_LOWER;
@@ -21,9 +19,6 @@ final class Driver extends AbstractDriverMiddleware
     }
     /**
      * {@inheritDoc}
-     *
-     * @throws PlatformException
-     * @throws Exception
      */
     public function connect(
         #[SensitiveParameter]

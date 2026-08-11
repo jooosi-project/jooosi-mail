@@ -3,7 +3,6 @@
 declare (strict_types=1);
 namespace JooosiMailDeps\Doctrine\DBAL\Driver\AbstractOracleDriver;
 
-use JooosiMailDeps\Doctrine\Deprecations\Deprecation;
 use function implode;
 use function is_array;
 use function sprintf;
@@ -44,12 +43,9 @@ final class EasyConnectString
             return new self($params['dbname'] ?? '');
         }
         $connectData = [];
-        if (isset($params['service'])) {
-            Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/7042', 'Using the "service" parameter to indicate that the value of the "dbname" parameter is the' . ' service name is deprecated. Use the "servicename" parameter instead.');
-        }
         if (isset($params['servicename']) || isset($params['dbname'])) {
             $serviceKey = 'SID';
-            if (isset($params['service']) || isset($params['servicename'])) {
+            if (isset($params['service'])) {
                 $serviceKey = 'SERVICE_NAME';
             }
             $serviceName = $params['servicename'] ?? $params['dbname'];

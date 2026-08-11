@@ -17,9 +17,9 @@ use JooosiMailDeps\Symfony\Component\Messenger\Transport\Sender\SendersLocatorIn
  * @since 0.1.0
  */
 #[Service]
-final readonly class MessageRouter implements SendersLocatorInterface
+final class MessageRouter implements SendersLocatorInterface
 {
-    public function __construct(private DatabaseTransport $databaseTransport)
+    public function __construct(private readonly DatabaseTransport $databaseTransport)
     {
     }
     /**

@@ -12,10 +12,13 @@ use JooosiMail\Mail\Routing\State\WeightedRoundRobinStateRepository;
  * @since 0.1.0
  */
 #[Service]
-final readonly class WeightedRoundRobinSelector
+final class WeightedRoundRobinSelector
 {
-    private const int PRIMARY_HEALTH_THRESHOLD = 25;
-    public function __construct(private WeightedRoundRobinStateRepository $weightedRoundRobinStateRepository)
+    /**
+     * @var int
+     */
+    private const PRIMARY_HEALTH_THRESHOLD = 25;
+    public function __construct(private readonly WeightedRoundRobinStateRepository $weightedRoundRobinStateRepository)
     {
     }
     /**

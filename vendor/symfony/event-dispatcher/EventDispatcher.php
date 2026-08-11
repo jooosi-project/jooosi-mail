@@ -103,12 +103,18 @@ class EventDispatcher implements EventDispatcherInterface
         }
         return \false;
     }
-    public function addListener(string $eventName, callable|array $listener, int $priority = 0): void
+    /**
+     * @return void
+     */
+    public function addListener(string $eventName, callable|array $listener, int $priority = 0)
     {
         $this->listeners[$eventName][$priority][] = $listener;
         unset($this->sorted[$eventName], $this->optimized[$eventName]);
     }
-    public function removeListener(string $eventName, callable|array $listener): void
+    /**
+     * @return void
+     */
+    public function removeListener(string $eventName, callable|array $listener)
     {
         if (empty($this->listeners[$eventName])) {
             return;
@@ -132,7 +138,10 @@ class EventDispatcher implements EventDispatcherInterface
             }
         }
     }
-    public function addSubscriber(EventSubscriberInterface $subscriber): void
+    /**
+     * @return void
+     */
+    public function addSubscriber(EventSubscriberInterface $subscriber)
     {
         foreach ($subscriber->getSubscribedEvents() as $eventName => $params) {
             if (\is_string($params)) {
@@ -146,7 +155,10 @@ class EventDispatcher implements EventDispatcherInterface
             }
         }
     }
-    public function removeSubscriber(EventSubscriberInterface $subscriber): void
+    /**
+     * @return void
+     */
+    public function removeSubscriber(EventSubscriberInterface $subscriber)
     {
         foreach ($subscriber->getSubscribedEvents() as $eventName => $params) {
             if (\is_array($params) && \is_array($params[0])) {
@@ -167,8 +179,10 @@ class EventDispatcher implements EventDispatcherInterface
      * @param callable[] $listeners The event listeners
      * @param string     $eventName The name of the event to dispatch
      * @param object     $event     The event object to pass to the event handlers/listeners
+     *
+     * @return void
      */
-    protected function callListeners(iterable $listeners, string $eventName, object $event): void
+    protected function callListeners(iterable $listeners, string $eventName, object $event)
     {
         $stoppable = $event instanceof StoppableEventInterface;
         foreach ($listeners as $listener) {

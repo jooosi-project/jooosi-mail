@@ -9,7 +9,6 @@ use JooosiMailDeps\Doctrine\DBAL\Driver\Result as ResultInterface;
 use JooosiMailDeps\Doctrine\DBAL\Exception\InvalidColumnIndex;
 use function db2_fetch_array;
 use function db2_fetch_assoc;
-use function db2_field_name;
 use function db2_free_result;
 use function db2_num_fields;
 use function db2_num_rows;

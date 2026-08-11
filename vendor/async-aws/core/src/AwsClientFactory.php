@@ -5,7 +5,6 @@ namespace JooosiMailDeps\AsyncAws\Core;
 
 use JooosiMailDeps\AsyncAws\AppSync\AppSyncClient;
 use JooosiMailDeps\AsyncAws\Athena\AthenaClient;
-use JooosiMailDeps\AsyncAws\BedrockAgent\BedrockAgentClient;
 use JooosiMailDeps\AsyncAws\BedrockRuntime\BedrockRuntimeClient;
 use JooosiMailDeps\AsyncAws\CloudFormation\CloudFormationClient;
 use JooosiMailDeps\AsyncAws\CloudFront\CloudFrontClient;
@@ -23,13 +22,11 @@ use JooosiMailDeps\AsyncAws\Core\Exception\InvalidArgument;
 use JooosiMailDeps\AsyncAws\Core\Exception\MissingDependency;
 use JooosiMailDeps\AsyncAws\Core\Sts\StsClient;
 use JooosiMailDeps\AsyncAws\DynamoDb\DynamoDbClient;
-use JooosiMailDeps\AsyncAws\Ec2\Ec2Client;
 use JooosiMailDeps\AsyncAws\Ecr\EcrClient;
 use JooosiMailDeps\AsyncAws\ElastiCache\ElastiCacheClient;
 use JooosiMailDeps\AsyncAws\EventBridge\EventBridgeClient;
 use JooosiMailDeps\AsyncAws\Firehose\FirehoseClient;
 use JooosiMailDeps\AsyncAws\Iam\IamClient;
-use JooosiMailDeps\AsyncAws\ImageBuilder\ImageBuilderClient;
 use JooosiMailDeps\AsyncAws\Iot\IotClient;
 use JooosiMailDeps\AsyncAws\IotData\IotDataClient;
 use JooosiMailDeps\AsyncAws\Kinesis\KinesisClient;
@@ -41,7 +38,6 @@ use JooosiMailDeps\AsyncAws\RdsDataService\RdsDataServiceClient;
 use JooosiMailDeps\AsyncAws\Rekognition\RekognitionClient;
 use JooosiMailDeps\AsyncAws\Route53\Route53Client;
 use JooosiMailDeps\AsyncAws\S3\S3Client;
-use JooosiMailDeps\AsyncAws\S3Vectors\S3VectorsClient;
 use JooosiMailDeps\AsyncAws\Scheduler\SchedulerClient;
 use JooosiMailDeps\AsyncAws\SecretsManager\SecretsManagerClient;
 use JooosiMailDeps\AsyncAws\Ses\SesClient;
@@ -108,16 +104,6 @@ class AwsClientFactory
         }
         if (!isset($this->serviceCache[__METHOD__])) {
             $this->serviceCache[__METHOD__] = new AppSyncClient($this->configuration, $this->credentialProvider, $this->httpClient, $this->logger);
-        }
-        return $this->serviceCache[__METHOD__];
-    }
-    public function bedrockAgent(): BedrockAgentClient
-    {
-        if (!class_exists(BedrockAgentClient::class)) {
-            throw MissingDependency::create('async-aws/bedrock-agent', 'BedrockAgent');
-        }
-        if (!isset($this->serviceCache[__METHOD__])) {
-            $this->serviceCache[__METHOD__] = new BedrockAgentClient($this->configuration, $this->credentialProvider, $this->httpClient, $this->logger);
         }
         return $this->serviceCache[__METHOD__];
     }
@@ -221,16 +207,6 @@ class AwsClientFactory
         }
         return $this->serviceCache[__METHOD__];
     }
-    public function ec2(): Ec2Client
-    {
-        if (!class_exists(Ec2Client::class)) {
-            throw MissingDependency::create('async-aws/ec2', 'EC2');
-        }
-        if (!isset($this->serviceCache[__METHOD__])) {
-            $this->serviceCache[__METHOD__] = new Ec2Client($this->configuration, $this->credentialProvider, $this->httpClient, $this->logger);
-        }
-        return $this->serviceCache[__METHOD__];
-    }
     public function ecr(): EcrClient
     {
         if (!class_exists(EcrClient::class)) {
@@ -278,16 +254,6 @@ class AwsClientFactory
         }
         if (!isset($this->serviceCache[__METHOD__])) {
             $this->serviceCache[__METHOD__] = new IamClient($this->configuration, $this->credentialProvider, $this->httpClient, $this->logger);
-        }
-        return $this->serviceCache[__METHOD__];
-    }
-    public function imageBuilder(): ImageBuilderClient
-    {
-        if (!class_exists(ImageBuilderClient::class)) {
-            throw MissingDependency::create('async-aws/image-builder', 'ImageBuilder');
-        }
-        if (!isset($this->serviceCache[__METHOD__])) {
-            $this->serviceCache[__METHOD__] = new ImageBuilderClient($this->configuration, $this->credentialProvider, $this->httpClient, $this->logger);
         }
         return $this->serviceCache[__METHOD__];
     }
@@ -398,16 +364,6 @@ class AwsClientFactory
         }
         if (!isset($this->serviceCache[__METHOD__])) {
             $this->serviceCache[__METHOD__] = new S3Client($this->configuration, $this->credentialProvider, $this->httpClient, $this->logger);
-        }
-        return $this->serviceCache[__METHOD__];
-    }
-    public function s3Vectors(): S3VectorsClient
-    {
-        if (!class_exists(S3VectorsClient::class)) {
-            throw MissingDependency::create('async-aws/s3-vectors', 'S3Vectors');
-        }
-        if (!isset($this->serviceCache[__METHOD__])) {
-            $this->serviceCache[__METHOD__] = new S3VectorsClient($this->configuration, $this->credentialProvider, $this->httpClient, $this->logger);
         }
         return $this->serviceCache[__METHOD__];
     }

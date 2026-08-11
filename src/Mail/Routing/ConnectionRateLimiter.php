@@ -14,11 +14,11 @@ use JooosiMail\Mail\Routing\State\RateLimitStateRepository;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionRateLimiter
+final class ConnectionRateLimiter
 {
     /** @var array<string, int> */
-    private const array WINDOWS = ['minute' => 60, 'hour' => 3600, 'day' => 86400];
-    public function __construct(private RateLimitStateRepository $rateLimitStateRepository, private OptionStore $optionStore, private EventPublisherInterface $eventPublisher)
+    private const WINDOWS = ['minute' => 60, 'hour' => 3600, 'day' => 86400];
+    public function __construct(private readonly RateLimitStateRepository $rateLimitStateRepository, private readonly OptionStore $optionStore, private readonly EventPublisherInterface $eventPublisher)
     {
     }
     /**

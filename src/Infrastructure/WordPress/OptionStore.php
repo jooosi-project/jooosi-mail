@@ -9,9 +9,9 @@ use JooosiMail\Settings\Config;
  *
  * @since 0.1.0
  */
-final readonly class OptionStore
+final class OptionStore
 {
-    public function __construct(private Config $config)
+    public function __construct(private readonly Config $config)
     {
     }
     /**

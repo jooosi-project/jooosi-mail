@@ -11,7 +11,6 @@ use JooosiMailDeps\Doctrine\DBAL\Platforms\Exception\InvalidPlatformVersion;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\MariaDB1010Platform;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\MariaDB1052Platform;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\MariaDB1060Platform;
-use JooosiMailDeps\Doctrine\DBAL\Platforms\MariaDB110700Platform;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\MariaDBPlatform;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\MySQL80Platform;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\MySQL84Platform;
@@ -36,19 +35,16 @@ abstract class AbstractMySQLDriver implements Driver
         $version = $versionProvider->getServerVersion();
         if (stripos($version, 'mariadb') !== \false) {
             $mariaDbVersion = $this->getMariaDbMysqlVersionNumber($version);
-            if (version_compare($mariaDbVersion, '11.7.0', '>=')) {
-                return new MariaDB110700Platform();
-            }
             if (version_compare($mariaDbVersion, '10.10.0', '>=')) {
                 return new MariaDB1010Platform();
             }
             if (version_compare($mariaDbVersion, '10.6.0', '>=')) {
                 return new MariaDB1060Platform();
             }
-            Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6343', 'Support for MariaDB < 10.6.0 is deprecated and will be removed in DBAL 5');
             if (version_compare($mariaDbVersion, '10.5.2', '>=')) {
                 return new MariaDB1052Platform();
             }
+            Deprecation::trigger('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6343', 'Support for MariaDB < 10.5.2 is deprecated and will be removed in DBAL 5');
             return new MariaDBPlatform();
         }
         if (version_compare($version, '8.4.0', '>=')) {

@@ -11,12 +11,12 @@ use JooosiMail\Mail\ValueObject\MailRequest;
  * @since 0.1.0
  */
 #[Service]
-final readonly class TestEmailSender
+final class TestEmailSender
 {
     /**
      * @since 0.1.0
      */
-    public function __construct(private \JooosiMail\Admin\Mail\TestEmailTemplateRenderer $templateRenderer)
+    public function __construct(private readonly \JooosiMail\Admin\Mail\TestEmailTemplateRenderer $templateRenderer)
     {
     }
     /**

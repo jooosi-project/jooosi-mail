@@ -8,7 +8,7 @@ namespace JooosiMail\Infrastructure\Database;
  *
  * @since 0.1.0
  */
-final readonly class TableNameResolver
+final class TableNameResolver
 {
     /**
      * Resolve the full table name for a Jooosi Mail table suffix.

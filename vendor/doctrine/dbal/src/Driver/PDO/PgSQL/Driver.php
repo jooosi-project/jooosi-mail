@@ -9,11 +9,9 @@ use JooosiMailDeps\Doctrine\DBAL\Driver\PDO\Exception;
 use JooosiMailDeps\Doctrine\DBAL\Driver\PDO\Exception\InvalidConfiguration;
 use JooosiMailDeps\Doctrine\DBAL\Driver\PDO\PDOConnect;
 use PDO;
-use Pdo\Pgsql;
 use PDOException;
 use SensitiveParameter;
 use function is_string;
-use const PHP_VERSION_ID;
 final class Driver extends AbstractPostgreSQLDriver
 {
     use PDOConnect;
@@ -41,9 +39,8 @@ final class Driver extends AbstractPostgreSQLDriver
         } catch (PDOException $exception) {
             throw Exception::new($exception);
         }
-        $disablePreparesAttr = PHP_VERSION_ID >= 80400 ? \PDO::PGSQL_ATTR_DISABLE_PREPARES : PDO::PGSQL_ATTR_DISABLE_PREPARES;
-        if (!isset($driverOptions[$disablePreparesAttr]) || $driverOptions[$disablePreparesAttr] === \true) {
-            $pdo->setAttribute($disablePreparesAttr, \true);
+        if (!isset($driverOptions[PDO::PGSQL_ATTR_DISABLE_PREPARES]) || $driverOptions[PDO::PGSQL_ATTR_DISABLE_PREPARES] === \true) {
+            $pdo->setAttribute(PDO::PGSQL_ATTR_DISABLE_PREPARES, \true);
         }
         $connection = new Connection($pdo);
         /* defining client_encoding via SET NAMES to avoid inconsistent DSN support

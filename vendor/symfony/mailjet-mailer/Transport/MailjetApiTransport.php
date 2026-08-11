@@ -29,16 +29,14 @@ class MailjetApiTransport extends AbstractApiTransport
     private const API_VERSION = '3.1';
     private const FORBIDDEN_HEADERS = ['date', 'x-csa-complaints', 'message-id', 'x-mj-statisticscontactslistid', 'domainkey-status', 'received-spf', 'authentication-results', 'received', 'from', 'sender', 'subject', 'to', 'cc', 'bcc', 'reply-to', 'return-path', 'delivered-to', 'dkim-signature', 'x-feedback-id', 'x-mailjet-segmentation', 'list-id', 'x-mj-mid', 'x-mj-errormessage', 'x-mailjet-debug', 'user-agent', 'x-mailer', 'x-mj-workflowid'];
     private const HEADER_TO_MESSAGE = ['x-mj-templatelanguage' => ['TemplateLanguage', 'bool'], 'x-mj-templateid' => ['TemplateID', 'int'], 'x-mj-templateerrorreporting' => ['TemplateErrorReporting', 'templateerrorreporting'], 'x-mj-templateerrordeliver' => ['TemplateErrorDeliver', 'bool'], 'x-mj-vars' => ['Variables', 'json'], 'x-mj-customid' => ['CustomID', 'string'], 'x-mj-eventpayload' => ['EventPayload', 'string'], 'x-mailjet-campaign' => ['CustomCampaign', 'string'], 'x-mailjet-deduplicatecampaign' => ['DeduplicateCampaign', 'bool'], 'x-mailjet-prio' => ['Priority', 'int'], 'x-mailjet-trackclick' => ['TrackClicks', 'string'], 'x-mailjet-trackopen' => ['TrackOpens', 'string']];
-    public function __construct(
-        private string $publicKey,
-        #[\SensitiveParameter]
-        private string $privateKey,
-        ?HttpClientInterface $client = null,
-        ?EventDispatcherInterface $dispatcher = null,
-        ?LoggerInterface $logger = null,
-        private bool $sandbox = \false
-    )
+    private string $privateKey;
+    private string $publicKey;
+    private bool $sandbox;
+    public function __construct(string $publicKey, string $privateKey, ?HttpClientInterface $client = null, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null, bool $sandbox = \false)
     {
+        $this->publicKey = $publicKey;
+        $this->privateKey = $privateKey;
+        $this->sandbox = $sandbox;
         parent::__construct($client, $dispatcher, $logger);
     }
     public function __toString(): string

@@ -23,8 +23,8 @@ final class Body
     private $html;
     /**
      * @param array{
-     *   Text?: Content|array|null,
-     *   Html?: Content|array|null,
+     *   Text?: null|Content|array,
+     *   Html?: null|Content|array,
      * } $input
      */
     public function __construct(array $input)
@@ -34,8 +34,8 @@ final class Body
     }
     /**
      * @param array{
-     *   Text?: Content|array|null,
-     *   Html?: Content|array|null,
+     *   Text?: null|Content|array,
+     *   Html?: null|Content|array,
      * }|Body $input
      */
     public static function create($input): self

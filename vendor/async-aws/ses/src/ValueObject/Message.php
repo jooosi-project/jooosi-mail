@@ -39,8 +39,8 @@ final class Message
      * @param array{
      *   Subject: Content|array,
      *   Body: Body|array,
-     *   Headers?: array<MessageHeader|array>|null,
-     *   Attachments?: array<Attachment|array>|null,
+     *   Headers?: null|array<MessageHeader|array>,
+     *   Attachments?: null|array<Attachment|array>,
      * } $input
      */
     public function __construct(array $input)
@@ -54,8 +54,8 @@ final class Message
      * @param array{
      *   Subject: Content|array,
      *   Body: Body|array,
-     *   Headers?: array<MessageHeader|array>|null,
-     *   Attachments?: array<Attachment|array>|null,
+     *   Headers?: null|array<MessageHeader|array>,
+     *   Attachments?: null|array<Attachment|array>,
      * }|Message $input
      */
     public static function create($input): self

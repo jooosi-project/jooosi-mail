@@ -12,16 +12,14 @@ namespace JooosiMailDeps\Symfony\Component\Messenger\Handler;
 
 use JooosiMailDeps\Symfony\Component\Messenger\Message\RedispatchMessage;
 use JooosiMailDeps\Symfony\Component\Messenger\MessageBusInterface;
-use JooosiMailDeps\Symfony\Component\Messenger\Stamp\HandledStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\TransportNamesStamp;
 final class RedispatchMessageHandler
 {
     public function __construct(private MessageBusInterface $bus)
     {
     }
-    public function __invoke(RedispatchMessage $message): mixed
+    public function __invoke(RedispatchMessage $message): void
     {
-        $envelope = $this->bus->dispatch($message->envelope, [new TransportNamesStamp($message->transportNames)]);
-        return $envelope->last(HandledStamp::class)?->getResult();
+        $this->bus->dispatch($message->envelope, [new TransportNamesStamp($message->transportNames)]);
     }
 }

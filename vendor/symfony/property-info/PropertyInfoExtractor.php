@@ -10,7 +10,6 @@
  */
 namespace JooosiMailDeps\Symfony\Component\PropertyInfo;
 
-use JooosiMailDeps\Symfony\Component\TypeInfo\Type;
 /**
  * Default {@see PropertyInfoExtractorInterface} implementation.
  *
@@ -42,14 +41,9 @@ class PropertyInfoExtractor implements PropertyInfoExtractorInterface, PropertyI
     {
         return $this->extract($this->descriptionExtractors, 'getLongDescription', [$class, $property, $context]);
     }
-    public function getType(string $class, string $property, array $context = []): ?Type
+    public function getTypes(string $class, string $property, array $context = []): ?array
     {
-        foreach ($this->typeExtractors as $extractor) {
-            if (null !== $value = $extractor->getType($class, $property, $context)) {
-                return $value;
-            }
-        }
-        return null;
+        return $this->extract($this->typeExtractors, 'getTypes', [$class, $property, $context]);
     }
     public function isReadable(string $class, string $property, array $context = []): ?bool
     {

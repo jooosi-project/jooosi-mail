@@ -10,18 +10,21 @@
  */
 namespace JooosiMailDeps\Symfony\Component\Messenger\Stamp;
 
-use JooosiMailDeps\Symfony\Component\Messenger\Middleware\SendMessageMiddleware;
 /**
  * Marker stamp identifying a message sent by the `SendMessageMiddleware`.
  *
- * @see SendMessageMiddleware
+ * @see \Symfony\Component\Messenger\Middleware\SendMessageMiddleware
  *
  * @author Maxime Steinhausser <maxime.steinhausser@gmail.com>
  */
 final class SentStamp implements NonSendableStampInterface
 {
-    public function __construct(private string $senderClass, private ?string $senderAlias = null)
+    private string $senderClass;
+    private ?string $senderAlias;
+    public function __construct(string $senderClass, ?string $senderAlias = null)
     {
+        $this->senderAlias = $senderAlias;
+        $this->senderClass = $senderClass;
     }
     public function getSenderClass(): string
     {

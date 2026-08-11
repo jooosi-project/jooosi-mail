@@ -14,10 +14,13 @@ use Throwable;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MigrationRepository
+final class MigrationRepository
 {
-    private const string TABLE_SUFFIX = 'migrations';
-    public function __construct(private Connection $connection, private TableNameResolver $tableNameResolver)
+    /**
+     * @var string
+     */
+    private const TABLE_SUFFIX = 'migrations';
+    public function __construct(private readonly Connection $connection, private readonly TableNameResolver $tableNameResolver)
     {
         $this->ensureTableExists();
     }

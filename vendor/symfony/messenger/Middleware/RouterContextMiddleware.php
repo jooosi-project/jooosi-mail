@@ -21,16 +21,19 @@ use JooosiMailDeps\Symfony\Component\Routing\RequestContextAwareInterface;
  */
 class RouterContextMiddleware implements MiddlewareInterface
 {
-    public function __construct(private RequestContextAwareInterface $router)
+    private RequestContextAwareInterface $router;
+    public function __construct(RequestContextAwareInterface $router)
     {
+        $this->router = $router;
     }
     public function handle(Envelope $envelope, StackInterface $stack): Envelope
     {
-        $context = $this->router->getContext();
         if (!$envelope->last(ConsumedByWorkerStamp::class) || !$contextStamp = $envelope->last(RouterContextStamp::class)) {
+            $context = $this->router->getContext();
             $envelope = $envelope->with(new RouterContextStamp($context->getBaseUrl(), $context->getMethod(), $context->getHost(), $context->getScheme(), $context->getHttpPort(), $context->getHttpsPort(), $context->getPathInfo(), $context->getQueryString()));
             return $stack->next()->handle($envelope, $stack);
         }
+        $context = $this->router->getContext();
         $currentBaseUrl = $context->getBaseUrl();
         $currentMethod = $context->getMethod();
         $currentHost = $context->getHost();

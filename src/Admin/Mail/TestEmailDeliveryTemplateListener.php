@@ -15,13 +15,16 @@ use JooosiMail\Mail\ValueObject\MailRequest;
  * @since 0.1.0
  */
 #[Service]
-final readonly class TestEmailDeliveryTemplateListener
+final class TestEmailDeliveryTemplateListener
 {
-    public const string METADATA_KEY = 'jooosi_mail_test_email';
+    /**
+     * @var string
+     */
+    public const METADATA_KEY = 'jooosi_mail_test_email';
     /**
      * @since 0.1.0
      */
-    public function __construct(private \JooosiMail\Admin\Mail\TestEmailTemplateRenderer $templateRenderer)
+    public function __construct(private readonly \JooosiMail\Admin\Mail\TestEmailTemplateRenderer $templateRenderer)
     {
     }
     /**

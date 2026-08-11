@@ -36,9 +36,9 @@ final class Destination
     private $bccAddresses;
     /**
      * @param array{
-     *   ToAddresses?: string[]|null,
-     *   CcAddresses?: string[]|null,
-     *   BccAddresses?: string[]|null,
+     *   ToAddresses?: null|string[],
+     *   CcAddresses?: null|string[],
+     *   BccAddresses?: null|string[],
      * } $input
      */
     public function __construct(array $input)
@@ -49,9 +49,9 @@ final class Destination
     }
     /**
      * @param array{
-     *   ToAddresses?: string[]|null,
-     *   CcAddresses?: string[]|null,
-     *   BccAddresses?: string[]|null,
+     *   ToAddresses?: null|string[],
+     *   CcAddresses?: null|string[],
+     *   BccAddresses?: null|string[],
      * }|Destination $input
      */
     public static function create($input): self

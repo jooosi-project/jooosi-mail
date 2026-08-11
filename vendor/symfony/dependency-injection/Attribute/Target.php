@@ -20,9 +20,6 @@ use JooosiMailDeps\Symfony\Component\DependencyInjection\Exception\LogicExceptio
 #[\Attribute(\Attribute::TARGET_PARAMETER | \Attribute::TARGET_PROPERTY)]
 final class Target
 {
-    /**
-     * @param string|null $name The name of the target autowiring alias
-     */
     public function __construct(public ?string $name = null)
     {
     }

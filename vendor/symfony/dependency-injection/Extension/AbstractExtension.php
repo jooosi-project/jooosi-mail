@@ -26,10 +26,10 @@ abstract class AbstractExtension extends Extension implements ConfigurableExtens
     public function configure(DefinitionConfigurator $definition): void
     {
     }
-    public function prependExtension(ContainerConfigurator $configurator, ContainerBuilder $container): void
+    public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
     }
-    public function loadExtension(array $config, ContainerConfigurator $configurator, ContainerBuilder $container): void
+    public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
     }
     public function getConfiguration(array $config, ContainerBuilder $container): ?ConfigurationInterface
@@ -41,7 +41,7 @@ abstract class AbstractExtension extends Extension implements ConfigurableExtens
         $callback = function (ContainerConfigurator $configurator) use ($container) {
             $this->prependExtension($configurator, $container);
         };
-        $this->executeConfiguratorCallback($container, $callback, $this, \true);
+        $this->executeConfiguratorCallback($container, $callback, $this);
     }
     final public function load(array $configs, ContainerBuilder $container): void
     {

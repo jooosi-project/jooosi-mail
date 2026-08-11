@@ -15,8 +15,10 @@ namespace JooosiMailDeps\Symfony\Component\Messenger\Stamp;
  */
 final class FlushBatchHandlersStamp implements NonSendableStampInterface
 {
-    public function __construct(private bool $force)
+    private bool $force;
+    public function __construct(bool $force)
     {
+        $this->force = $force;
     }
     public function force(): bool
     {

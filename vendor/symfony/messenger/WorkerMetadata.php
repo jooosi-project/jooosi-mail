@@ -15,8 +15,10 @@ namespace JooosiMailDeps\Symfony\Component\Messenger;
  */
 final class WorkerMetadata
 {
-    public function __construct(private array $metadata)
+    private array $metadata;
+    public function __construct(array $metadata)
     {
+        $this->metadata = $metadata;
     }
     public function set(array $newMetadata): void
     {

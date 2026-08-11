@@ -16,6 +16,7 @@ use JooosiMailDeps\AsyncAws\Core\Exception\InvalidArgument;
 use JooosiMailDeps\AsyncAws\Core\Exception\LogicException;
 use JooosiMailDeps\AsyncAws\Core\Exception\RuntimeException;
 use JooosiMailDeps\AsyncAws\Core\Exception\UnparsableResponse;
+use JooosiMailDeps\AsyncAws\Core\Stream\ResponseBodyResourceStream;
 use JooosiMailDeps\AsyncAws\Core\Stream\ResponseBodyStream;
 use JooosiMailDeps\AsyncAws\Core\Stream\ResultStream;
 use JooosiMailDeps\Psr\Log\LoggerInterface;
@@ -250,7 +251,7 @@ final class Response
      * @return array{
      *                resolved: bool,
      *                body_downloaded: bool,
-     *                response: ResponseInterface,
+     *                response: \Symfony\Contracts\HttpClient\ResponseInterface,
      *                status: int,
      *                }
      */
@@ -316,6 +317,9 @@ final class Response
     public function toStream(): ResultStream
     {
         $this->resolve();
+        if (\is_callable([$this->httpResponse, 'toStream'])) {
+            return new ResponseBodyResourceStream($this->httpResponse->toStream());
+        }
         if ($this->streamStarted) {
             throw new RuntimeException('Can not create a ResultStream because the body started being downloaded. The body was started to be downloaded in Response::wait()');
         }

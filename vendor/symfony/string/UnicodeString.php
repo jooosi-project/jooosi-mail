@@ -87,13 +87,10 @@ class UnicodeString extends AbstractUnicodeString
         if ('' === $suffix || \false === $suffix) {
             return \false;
         }
-        if (\false === $grapheme = grapheme_extract($this->string, \strlen($suffix), \GRAPHEME_EXTR_MAXBYTES, \strlen($this->string) - \strlen($suffix))) {
-            $grapheme = '';
-        }
         if ($this->ignoreCase) {
-            return 0 === mb_stripos($grapheme, $suffix, 0, 'UTF-8');
+            return 0 === mb_stripos(grapheme_extract($this->string, \strlen($suffix), \GRAPHEME_EXTR_MAXBYTES, \strlen($this->string) - \strlen($suffix)), $suffix, 0, 'UTF-8');
         }
-        return $suffix === $grapheme;
+        return $suffix === grapheme_extract($this->string, \strlen($suffix), \GRAPHEME_EXTR_MAXBYTES, \strlen($this->string) - \strlen($suffix));
     }
     public function equalsTo(string|iterable|AbstractString $string): bool
     {
@@ -148,7 +145,11 @@ class UnicodeString extends AbstractUnicodeString
             }
             $offset = 0;
         }
-        $i = $this->ignoreCase ? grapheme_strripos($string, $needle, $offset) : grapheme_strrpos($string, $needle, $offset);
+        try {
+            $i = $this->ignoreCase ? grapheme_strripos($string, $needle, $offset) : grapheme_strrpos($string, $needle, $offset);
+        } catch (\ValueError) {
+            return null;
+        }
         return \false === $i ? null : $i;
     }
     public function join(array $strings, ?string $lastGlue = null): static
@@ -211,9 +212,6 @@ class UnicodeString extends AbstractUnicodeString
         }
         return $str;
     }
-    /**
-     * @param-immediately-invoked-callable $to
-     */
     public function replaceMatches(string $fromRegexp, string|callable $to): static
     {
         $str = parent::replaceMatches($fromRegexp, $to);
@@ -230,7 +228,7 @@ class UnicodeString extends AbstractUnicodeString
     {
         $str = clone $this;
         $start = $start ? \strlen(grapheme_substr($this->string, 0, $start)) : 0;
-        $length = $length ? \strlen(grapheme_substr($this->string, $start, $length)) : $length;
+        $length = $length ? \strlen(grapheme_substr(substr($this->string, $start), 0, $length)) : $length;
         $str->string = substr_replace($this->string, $replacement, $start, $length ?? 2147483647);
         if (normalizer_is_normalized($str->string)) {
             return $str;
@@ -282,13 +280,10 @@ class UnicodeString extends AbstractUnicodeString
         if ('' === $prefix || \false === $prefix) {
             return \false;
         }
-        if (\false === $grapheme = grapheme_extract($this->string, \strlen($prefix), \GRAPHEME_EXTR_MAXBYTES)) {
-            $grapheme = '';
-        }
         if ($this->ignoreCase) {
-            return 0 === mb_stripos($grapheme, $prefix, 0, 'UTF-8');
+            return 0 === mb_stripos(grapheme_extract($this->string, \strlen($prefix), \GRAPHEME_EXTR_MAXBYTES), $prefix, 0, 'UTF-8');
         }
-        return $prefix === $grapheme;
+        return $prefix === grapheme_extract($this->string, \strlen($prefix), \GRAPHEME_EXTR_MAXBYTES);
     }
     public function trimPrefix($prefix): static
     {
@@ -320,12 +315,11 @@ class UnicodeString extends AbstractUnicodeString
         }
         return parent::trimSuffix($suffix);
     }
-    public function __unserialize(array $data): void
+    /**
+     * @return void
+     */
+    public function __wakeup()
     {
-        if (($data['string'] ?? null) instanceof \Stringable || ($data["\x00*\x00string"] ?? null) instanceof \Stringable) {
-            throw new \BadMethodCallException('Cannot unserialize ' . __CLASS__);
-        }
-        $this->string = $data['string'] ?? $data["\x00*\x00string"];
         if (!\is_string($this->string)) {
             throw new \BadMethodCallException('Cannot unserialize ' . __CLASS__);
         }

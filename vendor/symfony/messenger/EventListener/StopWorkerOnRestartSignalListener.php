@@ -21,9 +21,13 @@ use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerStartedEvent;
 class StopWorkerOnRestartSignalListener implements EventSubscriberInterface
 {
     public const RESTART_REQUESTED_TIMESTAMP_KEY = 'workers.restart_requested_timestamp';
+    private CacheItemPoolInterface $cachePool;
+    private ?LoggerInterface $logger;
     private float $workerStartedAt = 0;
-    public function __construct(private CacheItemPoolInterface $cachePool, private ?LoggerInterface $logger = null)
+    public function __construct(CacheItemPoolInterface $cachePool, ?LoggerInterface $logger = null)
     {
+        $this->cachePool = $cachePool;
+        $this->logger = $logger;
     }
     public function onWorkerStarted(): void
     {

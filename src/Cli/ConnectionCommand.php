@@ -29,9 +29,9 @@ use function WP_CLI\Utils\format_items;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionCommand
+final class ConnectionCommand
 {
-    public function __construct(private ConnectionManager $connectionManager, private ConnectionRepository $connectionRepository, private ConnectionStatusReporter $connectionStatusReporter)
+    public function __construct(private readonly ConnectionManager $connectionManager, private readonly ConnectionRepository $connectionRepository, private readonly ConnectionStatusReporter $connectionStatusReporter)
     {
     }
     /**

@@ -29,6 +29,8 @@ final class CurlResponse implements ResponseInterface, StreamableInterface
         getContent as private doGetContent;
     }
     use TransportResponseTrait;
+    private CurlClientState $multi;
+    private ?string $ntlmOriginKey;
     /**
      * @var resource
      */
@@ -36,8 +38,10 @@ final class CurlResponse implements ResponseInterface, StreamableInterface
     /**
      * @internal
      */
-    public function __construct(private CurlClientState $multi, \CurlHandle|string $ch, ?array $options = null, ?LoggerInterface $logger = null, string $method = 'GET', ?callable $resolveRedirect = null, ?int $curlVersion = null, ?string $originalUrl = null, private ?string $ntlmOriginKey = null)
+    public function __construct(CurlClientState $multi, \CurlHandle|string $ch, ?array $options = null, ?LoggerInterface $logger = null, string $method = 'GET', ?callable $resolveRedirect = null, ?int $curlVersion = null, ?string $originalUrl = null, ?string $ntlmOriginKey = null)
     {
+        $this->multi = $multi;
+        $this->ntlmOriginKey = $ntlmOriginKey;
         if ($ch instanceof \CurlHandle) {
             $this->handle = $ch;
             $this->debugBuffer = fopen('php://temp', 'w+');
@@ -58,7 +62,6 @@ final class CurlResponse implements ResponseInterface, StreamableInterface
         $this->info['http_method'] = $method;
         $this->info['user_data'] = $options['user_data'] ?? null;
         $this->info['max_duration'] = $options['max_duration'] ?? null;
-        $this->info['max_connect_duration'] = $options['max_connect_duration'] ?? null;
         $this->info['start_time'] ??= microtime(\true);
         $this->info['original_url'] = $originalUrl ?? $this->info['url'] ?? curl_getinfo($ch, \CURLINFO_EFFECTIVE_URL);
         $info =& $this->info;
@@ -66,7 +69,7 @@ final class CurlResponse implements ResponseInterface, StreamableInterface
         $debugBuffer = $this->debugBuffer;
         if (!$info['response_headers']) {
             // Used to keep track of what we're waiting for
-            curl_setopt($ch, \CURLOPT_PRIVATE, \in_array($method, ['GET', 'HEAD', 'OPTIONS', 'TRACE', 'QUERY'], \true) && 1.0 < (float) ($options['http_version'] ?? 1.1) ? 'H2' : 'H0');
+            curl_setopt($ch, \CURLOPT_PRIVATE, \in_array($method, ['GET', 'HEAD', 'OPTIONS', 'TRACE'], \true) && 1.0 < (float) ($options['http_version'] ?? 1.1) ? 'H2' : 'H0');
             // H = headers + retry counter
         }
         curl_setopt($ch, \CURLOPT_HEADERFUNCTION, static function ($ch, string $data) use (&$info, &$headers, $options, $multi, $id, &$location, $resolveRedirect, $logger): int {
@@ -106,14 +109,9 @@ final class CurlResponse implements ResponseInterface, StreamableInterface
             curl_setopt($ch, \CURLOPT_NOPROGRESS, \false);
             curl_setopt($ch, \CURLOPT_PROGRESSFUNCTION, static function ($ch, $dlSize, $dlNow) use ($onProgress, &$info, $url, $multi, $debugBuffer) {
                 try {
-                    $info['debug'] ??= '';
                     rewind($debugBuffer);
-                    if (fstat($debugBuffer)['size']) {
-                        $info['debug'] .= stream_get_contents($debugBuffer);
-                        rewind($debugBuffer);
-                        ftruncate($debugBuffer, 0);
-                    }
-                    $onProgress($dlNow, $dlSize, $url + curl_getinfo($ch) + $info);
+                    $debug = ['debug' => stream_get_contents($debugBuffer)];
+                    $onProgress($dlNow, $dlSize, $url + curl_getinfo($ch) + $info + $debug);
                 } catch (\Throwable $e) {
                     $multi->handlesActivity[(int) $ch][] = null;
                     $multi->handlesActivity[(int) $ch][] = $e;
@@ -163,23 +161,20 @@ final class CurlResponse implements ResponseInterface, StreamableInterface
     {
         if (!$info = $this->finalInfo) {
             $info = array_merge($this->info, curl_getinfo($this->handle));
+            $info['url'] = $this->info['url'] ?? $info['url'];
             $info['redirect_url'] = $this->info['redirect_url'] ?? null;
             // workaround curl not subtracting the time offset for pushed responses
             if (isset($this->info['url']) && $info['start_time'] / 1000 < $info['total_time']) {
                 $info['total_time'] -= $info['starttransfer_time'] ?: $info['total_time'];
                 $info['starttransfer_time'] = 0.0;
             }
-            $info['debug'] ??= '';
             rewind($this->debugBuffer);
-            if (fstat($this->debugBuffer)['size']) {
-                $info['debug'] .= stream_get_contents($this->debugBuffer);
-                rewind($this->debugBuffer);
-                ftruncate($this->debugBuffer, 0);
-            }
-            $this->info = array_merge($this->info, $info);
+            $info['debug'] = stream_get_contents($this->debugBuffer);
             $waitFor = curl_getinfo($this->handle, \CURLINFO_PRIVATE);
             if ('H' !== $waitFor[0] && 'C' !== $waitFor[0]) {
                 curl_setopt($this->handle, \CURLOPT_VERBOSE, \false);
+                rewind($this->debugBuffer);
+                ftruncate($this->debugBuffer, 0);
                 $this->finalInfo = $info;
             }
         }
@@ -309,8 +304,6 @@ final class CurlResponse implements ResponseInterface, StreamableInterface
     }
     /**
      * Parses header lines as curl yields them to us.
-     *
-     * @param-immediately-invoked-callable $resolveRedirect
      */
     private static function parseHeaderLine($ch, string $data, array &$info, array &$headers, ?array $options, CurlClientState $multi, int $id, ?string &$location, ?callable $resolveRedirect, ?LoggerInterface $logger): int
     {
@@ -360,7 +353,15 @@ final class CurlResponse implements ResponseInterface, StreamableInterface
                 $info['http_method'] = 'HEAD' === $info['http_method'] ? 'HEAD' : 'GET';
                 curl_setopt($ch, \CURLOPT_CUSTOMREQUEST, $info['http_method']);
             }
-            if (null === $info['redirect_url'] = $resolveRedirect($ch, $location, $noContent)) {
+            try {
+                $info['redirect_url'] = $resolveRedirect($ch, $location, $noContent);
+            } catch (TransportException $e) {
+                // Exceptions must be reported through the response, they cannot escape a curl callback
+                $multi->handlesActivity[$id][] = null;
+                $multi->handlesActivity[$id][] = $e;
+                return 0;
+            }
+            if (null === $info['redirect_url']) {
                 $options['max_redirects'] = curl_getinfo($ch, \CURLINFO_REDIRECT_COUNT);
                 curl_setopt($ch, \CURLOPT_FOLLOWLOCATION, \false);
                 curl_setopt($ch, \CURLOPT_MAXREDIRS, $options['max_redirects']);

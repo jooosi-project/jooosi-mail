@@ -47,17 +47,16 @@ class_exists(ArgumentServiceLocator::class);
  */
 class Container implements ContainerInterface, ResetInterface
 {
-    protected ParameterBagInterface $parameterBag;
-    protected array $services = [];
-    protected array $privates = [];
-    protected array $fileMap = [];
-    protected array $methodMap = [];
-    protected array $factories = [];
-    protected array $aliases = [];
-    protected array $loading = [];
-    protected array $resolving = [];
-    protected array $syntheticIds = [];
-    private ?\WeakMap $resetMap = null;
+    protected $parameterBag;
+    protected $services = [];
+    protected $privates = [];
+    protected $fileMap = [];
+    protected $methodMap = [];
+    protected $factories = [];
+    protected $aliases = [];
+    protected $loading = [];
+    protected $resolving = [];
+    protected $syntheticIds = [];
     private array $envCache = [];
     private bool $compiled = \false;
     private \Closure $getEnv;
@@ -73,11 +72,13 @@ class Container implements ContainerInterface, ResetInterface
      *
      *  * Parameter values are resolved;
      *  * The parameter bag is frozen.
+     *
+     * @return void
      */
-    public function compile(): void
+    public function compile()
     {
         $this->parameterBag->resolve();
-        $this->parameterBag = new FrozenParameterBag($this->parameterBag->all(), $this->parameterBag instanceof ParameterBag ? $this->parameterBag->allDeprecated() : [], $this->parameterBag instanceof ParameterBag ? $this->parameterBag->allNonEmpty() : []);
+        $this->parameterBag = new FrozenParameterBag($this->parameterBag->all(), $this->parameterBag instanceof ParameterBag ? $this->parameterBag->allDeprecated() : []);
         $this->compiled = \true;
     }
     /**
@@ -97,9 +98,11 @@ class Container implements ContainerInterface, ResetInterface
     /**
      * Gets a parameter.
      *
+     * @return array|bool|string|int|float|\UnitEnum|null
+     *
      * @throws ParameterNotFoundException if the parameter is not defined
      */
-    public function getParameter(string $name): array|bool|string|int|float|\UnitEnum|null
+    public function getParameter(string $name)
     {
         return $this->parameterBag->get($name);
     }
@@ -107,7 +110,10 @@ class Container implements ContainerInterface, ResetInterface
     {
         return $this->parameterBag->has($name);
     }
-    public function setParameter(string $name, array|bool|string|int|float|\UnitEnum|null $value): void
+    /**
+     * @return void
+     */
+    public function setParameter(string $name, array|bool|string|int|float|\UnitEnum|null $value)
     {
         $this->parameterBag->set($name, $value);
     }
@@ -116,8 +122,10 @@ class Container implements ContainerInterface, ResetInterface
      *
      * Setting a synthetic service to null resets it: has() returns false and get()
      * behaves in the same way as if the service was never created.
+     *
+     * @return void
      */
-    public function set(string $id, ?object $service): void
+    public function set(string $id, ?object $service)
     {
         // Runs the internal initializer; used by the dumped container to include always-needed files
         if (isset($this->privates['service_container']) && $this->privates['service_container'] instanceof \Closure) {
@@ -233,7 +241,10 @@ class Container implements ContainerInterface, ResetInterface
         }
         return isset($this->services[$id]);
     }
-    public function reset(): void
+    /**
+     * @return void
+     */
+    public function reset()
     {
         $services = $this->services + $this->privates;
         foreach ($services as $service) {
@@ -245,18 +256,7 @@ class Container implements ContainerInterface, ResetInterface
                 continue;
             }
         }
-        $this->envCache = $this->services = $this->factories = $this->privates = [];
-        // Non-shared tracked instances are not reset here because Container::reset()
-        // tears down the entire container. ServicesResetter::reset() handles calling
-        // reset methods on tracked instances during the request lifecycle.
-        $this->resetMap = null;
-    }
-    /**
-     * @internal
-     */
-    public function resetEnvCache(): void
-    {
-        $this->envCache = [];
+        $this->services = $this->factories = $this->privates = [];
     }
     /**
      * Gets all service ids.
@@ -290,8 +290,10 @@ class Container implements ContainerInterface, ResetInterface
     }
     /**
      * Creates a service by requiring its factory file.
+     *
+     * @return mixed
      */
-    protected function load(string $file): mixed
+    protected function load(string $file)
     {
         return require $file;
     }
@@ -352,28 +354,6 @@ class Container implements ContainerInterface, ResetInterface
             return $this->{$method}($this);
         }
         return ($factory = $this->factories[$id] ?? $this->factories['service_container'][$id] ?? null) ? $factory($this) : $this->load($method);
-    }
-    /**
-     * Registers an instance of a non-shared service for reset tracking.
-     *
-     * @param list<string> $resetMethods
-     *
-     * @internal
-     */
-    final protected function trackForReset(object $instance, array $resetMethods): object
-    {
-        $this->resetMap ??= new \WeakMap();
-        $this->resetMap[$instance] = $resetMethods;
-        return $instance;
-    }
-    /**
-     * Returns the WeakMap used to track non-shared service instances for reset.
-     *
-     * @internal
-     */
-    final protected function getResetMap(): \WeakMap
-    {
-        return $this->resetMap ??= new \WeakMap();
     }
     private function __clone()
     {

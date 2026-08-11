@@ -5,8 +5,6 @@ namespace JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords;
 
 /**
  * SQLite Keywordlist.
- *
- * @deprecated
  */
 class SQLiteKeywords extends KeywordList
 {

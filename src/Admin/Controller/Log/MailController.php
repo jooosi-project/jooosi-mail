@@ -21,12 +21,12 @@ use function JooosiMailDeps\Symfony\Component\String\u;
  * @since 0.1.0
  */
 #[Controller(namespace: 'jooosi-mail/v1', prefix: 'admin/logs/mail')]
-final readonly class MailController
+final class MailController
 {
     /**
      * @since 0.1.0
      */
-    public function __construct(private DbalConnection $connection, private TableNameResolver $tableNameResolver, private TestEmailSender $testEmailSender)
+    public function __construct(private readonly DbalConnection $connection, private readonly TableNameResolver $tableNameResolver, private readonly TestEmailSender $testEmailSender)
     {
     }
     /**

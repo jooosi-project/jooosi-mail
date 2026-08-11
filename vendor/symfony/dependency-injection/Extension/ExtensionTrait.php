@@ -10,6 +10,7 @@
  */
 namespace JooosiMailDeps\Symfony\Component\DependencyInjection\Extension;
 
+use JooosiMailDeps\Symfony\Component\Config\Builder\ConfigBuilderGenerator;
 use JooosiMailDeps\Symfony\Component\Config\FileLocator;
 use JooosiMailDeps\Symfony\Component\Config\Loader\DelegatingLoader;
 use JooosiMailDeps\Symfony\Component\Config\Loader\LoaderResolver;
@@ -20,19 +21,17 @@ use JooosiMailDeps\Symfony\Component\DependencyInjection\Loader\DirectoryLoader;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Loader\GlobFileLoader;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Loader\IniFileLoader;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
+use JooosiMailDeps\Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 /**
  * @author Yonel Ceruto <yonelceruto@gmail.com>
  */
 trait ExtensionTrait
 {
-    /**
-     * @param-immediately-invoked-callable $callback
-     */
-    private function executeConfiguratorCallback(ContainerBuilder $container, \Closure $callback, ConfigurableExtensionInterface $subject, bool $prepend = \false): void
+    private function executeConfiguratorCallback(ContainerBuilder $container, \Closure $callback, ConfigurableExtensionInterface $subject): void
     {
-        $env = $container->hasParameter('kernel.environment') ? $container->getParameter('kernel.environment') : null;
-        $loader = $this->createContainerLoader($container, $env, $prepend);
+        $env = $container->getParameter('kernel.environment');
+        $loader = $this->createContainerLoader($container, $env);
         $file = (new \ReflectionObject($subject))->getFileName();
         $bundleLoader = $loader->getResolver()->resolve($file);
         if (!$bundleLoader instanceof PhpFileLoader) {
@@ -47,10 +46,11 @@ trait ExtensionTrait
             $bundleLoader->registerAliasesForSinglyImplementedInterfaces();
         }
     }
-    private function createContainerLoader(ContainerBuilder $container, ?string $env, bool $prepend): DelegatingLoader
+    private function createContainerLoader(ContainerBuilder $container, string $env): DelegatingLoader
     {
+        $buildDir = $container->getParameter('kernel.build_dir');
         $locator = new FileLocator();
-        $resolver = new LoaderResolver([new YamlFileLoader($container, $locator, $env, $prepend), new IniFileLoader($container, $locator, $env), new PhpFileLoader($container, $locator, $env, $prepend), new GlobFileLoader($container, $locator, $env), new DirectoryLoader($container, $locator, $env), new ClosureLoader($container, $env)]);
+        $resolver = new LoaderResolver([new XmlFileLoader($container, $locator, $env), new YamlFileLoader($container, $locator, $env), new IniFileLoader($container, $locator, $env), new PhpFileLoader($container, $locator, $env, new ConfigBuilderGenerator($buildDir)), new GlobFileLoader($container, $locator, $env), new DirectoryLoader($container, $locator, $env), new ClosureLoader($container, $env)]);
         return new DelegatingLoader($resolver);
     }
 }

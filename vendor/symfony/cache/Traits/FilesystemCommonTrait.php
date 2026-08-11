@@ -65,7 +65,10 @@ trait FilesystemCommonTrait
         }
         return $ok;
     }
-    protected function doUnlink(string $file): bool
+    /**
+     * @return bool
+     */
+    protected function doUnlink(string $file)
     {
         return @unlink($file);
     }
@@ -93,6 +96,7 @@ trait FilesystemCommonTrait
             }
             if ('\\' === \DIRECTORY_SEPARATOR) {
                 $success = copy($tmp, $file);
+                $unlink = \true;
             } else {
                 $success = rename($tmp, $file);
                 $unlink = !$success;
@@ -151,9 +155,7 @@ trait FilesystemCommonTrait
     }
     public function __destruct()
     {
-        if (method_exists(parent::class, '__destruct')) {
-            parent::__destruct();
-        }
+        parent::__destruct();
         if (isset($this->tmpSuffix) && is_file($this->directory . $this->tmpSuffix)) {
             unlink($this->directory . $this->tmpSuffix);
         }

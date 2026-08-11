@@ -8,12 +8,12 @@ namespace JooosiMail\Database\Migration;
  *
  * @since 0.1.0
  */
-final readonly class MigrationExecution
+final class MigrationExecution
 {
     /**
      * @since 0.1.0
      */
-    public function __construct(public string $version, public string $className, public string $description, public string $executedAt, public int $executionTimeMs)
+    public function __construct(public readonly string $version, public readonly string $className, public readonly string $description, public readonly string $executedAt, public readonly int $executionTimeMs)
     {
     }
 }

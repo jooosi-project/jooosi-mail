@@ -10,9 +10,9 @@ use JooosiMail\Discovery\Attribute\Service;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MailLogRetentionService
+final class MailLogRetentionService
 {
-    public function __construct(private \JooosiMail\Mail\Logging\MailLogRetentionPolicy $retentionPolicy, private \JooosiMail\Mail\Logging\MailLogRepository $mailLogRepository)
+    public function __construct(private readonly \JooosiMail\Mail\Logging\MailLogRetentionPolicy $retentionPolicy, private readonly \JooosiMail\Mail\Logging\MailLogRepository $mailLogRepository)
     {
     }
     /**

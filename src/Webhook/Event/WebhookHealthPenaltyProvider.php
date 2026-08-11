@@ -11,12 +11,21 @@ use JooosiMail\Mail\Routing\ConnectionHealthPenaltyProviderInterface;
  * @since 0.1.0
  */
 #[Service]
-final readonly class WebhookHealthPenaltyProvider implements ConnectionHealthPenaltyProviderInterface
+final class WebhookHealthPenaltyProvider implements ConnectionHealthPenaltyProviderInterface
 {
-    private const int HOURS = 24;
-    private const int SAMPLE_SIZE = 20;
-    private const int MAX_PENALTY = 45;
-    public function __construct(private \JooosiMail\Webhook\Event\WebhookEventRepository $webhookEventRepository)
+    /**
+     * @var int
+     */
+    private const HOURS = 24;
+    /**
+     * @var int
+     */
+    private const SAMPLE_SIZE = 20;
+    /**
+     * @var int
+     */
+    private const MAX_PENALTY = 45;
+    public function __construct(private readonly \JooosiMail\Webhook\Event\WebhookEventRepository $webhookEventRepository)
     {
     }
     /**

@@ -94,7 +94,7 @@ final class SsoTokenProvider
     private function dumpSsoToken(string $sessionName, array $tokenData): void
     {
         $filepath = \sprintf('%s/.aws/sso/cache/%s.json', $this->getHomeDir(), sha1($sessionName));
-        file_put_contents($filepath, json_encode(array_filter($tokenData), \JSON_THROW_ON_ERROR));
+        file_put_contents($filepath, json_encode(array_filter($tokenData)));
     }
     /**
      * @return array<string, string>|null
@@ -111,7 +111,7 @@ final class SsoTokenProvider
             return null;
         }
         try {
-            return json_decode($content, \true, 512, \JSON_BIGINT_AS_STRING | \JSON_THROW_ON_ERROR);
+            return json_decode($content, \true, 512, \JSON_BIGINT_AS_STRING | (\PHP_VERSION_ID >= 70300 ? \JSON_THROW_ON_ERROR : 0));
         } catch (\JsonException $e) {
             $this->logger->warning('The sso cache file {path} contains invalide JSON.', ['path' => $filepath, 'ecxeption' => $e]);
             return null;

@@ -14,10 +14,13 @@ use Throwable;
  * @since 0.1.0
  */
 #[Service]
-final readonly class WeightedRoundRobinStateRepository
+final class WeightedRoundRobinStateRepository
 {
-    private const string GLOBAL_SCOPE = 'global';
-    public function __construct(private DbalConnection $connection, private TableNameResolver $tableNameResolver)
+    /**
+     * @var string
+     */
+    private const GLOBAL_SCOPE = 'global';
+    public function __construct(private readonly DbalConnection $connection, private readonly TableNameResolver $tableNameResolver)
     {
     }
     /**

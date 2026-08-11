@@ -12,7 +12,8 @@ final class UnexpectedValue extends UnexpectedValueException implements Exceptio
     {
         return new self(sprintf('Unexpected value "%s" of type "%s" returned by Postgres', $value, $type));
     }
-    public function getSQLState(): null
+    /** @return null */
+    public function getSQLState(): string|null
     {
         return null;
     }

@@ -13,10 +13,13 @@ use JooosiMailDeps\Symfony\Component\Messenger\Transport\TransportInterface;
  * @since 0.1.0
  */
 #[Service]
-final readonly class DatabaseTransport implements TransportInterface
+final class DatabaseTransport implements TransportInterface
 {
-    public const string NAME = 'async';
-    public function __construct(private \JooosiMail\Queue\Transport\DatabaseSender $sender, private \JooosiMail\Queue\Transport\DatabaseReceiver $receiver)
+    /**
+     * @var string
+     */
+    public const NAME = 'async';
+    public function __construct(private readonly \JooosiMail\Queue\Transport\DatabaseSender $sender, private readonly \JooosiMail\Queue\Transport\DatabaseReceiver $receiver)
     {
     }
     /**

@@ -10,8 +10,6 @@
  */
 namespace JooosiMailDeps\Symfony\Component\DependencyInjection\Compiler;
 
-use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\EnvClosure;
-use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\EnvClosureArgument;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\RewindableGenerator;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Argument\ServiceClosureArgument;
@@ -44,14 +42,18 @@ final class CheckTypeDeclarationsPass extends AbstractRecursivePass
     protected bool $skipScalars = \true;
     private const SCALAR_TYPES = ['int' => \true, 'float' => \true, 'bool' => \true, 'string' => \true];
     private const BUILTIN_TYPES = ['array' => \true, 'bool' => \true, 'callable' => \true, 'float' => \true, 'int' => \true, 'iterable' => \true, 'object' => \true, 'string' => \true];
+    private bool $autoload;
+    private array $skippedIds;
     private ExpressionLanguage $expressionLanguage;
     /**
      * @param bool  $autoload   Whether services who's class in not loaded should be checked or not.
      *                          Defaults to false to save loading code during compilation.
      * @param array $skippedIds An array indexed by the service ids to skip
      */
-    public function __construct(private bool $autoload = \false, private array $skippedIds = [])
+    public function __construct(bool $autoload = \false, array $skippedIds = [])
     {
+        $this->autoload = $autoload;
+        $this->skippedIds = $skippedIds;
     }
     protected function processValue(mixed $value, bool $isRoot = \false): mixed
     {
@@ -156,7 +158,7 @@ final class CheckTypeDeclarationsPass extends AbstractRecursivePass
             $value = $this->container->findDefinition($value);
         }
         if ('self' === $type) {
-            $type = $parameter->getDeclaringClass()->name;
+            $type = $parameter->getDeclaringClass()->getName();
         }
         if ('static' === $type) {
             $type = $checkedDefinition->getClass();
@@ -206,8 +208,6 @@ final class CheckTypeDeclarationsPass extends AbstractRecursivePass
                 $class = RewindableGenerator::class;
             } elseif ($value instanceof ServiceClosureArgument) {
                 $class = \Closure::class;
-            } elseif ($value instanceof EnvClosureArgument) {
-                $class = $value->isStringable() ? EnvClosure::class : \Closure::class;
             } elseif ($value instanceof ServiceLocatorArgument) {
                 $class = ServiceLocator::class;
             } elseif (\is_object($value)) {
@@ -220,7 +220,7 @@ final class CheckTypeDeclarationsPass extends AbstractRecursivePass
         if (isset(self::SCALAR_TYPES[$type]) && isset(self::SCALAR_TYPES[$class])) {
             return;
         }
-        if ('string' === $type && is_a($class, \Stringable::class, \true)) {
+        if ('string' === $type && method_exists($class, '__toString')) {
             return;
         }
         if ('callable' === $type && (\Closure::class === $class || method_exists($class, '__invoke'))) {

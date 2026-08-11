@@ -15,6 +15,7 @@ use JooosiMailDeps\Symfony\Component\Mailer\Exception\RuntimeException;
 use JooosiMailDeps\Symfony\Component\Mailer\SentMessage;
 use JooosiMailDeps\Symfony\Component\Mime\Address;
 use JooosiMailDeps\Symfony\Component\Mime\Email;
+use JooosiMailDeps\Symfony\Component\Mime\Message;
 use JooosiMailDeps\Symfony\Component\Mime\MessageConverter;
 use JooosiMailDeps\Symfony\Contracts\HttpClient\ResponseInterface;
 /**
@@ -25,10 +26,14 @@ abstract class AbstractApiTransport extends AbstractHttpTransport
     abstract protected function doSendApi(SentMessage $sentMessage, Email $email, Envelope $envelope): ResponseInterface;
     protected function doSendHttp(SentMessage $message): ResponseInterface
     {
+        $originalMessage = $message->getOriginalMessage();
+        if (!$originalMessage instanceof Message) {
+            throw new RuntimeException(\sprintf('Unable to send message with the "%s" transport: the message must be an instance of "%s" (got "%s"). An API transport builds its payload from the message fields; use an SMTP transport to send a raw message.', static::class, Message::class, get_debug_type($originalMessage)));
+        }
         try {
-            $email = MessageConverter::toEmail($message->getOriginalMessage());
+            $email = MessageConverter::toEmail($originalMessage);
         } catch (\Exception $e) {
-            throw new RuntimeException(\sprintf('Unable to send message with the "%s" transport: ', __CLASS__) . $e->getMessage(), 0, $e);
+            throw new RuntimeException(\sprintf('Unable to send message with the "%s" transport: ', static::class) . $e->getMessage(), 0, $e);
         }
         return $this->doSendApi($message, $email, $message->getEnvelope());
     }

@@ -2,7 +2,6 @@
 
 namespace JooosiMailDeps\AsyncAws\Core\Stream;
 
-use JooosiMailDeps\AsyncAws\Core\Exception\RuntimeException;
 /**
  * Provides a Stream that can be read several time.
  *
@@ -56,9 +55,6 @@ final class RewindableStream implements RequestStream
             return;
         }
         $resource = fopen('php://temp', 'r+b');
-        if (\false === $resource) {
-            throw new RuntimeException('Unable to create a temporary stream.');
-        }
         $this->fallback = ResourceStream::create($resource);
         foreach ($this->content as $chunk) {
             fwrite($resource, $chunk);

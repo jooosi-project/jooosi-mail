@@ -9,9 +9,9 @@ use JooosiMailDeps\Symfony\Component\Messenger\Stamp\StampInterface;
  *
  * @since 0.1.0
  */
-final readonly class QueuePriorityStamp implements StampInterface
+final class QueuePriorityStamp implements StampInterface
 {
-    public function __construct(public int $priority)
+    public function __construct(public readonly int $priority)
     {
     }
 }

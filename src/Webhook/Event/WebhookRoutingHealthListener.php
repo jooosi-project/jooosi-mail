@@ -15,9 +15,9 @@ use RuntimeException;
  * @since 0.1.0
  */
 #[Service]
-final readonly class WebhookRoutingHealthListener
+final class WebhookRoutingHealthListener
 {
-    public function __construct(private ConnectionRepository $connectionRepository, private ConnectionCircuitBreaker $connectionCircuitBreaker, private EventPublisherInterface $eventPublisher)
+    public function __construct(private readonly ConnectionRepository $connectionRepository, private readonly ConnectionCircuitBreaker $connectionCircuitBreaker, private readonly EventPublisherInterface $eventPublisher)
     {
     }
     /**

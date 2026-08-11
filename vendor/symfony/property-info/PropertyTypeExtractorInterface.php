@@ -10,7 +10,6 @@
  */
 namespace JooosiMailDeps\Symfony\Component\PropertyInfo;
 
-use JooosiMailDeps\Symfony\Component\TypeInfo\Type;
 /**
  * Type Extractor Interface.
  *
@@ -19,8 +18,9 @@ use JooosiMailDeps\Symfony\Component\TypeInfo\Type;
 interface PropertyTypeExtractorInterface
 {
     /**
-     * @param class-string         $class
-     * @param array<string, mixed> $context
+     * Gets types of a property.
+     *
+     * @return Type[]|null
      */
-    public function getType(string $class, string $property, array $context = []): ?Type;
+    public function getTypes(string $class, string $property, array $context = []);
 }

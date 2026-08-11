@@ -8,7 +8,7 @@ use function array_key_exists;
 /** @internal */
 final class CachingCollationMetadataProvider implements CollationMetadataProvider
 {
-    /** @var array<non-empty-string,?non-empty-string> */
+    /** @var array<string,?string> */
     private array $cache = [];
     public function __construct(private readonly CollationMetadataProvider $collationMetadataProvider)
     {

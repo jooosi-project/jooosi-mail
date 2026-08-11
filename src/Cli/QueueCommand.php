@@ -33,9 +33,9 @@ use function WP_CLI\Utils\format_items;
  * @since 0.1.0
  */
 #[Service]
-final readonly class QueueCommand
+final class QueueCommand
 {
-    public function __construct(private QueueMessageQuery $queueMessageQuery, private QueueMaintenanceService $queueMaintenanceService, private FailedMessageRepository $failedMessageRepository, private FailedMessageService $failedMessageService, private QueueWorker $queueWorker)
+    public function __construct(private readonly QueueMessageQuery $queueMessageQuery, private readonly QueueMaintenanceService $queueMaintenanceService, private readonly FailedMessageRepository $failedMessageRepository, private readonly FailedMessageService $failedMessageService, private readonly QueueWorker $queueWorker)
     {
     }
     /**

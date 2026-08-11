@@ -29,10 +29,6 @@ final class XmlAwsErrorFactory implements AwsErrorFactoryInterface
         if (0 < $xml->Error->count()) {
             return new AwsError($xml->Error->Code->__toString(), $xml->Error->Message->__toString(), $xml->Error->Type->__toString(), $xml->Error->Detail->__toString());
         }
-        // EC2 error envelope: <Response><Errors><Error><Code/><Message/></Error></Errors><RequestID/></Response>
-        if (0 < $xml->Errors->count() && 0 < $xml->Errors->Error->count()) {
-            return new AwsError($xml->Errors->Error->Code->__toString(), $xml->Errors->Error->Message->__toString(), null, null);
-        }
         if (1 === $xml->Code->count() && 1 === $xml->Message->count()) {
             return new AwsError($xml->Code->__toString(), $xml->Message->__toString(), null, null);
         }

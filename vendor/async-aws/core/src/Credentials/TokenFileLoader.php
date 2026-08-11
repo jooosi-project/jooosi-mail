@@ -19,10 +19,8 @@ trait TokenFileLoader
         }
         $tokenDir = \dirname($tokenFile);
         $tokenLink = readlink($tokenFile);
-        if (\false !== $tokenLink) {
-            clearstatcache(\true, $tokenDir . \DIRECTORY_SEPARATOR . $tokenLink);
-            clearstatcache(\true, $tokenDir . \DIRECTORY_SEPARATOR . \dirname($tokenLink));
-        }
+        clearstatcache(\true, $tokenDir . \DIRECTORY_SEPARATOR . $tokenLink);
+        clearstatcache(\true, $tokenDir . \DIRECTORY_SEPARATOR . \dirname($tokenLink));
         clearstatcache(\true, $tokenFile);
         if (\false === $token = file_get_contents($tokenFile)) {
             throw new RuntimeException('Failed to read data');

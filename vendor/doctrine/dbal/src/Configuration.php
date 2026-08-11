@@ -114,11 +114,16 @@ class Configuration
         $this->schemaManagerFactory = $schemaManagerFactory;
         return $this;
     }
+    /** @return true */
     public function getDisableTypeComments(): bool
     {
         return \true;
     }
-    /** @return $this */
+    /**
+     * @param true $disableTypeComments
+     *
+     * @return $this
+     */
     public function setDisableTypeComments(bool $disableTypeComments): self
     {
         if (!$disableTypeComments) {

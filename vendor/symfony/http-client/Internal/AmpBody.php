@@ -10,115 +10,112 @@
  */
 namespace JooosiMailDeps\Symfony\Component\HttpClient\Internal;
 
-use JooosiMailDeps\Amp\ByteStream\ReadableBuffer;
-use JooosiMailDeps\Amp\ByteStream\ReadableIterableStream;
-use JooosiMailDeps\Amp\ByteStream\ReadableResourceStream;
-use JooosiMailDeps\Amp\ByteStream\ReadableStream;
-use JooosiMailDeps\Amp\Cancellation;
-use JooosiMailDeps\Amp\Http\Client\HttpContent;
+use JooosiMailDeps\Amp\ByteStream\InputStream;
+use JooosiMailDeps\Amp\ByteStream\ResourceInputStream;
+use JooosiMailDeps\Amp\Http\Client\RequestBody;
+use JooosiMailDeps\Amp\Promise;
+use JooosiMailDeps\Amp\Success;
 use JooosiMailDeps\Symfony\Component\HttpClient\Exception\TransportException;
 /**
  * @author Nicolas Grekas <p@tchwork.com>
  *
  * @internal
  */
-class AmpBody implements HttpContent, ReadableStream, \IteratorAggregate
+class AmpBody implements RequestBody, InputStream
 {
-    private ReadableStream $body;
-    private ?string $content;
+    private ResourceInputStream|\Closure|string $body;
     private array $info;
+    private \Closure $onProgress;
     private ?int $offset = 0;
     private int $length = -1;
     private ?int $uploaded = null;
     /**
      * @param \Closure|resource|string $body
      */
-    public function __construct($body, &$info, private \Closure $onProgress)
+    public function __construct($body, &$info, \Closure $onProgress)
     {
         $this->info =& $info;
+        $this->onProgress = $onProgress;
         if (\is_resource($body)) {
             $this->offset = ftell($body);
             $this->length = fstat($body)['size'];
-            $this->body = new ReadableResourceStream($body);
+            $this->body = new ResourceInputStream($body);
         } elseif (\is_string($body)) {
             $this->length = \strlen($body);
-            $this->body = new ReadableBuffer($body);
-            $this->content = $body;
+            $this->body = $body;
         } else {
-            $this->body = new ReadableIterableStream((static function () use ($body) {
-                while ('' !== $data = $body(16372)) {
-                    if (!\is_string($data)) {
-                        throw new TransportException(\sprintf('Return value of the "body" option callback must be string, "%s" returned.', get_debug_type($data)));
-                    }
-                    yield $data;
-                }
-            })());
+            $this->body = $body;
         }
     }
-    public function getContent(): ReadableStream
+    public function createBodyStream(): InputStream
     {
         if (null !== $this->uploaded) {
             $this->uploaded = null;
             if (\is_string($this->body)) {
                 $this->offset = 0;
-            } elseif ($this->body instanceof ReadableResourceStream) {
+            } elseif ($this->body instanceof ResourceInputStream) {
                 fseek($this->body->getResource(), $this->offset);
             }
         }
         return $this;
     }
-    public function getContentType(): ?string
+    public function getHeaders(): Promise
     {
-        return null;
+        return new Success([]);
     }
-    public function getContentLength(): ?int
+    public function getBodyLength(): Promise
     {
-        return 0 <= $this->length ? $this->length - $this->offset : null;
+        return new Success($this->length - $this->offset);
     }
-    public function read(?Cancellation $cancellation = null): ?string
+    public function read(): Promise
     {
         $this->info['size_upload'] += $this->uploaded;
         $this->uploaded = 0;
         ($this->onProgress)();
-        if (null !== $data = $this->body->read($cancellation)) {
-            $this->uploaded = \strlen($data);
-        } else {
-            $this->info['upload_content_length'] = $this->info['size_upload'];
-        }
-        return $data;
+        $chunk = $this->doRead();
+        $chunk->onResolve(function ($e, $data) {
+            if (null !== $data) {
+                $this->uploaded = \strlen($data);
+            } else {
+                $this->info['upload_content_length'] = $this->info['size_upload'];
+            }
+        });
+        return $chunk;
     }
-    public function isReadable(): bool
-    {
-        return $this->body->isReadable();
-    }
-    public function close(): void
-    {
-        $this->body->close();
-    }
-    public function isClosed(): bool
-    {
-        return $this->body->isClosed();
-    }
-    public function onClose(\Closure $onClose): void
-    {
-        $this->body->onClose($onClose);
-    }
-    public function getIterator(): \Traversable
-    {
-        return $this->body;
-    }
-    public static function rewind(HttpContent $body): HttpContent
+    public static function rewind(RequestBody $body): RequestBody
     {
         if (!$body instanceof self) {
             return $body;
         }
         $body->uploaded = null;
-        if ($body->body instanceof ReadableResourceStream && !$body->body->isClosed()) {
+        if ($body->body instanceof ResourceInputStream) {
             fseek($body->body->getResource(), $body->offset);
+            return new $body($body->body, $body->info, $body->onProgress);
         }
-        if ($body->body instanceof ReadableBuffer) {
-            return new $body($body->content, $body->info, $body->onProgress);
+        if (\is_string($body->body)) {
+            $body->offset = 0;
         }
         return $body;
+    }
+    private function doRead(): Promise
+    {
+        if ($this->body instanceof ResourceInputStream) {
+            return $this->body->read();
+        }
+        if (null === $this->offset || !$this->length) {
+            return new Success();
+        }
+        if (\is_string($this->body)) {
+            $this->offset = null;
+            return new Success($this->body);
+        }
+        if ('' === $data = ($this->body)(16372)) {
+            $this->offset = null;
+            return new Success();
+        }
+        if (!\is_string($data)) {
+            throw new TransportException(\sprintf('Return value of the "body" option callback must be string, "%s" returned.', get_debug_type($data)));
+        }
+        return new Success($data);
     }
 }

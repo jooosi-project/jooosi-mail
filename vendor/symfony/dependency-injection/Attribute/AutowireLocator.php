@@ -26,31 +26,14 @@ class AutowireLocator extends Autowire
     /**
      * @see ServiceSubscriberInterface::getSubscribedServices()
      *
-     * @param string|array<string|Autowire|SubscribedService> $services       A tag name or an explicit list of service ids
-     * @param string|null                                     $indexAttribute The name of the attribute that defines the key referencing each service in the locator
-     * @param string|string[]                                 $exclude        A service id or a list of service ids to exclude
-     * @param bool                                            $excludeSelf    Whether to automatically exclude the referencing service from the locator
+     * @param string|array<string|Autowire|SubscribedService> $services An explicit list of services or a tag name
+     * @param string|string[]                                 $exclude  A service or a list of services to exclude
      */
-    public function __construct(string|array $services, ?string $indexAttribute = null, string|array|null $exclude = [], bool|string|null $excludeSelf = \true, ...$_)
+    public function __construct(string|array $services, ?string $indexAttribute = null, ?string $defaultIndexMethod = null, ?string $defaultPriorityMethod = null, string|array $exclude = [], bool $excludeSelf = \true)
     {
-        if (\func_num_args() > 4 || !\is_bool($excludeSelf) || \array_key_exists('defaultIndexMethod', $_) || \array_key_exists('defaultPriorityMethod', $_) || \is_string($exclude) && str_starts_with($exclude, 'get') && ctype_upper($exclude[3] ?? '')) {
-            [, , $defaultIndexMethod, $defaultPriorityMethod, $exclude, $excludeSelf] = \func_get_args() + [2 => null, null, [], \true];
-            $defaultIndexMethod = $_['defaultIndexMethod'] ?? $defaultIndexMethod;
-            $defaultPriorityMethod = $_['defaultPriorityMethod'] ?? $defaultPriorityMethod;
-        } else {
-            $defaultIndexMethod = \false;
-            $defaultPriorityMethod = \false;
-        }
         if (\is_string($services)) {
-            if (\false !== $defaultIndexMethod || \false !== $defaultPriorityMethod) {
-                parent::__construct(new ServiceLocatorArgument(new TaggedIteratorArgument($services, $indexAttribute, $defaultIndexMethod, \true, $defaultPriorityMethod, (array) $exclude, $excludeSelf)));
-                return;
-            }
-            parent::__construct(new ServiceLocatorArgument(new TaggedIteratorArgument($services, $indexAttribute, \true, (array) $exclude, $excludeSelf)));
+            parent::__construct(new ServiceLocatorArgument(new TaggedIteratorArgument($services, $indexAttribute, $defaultIndexMethod, \true, $defaultPriorityMethod, (array) $exclude, $excludeSelf)));
             return;
-        }
-        if (\false !== $defaultIndexMethod || \false !== $defaultPriorityMethod) {
-            trigger_deprecation('symfony/dependency-injection', '8.1', 'The $defaultIndexMethod and $defaultPriorityMethod arguments of tagged locators and iterators attributes are deprecated, use the #[AsTaggedItem] attribute instead of default methods.');
         }
         $references = [];
         foreach ($services as $key => $type) {

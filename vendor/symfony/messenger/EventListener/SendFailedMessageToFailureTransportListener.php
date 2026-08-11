@@ -14,7 +14,6 @@ use JooosiMailDeps\Psr\Container\ContainerInterface;
 use JooosiMailDeps\Psr\Log\LoggerInterface;
 use JooosiMailDeps\Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
-use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerMessageSkipEvent;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\DelayStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\RedeliveryStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\SentToFailureTransportStamp;
@@ -28,7 +27,10 @@ class SendFailedMessageToFailureTransportListener implements EventSubscriberInte
     public function __construct(private ContainerInterface $failureSenders, private ?LoggerInterface $logger = null, private array $failureTransportsByName = [])
     {
     }
-    public function onMessageFailed(WorkerMessageFailedEvent $event): void
+    /**
+     * @return void
+     */
+    public function onMessageFailed(WorkerMessageFailedEvent $event)
     {
         if ($event->willRetry()) {
             return;
@@ -51,17 +53,8 @@ class SendFailedMessageToFailureTransportListener implements EventSubscriberInte
         $this->logger?->info('Rejected message {class} will be sent to the failure transport {transport}.', ['class' => $envelope->getMessage()::class, 'transport' => $failureSender::class]);
         $failureSender->send($envelope);
     }
-    public function onMessageSkip(WorkerMessageSkipEvent $event): void
-    {
-        if (!$this->failureSenders->has($event->getReceiverName())) {
-            return;
-        }
-        $failureSender = $this->failureSenders->get($event->getReceiverName());
-        $envelope = $event->getEnvelope()->with(new SentToFailureTransportStamp($event->getReceiverName()), new DelayStamp(0));
-        $failureSender->send($envelope);
-    }
     public static function getSubscribedEvents(): array
     {
-        return [WorkerMessageFailedEvent::class => ['onMessageFailed', -100], WorkerMessageSkipEvent::class => ['onMessageSkip', -100]];
+        return [WorkerMessageFailedEvent::class => ['onMessageFailed', -100]];
     }
 }

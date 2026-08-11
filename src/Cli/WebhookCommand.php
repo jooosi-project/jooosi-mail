@@ -30,9 +30,9 @@ use function WP_CLI\Utils\format_items;
  * @since 0.1.0
  */
 #[Service]
-final readonly class WebhookCommand
+final class WebhookCommand
 {
-    public function __construct(private ConnectionRepository $connectionRepository, private WebhookAdapterRegistry $webhookAdapterRegistry, private WebhookEventRepository $webhookEventRepository)
+    public function __construct(private readonly ConnectionRepository $connectionRepository, private readonly WebhookAdapterRegistry $webhookAdapterRegistry, private readonly WebhookEventRepository $webhookEventRepository)
     {
     }
     /**

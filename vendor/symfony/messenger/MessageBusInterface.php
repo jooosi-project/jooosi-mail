@@ -10,7 +10,6 @@
  */
 namespace JooosiMailDeps\Symfony\Component\Messenger;
 
-use JooosiMailDeps\Symfony\Component\Messenger\Exception\ExceptionInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\StampInterface;
 /**
  * @author Samuel Roze <samuel.roze@gmail.com>
@@ -21,9 +20,7 @@ interface MessageBusInterface
      * Dispatches the given message.
      *
      * @param object|Envelope  $message The message or the message pre-wrapped in an envelope
-     * @param StampInterface[] $stamps  Stamps set on the Envelope which are used to control middleware behavior
-     *
-     * @throws ExceptionInterface
+     * @param StampInterface[] $stamps
      */
     public function dispatch(object $message, array $stamps = []): Envelope;
 }

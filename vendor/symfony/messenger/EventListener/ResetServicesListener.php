@@ -10,32 +10,23 @@
  */
 namespace JooosiMailDeps\Symfony\Component\Messenger\EventListener;
 
-use JooosiMailDeps\Symfony\Component\DependencyInjection\Attribute\Autowire;
-use JooosiMailDeps\Symfony\Component\DependencyInjection\ServicesResetterInterface;
 use JooosiMailDeps\Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use JooosiMailDeps\Symfony\Component\HttpKernel\DependencyInjection\ServicesResetter;
 use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerRunningEvent;
 use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerStoppedEvent;
-use JooosiMailDeps\Symfony\Contracts\Service\ResetInterface;
 /**
  * @author Grégoire Pineau <lyrixx@lyrixx.info>
  */
 class ResetServicesListener implements EventSubscriberInterface
 {
-    private int $interval = 1;
-    private int $count = 0;
-    public function __construct(
-        #[Autowire(service: ServicesResetterInterface::class)]
-        private ResetInterface $servicesResetter
-    )
+    private ServicesResetter $servicesResetter;
+    public function __construct(ServicesResetter $servicesResetter)
     {
-    }
-    public function setInterval(int $interval): void
-    {
-        $this->interval = $interval;
+        $this->servicesResetter = $servicesResetter;
     }
     public function resetServices(WorkerRunningEvent $event): void
     {
-        if (!$event->isWorkerIdle() && 0 === ++$this->count % $this->interval) {
+        if (!$event->isWorkerIdle()) {
             $this->servicesResetter->reset();
         }
     }

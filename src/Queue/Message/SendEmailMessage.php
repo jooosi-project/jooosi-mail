@@ -8,9 +8,9 @@ namespace JooosiMail\Queue\Message;
  *
  * @since 0.1.0
  */
-final readonly class SendEmailMessage
+final class SendEmailMessage
 {
-    public function __construct(public int $mailLogId)
+    public function __construct(public readonly int $mailLogId)
     {
     }
 }

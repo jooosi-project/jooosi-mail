@@ -6,9 +6,12 @@ use JooosiMailDeps\AsyncAws\Core\Exception\InvalidArgument;
 use JooosiMailDeps\AsyncAws\Core\Input;
 use JooosiMailDeps\AsyncAws\Core\Request;
 use JooosiMailDeps\AsyncAws\Core\Stream\StreamFactory;
+use JooosiMailDeps\AsyncAws\Ses\ValueObject\Body;
+use JooosiMailDeps\AsyncAws\Ses\ValueObject\Content;
 use JooosiMailDeps\AsyncAws\Ses\ValueObject\Destination;
 use JooosiMailDeps\AsyncAws\Ses\ValueObject\EmailContent;
 use JooosiMailDeps\AsyncAws\Ses\ValueObject\ListManagementOptions;
+use JooosiMailDeps\AsyncAws\Ses\ValueObject\Message;
 use JooosiMailDeps\AsyncAws\Ses\ValueObject\MessageTag;
 /**
  * Represents a request to send a single formatted email using Amazon SES. For more information, see the Amazon SES
@@ -125,18 +128,18 @@ final class SendEmailRequest extends Input
     private $listManagementOptions;
     /**
      * @param array{
-     *   FromEmailAddress?: string|null,
-     *   FromEmailAddressIdentityArn?: string|null,
-     *   Destination?: Destination|array|null,
-     *   ReplyToAddresses?: string[]|null,
-     *   FeedbackForwardingEmailAddress?: string|null,
-     *   FeedbackForwardingEmailAddressIdentityArn?: string|null,
+     *   FromEmailAddress?: null|string,
+     *   FromEmailAddressIdentityArn?: null|string,
+     *   Destination?: null|Destination|array,
+     *   ReplyToAddresses?: null|string[],
+     *   FeedbackForwardingEmailAddress?: null|string,
+     *   FeedbackForwardingEmailAddressIdentityArn?: null|string,
      *   Content?: EmailContent|array,
-     *   EmailTags?: array<MessageTag|array>|null,
-     *   ConfigurationSetName?: string|null,
-     *   EndpointId?: string|null,
-     *   TenantName?: string|null,
-     *   ListManagementOptions?: ListManagementOptions|array|null,
+     *   EmailTags?: null|array<MessageTag|array>,
+     *   ConfigurationSetName?: null|string,
+     *   EndpointId?: null|string,
+     *   TenantName?: null|string,
+     *   ListManagementOptions?: null|ListManagementOptions|array,
      *   '@region'?: string|null,
      * } $input
      */
@@ -158,18 +161,18 @@ final class SendEmailRequest extends Input
     }
     /**
      * @param array{
-     *   FromEmailAddress?: string|null,
-     *   FromEmailAddressIdentityArn?: string|null,
-     *   Destination?: Destination|array|null,
-     *   ReplyToAddresses?: string[]|null,
-     *   FeedbackForwardingEmailAddress?: string|null,
-     *   FeedbackForwardingEmailAddressIdentityArn?: string|null,
+     *   FromEmailAddress?: null|string,
+     *   FromEmailAddressIdentityArn?: null|string,
+     *   Destination?: null|Destination|array,
+     *   ReplyToAddresses?: null|string[],
+     *   FeedbackForwardingEmailAddress?: null|string,
+     *   FeedbackForwardingEmailAddressIdentityArn?: null|string,
      *   Content?: EmailContent|array,
-     *   EmailTags?: array<MessageTag|array>|null,
-     *   ConfigurationSetName?: string|null,
-     *   EndpointId?: string|null,
-     *   TenantName?: string|null,
-     *   ListManagementOptions?: ListManagementOptions|array|null,
+     *   EmailTags?: null|array<MessageTag|array>,
+     *   ConfigurationSetName?: null|string,
+     *   EndpointId?: null|string,
+     *   TenantName?: null|string,
+     *   ListManagementOptions?: null|ListManagementOptions|array,
      *   '@region'?: string|null,
      * }|SendEmailRequest $input
      */

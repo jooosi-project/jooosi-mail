@@ -10,7 +10,7 @@ use JooosiMailDeps\Doctrine\DBAL\DriverManager;
  *
  * @since 0.1.0
  */
-final readonly class DatabaseConnectionFactory
+final class DatabaseConnectionFactory
 {
     /**
      * Build the database connection.

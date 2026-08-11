@@ -27,14 +27,10 @@ class MandrillHttpTransport extends AbstractHttpTransport
 {
     use MandrillHeadersTrait;
     private const HOST = 'mandrillapp.com';
-    public function __construct(
-        #[\SensitiveParameter]
-        private string $key,
-        ?HttpClientInterface $client = null,
-        ?EventDispatcherInterface $dispatcher = null,
-        ?LoggerInterface $logger = null
-    )
+    private string $key;
+    public function __construct(string $key, ?HttpClientInterface $client = null, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
     {
+        $this->key = $key;
         parent::__construct($client, $dispatcher, $logger);
     }
     public function __toString(): string

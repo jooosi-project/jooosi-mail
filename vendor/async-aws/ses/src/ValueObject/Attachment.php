@@ -63,12 +63,12 @@ final class Attachment
     /**
      * @param array{
      *   RawContent: string,
-     *   ContentDisposition?: AttachmentContentDisposition::*|null,
+     *   ContentDisposition?: null|AttachmentContentDisposition::*,
      *   FileName: string,
-     *   ContentDescription?: string|null,
-     *   ContentId?: string|null,
-     *   ContentTransferEncoding?: AttachmentContentTransferEncoding::*|null,
-     *   ContentType?: string|null,
+     *   ContentDescription?: null|string,
+     *   ContentId?: null|string,
+     *   ContentTransferEncoding?: null|AttachmentContentTransferEncoding::*,
+     *   ContentType?: null|string,
      * } $input
      */
     public function __construct(array $input)
@@ -84,12 +84,12 @@ final class Attachment
     /**
      * @param array{
      *   RawContent: string,
-     *   ContentDisposition?: AttachmentContentDisposition::*|null,
+     *   ContentDisposition?: null|AttachmentContentDisposition::*,
      *   FileName: string,
-     *   ContentDescription?: string|null,
-     *   ContentId?: string|null,
-     *   ContentTransferEncoding?: AttachmentContentTransferEncoding::*|null,
-     *   ContentType?: string|null,
+     *   ContentDescription?: null|string,
+     *   ContentId?: null|string,
+     *   ContentTransferEncoding?: null|AttachmentContentTransferEncoding::*,
+     *   ContentType?: null|string,
      * }|Attachment $input
      */
     public static function create($input): self
@@ -140,7 +140,6 @@ final class Attachment
         $payload['RawContent'] = base64_encode($v);
         if (null !== $v = $this->contentDisposition) {
             if (!AttachmentContentDisposition::exists($v)) {
-                /** @psalm-suppress NoValue */
                 throw new InvalidArgument(\sprintf('Invalid parameter "ContentDisposition" for "%s". The value "%s" is not a valid "AttachmentContentDisposition".', __CLASS__, $v));
             }
             $payload['ContentDisposition'] = $v;
@@ -155,7 +154,6 @@ final class Attachment
         }
         if (null !== $v = $this->contentTransferEncoding) {
             if (!AttachmentContentTransferEncoding::exists($v)) {
-                /** @psalm-suppress NoValue */
                 throw new InvalidArgument(\sprintf('Invalid parameter "ContentTransferEncoding" for "%s". The value "%s" is not a valid "AttachmentContentTransferEncoding".', __CLASS__, $v));
             }
             $payload['ContentTransferEncoding'] = $v;

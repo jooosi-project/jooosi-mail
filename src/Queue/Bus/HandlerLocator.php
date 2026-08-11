@@ -18,9 +18,9 @@ use JooosiMailDeps\Symfony\Component\Messenger\Handler\HandlersLocatorInterface;
  * @since 0.1.0
  */
 #[Service]
-final readonly class HandlerLocator implements HandlersLocatorInterface
+final class HandlerLocator implements HandlersLocatorInterface
 {
-    public function __construct(private DiscoveryManifest $manifest, private ContainerInterface $container)
+    public function __construct(private readonly DiscoveryManifest $manifest, private readonly ContainerInterface $container)
     {
     }
     /**
@@ -34,7 +34,8 @@ final readonly class HandlerLocator implements HandlersLocatorInterface
         $message = $envelope->getMessage();
         foreach ($this->manifest->messageHandlers as $className) {
             $reflectionClass = new ReflectionClass($className);
-            $attribute = $reflectionClass->getAttributes(MessageHandler::class)[array_key_first($reflectionClass->getAttributes(MessageHandler::class))];
+            $attributes = $reflectionClass->getAttributes(MessageHandler::class);
+            $attribute = $attributes[0] ?? null;
             if ($attribute === null) {
                 continue;
             }

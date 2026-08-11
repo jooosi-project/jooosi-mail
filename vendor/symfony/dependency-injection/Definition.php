@@ -41,7 +41,7 @@ class Definition
     private array $changes = [];
     private array $bindings = [];
     private array $errors = [];
-    protected array $arguments = [];
+    protected $arguments = [];
     /**
      * @internal
      *
@@ -54,12 +54,6 @@ class Definition
      * Used to store the behavior to follow when using service decoration and the decorated service is invalid
      */
     public ?int $decorationOnInvalid = null;
-    /**
-     * @internal
-     *
-     * Used to store the priority of the decoration
-     */
-    public ?int $decorationPriority = null;
     public function __construct(?string $class = null, array $arguments = [])
     {
         if (null !== $class) {
@@ -89,16 +83,16 @@ class Definition
     /**
      * Sets a factory.
      *
-     * @param string|array|Definition|Reference|null $factory A PHP function, reference or an array containing a class/Reference and a method to call
+     * @param string|array|Reference|null $factory A PHP function, reference or an array containing a class/Reference and a method to call
      *
      * @return $this
      */
-    public function setFactory(string|array|self|Reference|null $factory): static
+    public function setFactory(string|array|Reference|null $factory): static
     {
         $this->changes['factory'] = \true;
         if (\is_string($factory) && str_contains($factory, '::')) {
             $factory = explode('::', $factory, 2);
-        } elseif ($factory instanceof Reference || $factory instanceof self) {
+        } elseif ($factory instanceof Reference) {
             $factory = [$factory, '__invoke'];
         }
         $this->factory = $factory;
@@ -225,6 +219,9 @@ class Definition
         if (0 === \count($this->arguments)) {
             throw new OutOfBoundsException(\sprintf('Cannot replace arguments for class "%s" if none have been configured yet.', $this->class));
         }
+        if (\is_int($index) && ($index < 0 || $index > \count($this->arguments) - 1)) {
+            throw new OutOfBoundsException(\sprintf('The index "%d" is not in the range [0, %d] of the arguments of class "%s".', $index, \count($this->arguments) - 1, $this->class));
+        }
         if (!\array_key_exists($index, $this->arguments)) {
             throw new OutOfBoundsException(\sprintf('The argument "%s" doesn\'t exist in class "%s".', $index, $this->class));
         }
@@ -286,7 +283,7 @@ class Definition
      */
     public function addMethodCall(string $method, array $arguments = [], bool $returnsClone = \false): static
     {
-        if (!$method) {
+        if (empty($method)) {
             throw new InvalidArgumentException('Method name cannot be empty.');
         }
         $this->calls[] = $returnsClone ? [$method, $arguments, \true] : [$method, $arguments];
@@ -394,17 +391,6 @@ class Definition
     {
         $this->tags[$name][] = $attributes;
         return $this;
-    }
-    /**
-     * Adds a "resource" tag to the definition and marks it as excluded.
-     *
-     * These definitions should be processed using {@see ContainerBuilder::findTaggedResourceIds()}
-     *
-     * @return $this
-     */
-    public function addResourceTag(string $name, array $attributes = []): static
-    {
-        return $this->addTag($name, $attributes)->addTag('container.excluded', ['source' => \sprintf('by tag "%s"', $name)]);
     }
     /**
      * Whether this definition has a tag with the given name.
@@ -597,16 +583,16 @@ class Definition
     /**
      * Sets a configurator to call after the service is fully initialized.
      *
-     * @param string|array|Definition|Reference|null $configurator A PHP function, reference or an array containing a class/Reference and a method to call
+     * @param string|array|Reference|null $configurator A PHP function, reference or an array containing a class/Reference and a method to call
      *
      * @return $this
      */
-    public function setConfigurator(string|array|self|Reference|null $configurator): static
+    public function setConfigurator(string|array|Reference|null $configurator): static
     {
         $this->changes['configurator'] = \true;
         if (\is_string($configurator) && str_contains($configurator, '::')) {
             $configurator = explode('::', $configurator, 2);
-        } elseif ($configurator instanceof Reference || $configurator instanceof self) {
+        } elseif ($configurator instanceof Reference) {
             $configurator = [$configurator, '__invoke'];
         }
         $this->configurator = $configurator;
@@ -700,19 +686,5 @@ class Definition
     public function hasErrors(): bool
     {
         return (bool) $this->errors;
-    }
-    public function __serialize(): array
-    {
-        $data = [];
-        foreach ((array) $this as $k => $v) {
-            if (\false !== $i = strrpos($k, "\x00")) {
-                $k = substr($k, 1 + $i);
-            }
-            if (!$v xor 'shared' === $k) {
-                continue;
-            }
-            $data[$k] = $v;
-        }
-        return $data;
     }
 }

@@ -10,10 +10,10 @@
  */
 namespace JooosiMailDeps\Symfony\Component\HttpClient\Internal;
 
-use JooosiMailDeps\Amp\Cancellation;
 use JooosiMailDeps\Amp\Dns;
-use JooosiMailDeps\Amp\Dns\DnsRecord;
-use JooosiMailDeps\Amp\Dns\DnsResolver;
+use JooosiMailDeps\Amp\Dns\Record;
+use JooosiMailDeps\Amp\Promise;
+use JooosiMailDeps\Amp\Success;
 /**
  * Handles local overrides for the DNS resolver.
  *
@@ -21,33 +21,35 @@ use JooosiMailDeps\Amp\Dns\DnsResolver;
  *
  * @internal
  */
-class AmpResolver implements DnsResolver
+class AmpResolver implements Dns\Resolver
 {
-    public function __construct(private array &$dnsMap)
+    private array $dnsMap;
+    public function __construct(array &$dnsMap)
     {
+        $this->dnsMap =& $dnsMap;
     }
-    public function resolve(string $name, ?int $typeRestriction = null, ?Cancellation $cancellation = null): array
+    public function resolve(string $name, ?int $typeRestriction = null): Promise
     {
-        $recordType = DnsRecord::A;
+        $recordType = Record::A;
         $ip = $this->dnsMap[$name] ?? null;
         if (null !== $ip && str_contains($ip, ':')) {
-            $recordType = DnsRecord::AAAA;
+            $recordType = Record::AAAA;
         }
         if (null === $ip || $recordType !== ($typeRestriction ?? $recordType)) {
-            return Dns\resolve($name, $typeRestriction, $cancellation);
+            return Dns\resolver()->resolve($name, $typeRestriction);
         }
-        return [new DnsRecord($ip, $recordType, null)];
+        return new Success([new Record($ip, $recordType, null)]);
     }
-    public function query(string $name, int $type, ?Cancellation $cancellation = null): array
+    public function query(string $name, int $type): Promise
     {
-        $recordType = DnsRecord::A;
+        $recordType = Record::A;
         $ip = $this->dnsMap[$name] ?? null;
         if (null !== $ip && str_contains($ip, ':')) {
-            $recordType = DnsRecord::AAAA;
+            $recordType = Record::AAAA;
         }
-        if (null !== $ip || $recordType !== $type) {
-            return Dns\resolve($name, $type, $cancellation);
+        if (null === $ip || $recordType !== $type) {
+            return Dns\resolver()->query($name, $type);
         }
-        return [new DnsRecord($ip, $recordType, null)];
+        return new Success([new Record($ip, $recordType, null)]);
     }
 }

@@ -16,16 +16,28 @@ use JooosiMailDeps\Symfony\Component\Mailer\Exception\InvalidArgumentException;
  */
 final class Dsn
 {
+    private string $scheme;
+    private string $host;
+    private ?string $user;
+    private ?string $password;
+    private ?int $port;
+    private array $options;
     public function __construct(
-        private string $scheme,
-        private string $host,
-        private ?string $user = null,
+        string $scheme,
+        string $host,
+        ?string $user = null,
         #[\SensitiveParameter]
-        private ?string $password = null,
-        private ?int $port = null,
-        private array $options = []
+        ?string $password = null,
+        ?int $port = null,
+        array $options = []
     )
     {
+        $this->scheme = $scheme;
+        $this->host = $host;
+        $this->user = $user;
+        $this->password = $password;
+        $this->port = $port;
+        $this->options = $options;
     }
     public static function fromString(
         #[\SensitiveParameter]
@@ -70,9 +82,5 @@ final class Dsn
     public function getOption(string $key, mixed $default = null): mixed
     {
         return $this->options[$key] ?? $default;
-    }
-    public function getBooleanOption(string $key, bool $default = \false): bool
-    {
-        return filter_var($this->getOption($key, $default), \FILTER_VALIDATE_BOOLEAN);
     }
 }

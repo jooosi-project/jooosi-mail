@@ -21,8 +21,10 @@ use JooosiMailDeps\Symfony\Component\Messenger\Transport\TransportInterface;
  */
 class SyncTransportFactory implements TransportFactoryInterface
 {
-    public function __construct(private MessageBusInterface $messageBus)
+    private MessageBusInterface $messageBus;
+    public function __construct(MessageBusInterface $messageBus)
     {
+        $this->messageBus = $messageBus;
     }
     public function createTransport(
         #[\SensitiveParameter]

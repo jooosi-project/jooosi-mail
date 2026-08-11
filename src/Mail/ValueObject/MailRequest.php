@@ -8,7 +8,7 @@ namespace JooosiMail\Mail\ValueObject;
  *
  * @since 0.1.0
  */
-final readonly class MailRequest
+final class MailRequest
 {
     /**
      * @param list<MailAddress> $from
@@ -20,7 +20,7 @@ final readonly class MailRequest
      * @param array<string, string> $headers
      * @param array<string, mixed>  $metadata
      */
-    public function __construct(public array $from, public array $to, public array $cc, public array $bcc, public array $replyTo, public string $subject, public ?string $textBody, public ?string $htmlBody, public array $attachments, public array $headers, public ?\JooosiMail\Mail\ValueObject\MailAddress $envelopeSender = null, public string $source = 'wp_mail', public array $metadata = [])
+    public function __construct(public readonly array $from, public readonly array $to, public readonly array $cc, public readonly array $bcc, public readonly array $replyTo, public readonly string $subject, public readonly ?string $textBody, public readonly ?string $htmlBody, public readonly array $attachments, public readonly array $headers, public readonly ?\JooosiMail\Mail\ValueObject\MailAddress $envelopeSender = null, public readonly string $source = 'wp_mail', public readonly array $metadata = [])
     {
     }
     /**

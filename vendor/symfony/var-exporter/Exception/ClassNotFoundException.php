@@ -12,12 +12,8 @@ namespace JooosiMailDeps\Symfony\Component\VarExporter\Exception;
 
 class ClassNotFoundException extends \Exception implements ExceptionInterface
 {
-    public function __construct(string|\Throwable $class, ?\Throwable $previous = null)
+    public function __construct(string $class, ?\Throwable $previous = null)
     {
-        if ($class instanceof \Throwable) {
-            parent::__construct($class->getMessage(), 0, $class);
-        } else {
-            parent::__construct(\sprintf('Class "%s" not found.', $class), 0, $previous);
-        }
+        parent::__construct(\sprintf('Class "%s" not found.', $class), 0, $previous);
     }
 }

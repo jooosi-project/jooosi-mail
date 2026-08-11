@@ -7,7 +7,6 @@ use JooosiMailDeps\Doctrine\DBAL\Driver\API\ExceptionConverter;
 use JooosiMailDeps\Doctrine\DBAL\Driver\Connection as DriverConnection;
 use JooosiMailDeps\Doctrine\DBAL\Driver\Exception;
 use JooosiMailDeps\Doctrine\DBAL\Platforms\AbstractPlatform;
-use JooosiMailDeps\Doctrine\DBAL\Platforms\Exception\PlatformException;
 use SensitiveParameter;
 /**
  * Driver interface.
@@ -36,8 +35,6 @@ interface Driver
      * the platform this driver connects to.
      *
      * @return AbstractPlatform The database platform.
-     *
-     * @throws PlatformException
      */
     public function getDatabasePlatform(ServerVersionProvider $versionProvider): AbstractPlatform;
     /**

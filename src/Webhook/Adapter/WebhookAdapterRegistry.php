@@ -27,8 +27,13 @@ final class WebhookAdapterRegistry
      */
     public function resolve(Connection $connection): \JooosiMail\Webhook\Adapter\WebhookAdapterInterface
     {
+        foreach ($this->all() as $adapter) {
+            if ($adapter->supports($connection)) {
+                return $adapter;
+            }
+        }
         // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-        return array_find($this->all(), static fn(\JooosiMail\Webhook\Adapter\WebhookAdapterInterface $adapter): bool => $adapter->supports($connection)) ?? throw new RuntimeException(sprintf('No webhook adapter matched connection profile "%s".', $connection->profileKey));
+        throw new RuntimeException(sprintf('No webhook adapter matched connection profile "%s".', $connection->profileKey));
     }
     /**
      * @return list<WebhookAdapterInterface>

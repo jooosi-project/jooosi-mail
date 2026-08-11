@@ -12,10 +12,13 @@ use RuntimeException;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MigrationRegistry
+final class MigrationRegistry
 {
-    private const string MIGRATIONS_DIRECTORY = '/Database/Migration/Versions';
-    public function __construct(private Paths $paths)
+    /**
+     * @var string
+     */
+    private const MIGRATIONS_DIRECTORY = '/Database/Migration/Versions';
+    public function __construct(private readonly Paths $paths)
     {
     }
     /**

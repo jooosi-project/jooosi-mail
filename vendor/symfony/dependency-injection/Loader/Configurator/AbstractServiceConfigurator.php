@@ -14,10 +14,14 @@ use JooosiMailDeps\Symfony\Component\DependencyInjection\Definition;
 use JooosiMailDeps\Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 abstract class AbstractServiceConfigurator extends AbstractConfigurator
 {
+    protected $parent;
+    protected $id;
     private array $defaultTags = [];
-    public function __construct(protected ServicesConfigurator $parent, Definition $definition, protected ?string $id = null, array $defaultTags = [])
+    public function __construct(ServicesConfigurator $parent, Definition $definition, ?string $id = null, array $defaultTags = [])
     {
+        $this->parent = $parent;
         $this->definition = $definition;
+        $this->id = $id;
         $this->defaultTags = $defaultTags;
     }
     public function __destruct()
@@ -77,7 +81,7 @@ abstract class AbstractServiceConfigurator extends AbstractConfigurator
      *
      * @param InlineServiceConfigurator[]|ReferenceConfigurator[] $services
      */
-    final public function stack(string $id, array $services): StackConfigurator
+    final public function stack(string $id, array $services): AliasConfigurator
     {
         $this->__destruct();
         return $this->parent->stack($id, $services);

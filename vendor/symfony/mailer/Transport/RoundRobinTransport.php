@@ -10,8 +10,6 @@
  */
 namespace JooosiMailDeps\Symfony\Component\Mailer\Transport;
 
-use JooosiMailDeps\Psr\Log\LoggerInterface;
-use JooosiMailDeps\Psr\Log\NullLogger;
 use JooosiMailDeps\Symfony\Component\Mailer\Envelope;
 use JooosiMailDeps\Symfony\Component\Mailer\Exception\TransportException;
 use JooosiMailDeps\Symfony\Component\Mailer\Exception\TransportExceptionInterface;
@@ -28,16 +26,20 @@ class RoundRobinTransport implements TransportInterface
      * @var \SplObjectStorage<TransportInterface, float>
      */
     private \SplObjectStorage $deadTransports;
+    private array $transports = [];
+    private int $retryPeriod;
     private int $cursor = -1;
     /**
      * @param TransportInterface[] $transports
      */
-    public function __construct(private array $transports, private int $retryPeriod = 60, private LoggerInterface $logger = new NullLogger())
+    public function __construct(array $transports, int $retryPeriod = 60)
     {
         if (!$transports) {
             throw new TransportException(\sprintf('"%s" must have at least one transport configured.', static::class));
         }
+        $this->transports = $transports;
         $this->deadTransports = new \SplObjectStorage();
+        $this->retryPeriod = $retryPeriod;
     }
     public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
     {
@@ -48,7 +50,6 @@ class RoundRobinTransport implements TransportInterface
             } catch (TransportExceptionInterface $e) {
                 $exception ??= new TransportException('All transports failed.');
                 $exception->appendDebug(\sprintf("Transport \"%s\": %s\n", $transport, $e->getDebug()));
-                $this->logger->error(\sprintf('Transport "%s" failed.', $transport), ['exception' => $e]);
                 $this->deadTransports[$transport] = microtime(\true);
             }
         }
@@ -91,7 +92,7 @@ class RoundRobinTransport implements TransportInterface
     {
         // the cursor initial value is randomized so that
         // when are not in a daemon, we are still rotating the transports
-        return random_int(0, \count($this->transports) - 1);
+        return mt_rand(0, \count($this->transports) - 1);
     }
     protected function getNameSymbol(): string
     {
@@ -102,3 +103,4 @@ class RoundRobinTransport implements TransportInterface
         return ++$cursor >= \count($this->transports) ? 0 : $cursor;
     }
 }
+// @php-cs-fixer-ignore random_api_migration

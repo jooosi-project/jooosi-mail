@@ -26,12 +26,7 @@ use JooosiMailDeps\Symfony\Component\Mime\RawMessage;
 class PostmarkSmtpTransport extends EsmtpTransport
 {
     private ?string $messageStream = null;
-    public function __construct(
-        #[\SensitiveParameter]
-        string $id,
-        ?EventDispatcherInterface $dispatcher = null,
-        ?LoggerInterface $logger = null
-    )
+    public function __construct(string $id, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
     {
         parent::__construct('smtp.postmarkapp.com', 587, \false, $dispatcher, $logger);
         $this->setUsername($id);
@@ -40,7 +35,6 @@ class PostmarkSmtpTransport extends EsmtpTransport
     public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
     {
         if ($message instanceof Message) {
-            $message = clone $message;
             $this->addPostmarkHeaders($message);
         }
         return parent::send($message, $envelope);

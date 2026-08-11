@@ -11,6 +11,7 @@
 namespace JooosiMailDeps\Symfony\Component\Mailer\Bridge\Amazon\Transport;
 
 use JooosiMailDeps\AsyncAws\Core\Exception\Http\HttpException;
+use JooosiMailDeps\AsyncAws\Core\Exception\Http\NetworkException;
 use JooosiMailDeps\AsyncAws\Ses\Input\SendEmailRequest;
 use JooosiMailDeps\AsyncAws\Ses\SesClient;
 use JooosiMailDeps\AsyncAws\Ses\ValueObject\Destination;
@@ -26,8 +27,11 @@ use JooosiMailDeps\Symfony\Component\Mime\Message;
  */
 class SesHttpAsyncAwsTransport extends AbstractTransport
 {
-    public function __construct(protected SesClient $sesClient, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
+    /** @var SesClient */
+    protected $sesClient;
+    public function __construct(SesClient $sesClient, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
     {
+        $this->sesClient = $sesClient;
         parent::__construct($dispatcher, $logger);
     }
     public function __toString(): string
@@ -52,25 +56,21 @@ class SesHttpAsyncAwsTransport extends AbstractTransport
             $exception = new HttpTransportException(\sprintf('Unable to send an email: %s (code %s).', $e->getAwsMessage() ?: $e->getMessage(), $e->getAwsCode() ?: $e->getCode()), $e->getResponse(), $e->getCode(), $e);
             $exception->appendDebug($e->getResponse()->getInfo('debug') ?? '');
             throw $exception;
+        } catch (NetworkException $e) {
+            throw new HttpTransportException('Could not reach the remote Amazon server.', $response, 0, $e);
         }
     }
     protected function getRequest(SentMessage $message): SendEmailRequest
     {
         $request = ['Destination' => new Destination(['ToAddresses' => $this->stringifyAddresses($message->getEnvelope()->getRecipients())]), 'Content' => ['Raw' => ['Data' => $message->toString()]]];
-        $originalMessage = $message->getOriginalMessage();
-        if ($originalMessage instanceof Message) {
-            if ($configurationSetHeader = $message->getOriginalMessage()->getHeaders()->get('X-SES-CONFIGURATION-SET')) {
-                $request['ConfigurationSetName'] = $configurationSetHeader->getBodyAsString();
-            }
-            if ($sourceArnHeader = $message->getOriginalMessage()->getHeaders()->get('X-SES-SOURCE-ARN')) {
-                $request['FromEmailAddressIdentityArn'] = $sourceArnHeader->getBodyAsString();
-            }
-            if ($header = $message->getOriginalMessage()->getHeaders()->get('X-SES-LIST-MANAGEMENT-OPTIONS')) {
-                if (preg_match('/^(contactListName=)*(?<ContactListName>[^;]+)(;\s?topicName=(?<TopicName>.+))?$/ix', $header->getBodyAsString(), $listManagementOptions)) {
-                    $request['ListManagementOptions'] = array_filter($listManagementOptions, static fn($e) => \in_array($e, ['ContactListName', 'TopicName'], \true), \ARRAY_FILTER_USE_KEY);
-                }
-            }
-            foreach ($originalMessage->getHeaders()->all() as $header) {
+        if ($message->getOriginalMessage() instanceof Message && $configurationSetHeader = $message->getOriginalMessage()->getHeaders()->get('X-SES-CONFIGURATION-SET')) {
+            $request['ConfigurationSetName'] = $configurationSetHeader->getBodyAsString();
+        }
+        if ($message->getOriginalMessage() instanceof Message && $sourceArnHeader = $message->getOriginalMessage()->getHeaders()->get('X-SES-SOURCE-ARN')) {
+            $request['FromEmailAddressIdentityArn'] = $sourceArnHeader->getBodyAsString();
+        }
+        if ($message->getOriginalMessage() instanceof Message) {
+            foreach ($message->getOriginalMessage()->getHeaders()->all() as $header) {
                 if ($header instanceof MetadataHeader) {
                     $request['EmailTags'][] = ['Name' => $header->getKey(), 'Value' => $header->getValue()];
                 }

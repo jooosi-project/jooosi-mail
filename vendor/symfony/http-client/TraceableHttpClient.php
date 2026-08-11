@@ -10,6 +10,8 @@
  */
 namespace JooosiMailDeps\Symfony\Component\HttpClient;
 
+use JooosiMailDeps\Psr\Log\LoggerAwareInterface;
+use JooosiMailDeps\Psr\Log\LoggerInterface;
 use JooosiMailDeps\Symfony\Component\HttpClient\Response\ResponseStream;
 use JooosiMailDeps\Symfony\Component\HttpClient\Response\TraceableResponse;
 use JooosiMailDeps\Symfony\Component\Stopwatch\Stopwatch;
@@ -20,28 +22,27 @@ use JooosiMailDeps\Symfony\Contracts\Service\ResetInterface;
 /**
  * @author Jérémy Romey <jeremy@free-agent.fr>
  */
-final class TraceableHttpClient implements HttpClientInterface, ResetInterface
+final class TraceableHttpClient implements HttpClientInterface, ResetInterface, LoggerAwareInterface
 {
+    private HttpClientInterface $client;
+    private ?Stopwatch $stopwatch;
     private \ArrayObject $tracedRequests;
-    public function __construct(private HttpClientInterface $client, private ?Stopwatch $stopwatch = null, private ?\Closure $disabled = null)
+    public function __construct(HttpClientInterface $client, ?Stopwatch $stopwatch = null)
     {
+        $this->client = $client;
+        $this->stopwatch = $stopwatch;
         $this->tracedRequests = new \ArrayObject();
     }
     public function request(string $method, string $url, array $options = []): ResponseInterface
     {
-        if ($this->disabled?->__invoke()) {
-            return new TraceableResponse($this->client, $this->client->request($method, $url, $options));
-        }
         $content = null;
         $traceInfo = [];
-        $tracedRequest = ['method' => $method, 'url' => $url, 'options' => $options, 'info' => &$traceInfo, 'content' => &$content];
+        $this->tracedRequests[] = ['method' => $method, 'url' => $url, 'options' => $options, 'info' => &$traceInfo, 'content' => &$content];
         $onProgress = $options['on_progress'] ?? null;
         if (\false === ($options['extra']['trace_content'] ?? \true)) {
             unset($content);
             $content = \false;
-            unset($tracedRequest['options']['body'], $tracedRequest['options']['json']);
         }
-        $this->tracedRequests[] = $tracedRequest;
         $options['on_progress'] = static function (int $dlNow, int $dlSize, array $info) use (&$traceInfo, $onProgress) {
             $traceInfo = $info;
             if (null !== $onProgress) {
@@ -67,6 +68,12 @@ final class TraceableHttpClient implements HttpClientInterface, ResetInterface
             $this->client->reset();
         }
         $this->tracedRequests->exchangeArray([]);
+    }
+    public function setLogger(LoggerInterface $logger): void
+    {
+        if ($this->client instanceof LoggerAwareInterface) {
+            $this->client->setLogger($logger);
+        }
     }
     public function withOptions(array $options): static
     {

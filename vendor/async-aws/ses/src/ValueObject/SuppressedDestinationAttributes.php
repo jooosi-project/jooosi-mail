@@ -4,28 +4,27 @@ namespace JooosiMailDeps\AsyncAws\Ses\ValueObject;
 
 /**
  * An object that contains additional attributes that are related an email address that is on the suppression list for
- * your account or for a specific tenant.
+ * your account.
  */
 final class SuppressedDestinationAttributes
 {
     /**
      * The unique identifier of the email message that caused the email address to be added to the suppression list for your
-     * account or for a specific tenant.
+     * account.
      *
      * @var string|null
      */
     private $messageId;
     /**
-     * A unique identifier that's generated when an email address is added to the suppression list for your account or for a
-     * specific tenant.
+     * A unique identifier that's generated when an email address is added to the suppression list for your account.
      *
      * @var string|null
      */
     private $feedbackId;
     /**
      * @param array{
-     *   MessageId?: string|null,
-     *   FeedbackId?: string|null,
+     *   MessageId?: null|string,
+     *   FeedbackId?: null|string,
      * } $input
      */
     public function __construct(array $input)
@@ -35,8 +34,8 @@ final class SuppressedDestinationAttributes
     }
     /**
      * @param array{
-     *   MessageId?: string|null,
-     *   FeedbackId?: string|null,
+     *   MessageId?: null|string,
+     *   FeedbackId?: null|string,
      * }|SuppressedDestinationAttributes $input
      */
     public static function create($input): self

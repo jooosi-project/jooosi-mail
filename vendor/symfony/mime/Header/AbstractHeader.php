@@ -28,7 +28,10 @@ abstract class AbstractHeader implements HeaderInterface
     {
         $this->name = $name;
     }
-    public function setCharset(string $charset): void
+    /**
+     * @return void
+     */
+    public function setCharset(string $charset)
     {
         $this->charset = $charset;
     }
@@ -40,8 +43,10 @@ abstract class AbstractHeader implements HeaderInterface
      * Set the language used in this Header.
      *
      * For example, for US English, 'en-us'.
+     *
+     * @return void
      */
-    public function setLanguage(string $lang): void
+    public function setLanguage(string $lang)
     {
         $this->lang = $lang;
     }
@@ -53,7 +58,10 @@ abstract class AbstractHeader implements HeaderInterface
     {
         return $this->name;
     }
-    public function setMaxLineLength(int $lineLength): void
+    /**
+     * @return void
+     */
+    public function setMaxLineLength(int $lineLength)
     {
         $this->lineLength = $lineLength;
     }
@@ -158,11 +166,18 @@ abstract class AbstractHeader implements HeaderInterface
         if ('' !== $encodedToken) {
             $tokens[] = $encodedToken;
         }
-        foreach ($tokens as $i => $token) {
-            // whitespace(s) between 2 encoded tokens
-            if (0 < $i && isset($tokens[$i + 1]) && preg_match('~^[\t ]+$~', $token) && $this->tokenNeedsEncoding($tokens[$i - 1]) && $this->tokenNeedsEncoding($tokens[$i + 1])) {
-                $tokens[$i - 1] .= $token . $tokens[$i + 1];
-                array_splice($tokens, $i, 2);
+        $i = 1;
+        while (isset($tokens[$i + 1])) {
+            // whitespace-only token(s) between 2 encoded tokens; a gap of N spaces yields N - 1 of them
+            $j = $i;
+            while (preg_match('~^[\t ]+$~', $tokens[$j] ?? '')) {
+                ++$j;
+            }
+            if ($j > $i && isset($tokens[$j]) && $this->tokenNeedsEncoding($tokens[$i - 1]) && $this->tokenNeedsEncoding($tokens[$j])) {
+                $tokens[$i - 1] .= implode('', \array_slice($tokens, $i, 1 + $j - $i));
+                array_splice($tokens, $i, 1 + $j - $i);
+            } else {
+                ++$i;
             }
         }
         return $tokens;

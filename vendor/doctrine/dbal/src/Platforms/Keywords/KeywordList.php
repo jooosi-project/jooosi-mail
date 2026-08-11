@@ -3,23 +3,16 @@
 declare (strict_types=1);
 namespace JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords;
 
-use JooosiMailDeps\Doctrine\Deprecations\Deprecation;
 use function array_flip;
 use function array_map;
 use function strtoupper;
 /**
  * Abstract interface for a SQL reserved keyword dictionary.
- *
- * @deprecated
  */
 abstract class KeywordList
 {
     /** @var string[]|null */
     private ?array $keywords = null;
-    public function __construct()
-    {
-        Deprecation::triggerIfCalledFromOutside('doctrine/dbal', 'https://github.com/doctrine/dbal/pull/6607', '%s is deprecated.', static::class);
-    }
     /**
      * Checks if the given word is a keyword of this dialect/vendor platform.
      */

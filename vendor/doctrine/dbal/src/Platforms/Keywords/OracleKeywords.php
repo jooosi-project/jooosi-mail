@@ -5,8 +5,6 @@ namespace JooosiMailDeps\Doctrine\DBAL\Platforms\Keywords;
 
 /**
  * Oracle Keywordlist.
- *
- * @deprecated
  */
 class OracleKeywords extends KeywordList
 {

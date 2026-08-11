@@ -13,9 +13,9 @@ use JooosiMail\Infrastructure\Database\TableNameResolver;
  * @since 0.1.0
  */
 #[Service]
-final readonly class WebhookEventRepository
+final class WebhookEventRepository
 {
-    public function __construct(private DbalConnection $connection, private TableNameResolver $tableNameResolver)
+    public function __construct(private readonly DbalConnection $connection, private readonly TableNameResolver $tableNameResolver)
     {
     }
     /**

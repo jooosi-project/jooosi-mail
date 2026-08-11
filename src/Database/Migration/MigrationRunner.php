@@ -11,9 +11,9 @@ use RuntimeException;
  * @since 0.1.0
  */
 #[Service]
-final readonly class MigrationRunner
+final class MigrationRunner
 {
-    public function __construct(private \JooosiMail\Database\Migration\MigrationManager $migrationManager)
+    public function __construct(private readonly \JooosiMail\Database\Migration\MigrationManager $migrationManager)
     {
     }
     /**

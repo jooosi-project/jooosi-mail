@@ -25,7 +25,7 @@ final class Content
     /**
      * @param array{
      *   Data: string,
-     *   Charset?: string|null,
+     *   Charset?: null|string,
      * } $input
      */
     public function __construct(array $input)
@@ -36,7 +36,7 @@ final class Content
     /**
      * @param array{
      *   Data: string,
-     *   Charset?: string|null,
+     *   Charset?: null|string,
      * }|Content $input
      */
     public static function create($input): self

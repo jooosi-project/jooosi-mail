@@ -15,7 +15,6 @@ use function sha1;
  * It is a value object, setter methods return NEW instances.
  *
  * @phpstan-import-type WrapperParameterType from Connection
- * @final
  */
 class QueryCacheProfile
 {

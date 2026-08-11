@@ -12,9 +12,9 @@ use JooosiMail\Mail\Connection\Connection;
  * @since 0.1.0
  */
 #[Service]
-final readonly class ConnectionAvailabilityDecider
+final class ConnectionAvailabilityDecider
 {
-    public function __construct(private \JooosiMail\Mail\Routing\ConnectionCircuitBreaker $connectionCircuitBreaker, private \JooosiMail\Mail\Routing\ConnectionRateLimiter $connectionRateLimiter, private EventPublisherInterface $eventPublisher)
+    public function __construct(private readonly \JooosiMail\Mail\Routing\ConnectionCircuitBreaker $connectionCircuitBreaker, private readonly \JooosiMail\Mail\Routing\ConnectionRateLimiter $connectionRateLimiter, private readonly EventPublisherInterface $eventPublisher)
     {
     }
     /**

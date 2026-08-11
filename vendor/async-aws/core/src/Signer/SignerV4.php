@@ -17,7 +17,7 @@ use JooosiMailDeps\AsyncAws\Core\Stream\StringStream;
 class SignerV4 implements Signer
 {
     private const ALGORITHM_REQUEST = 'AWS4-HMAC-SHA256';
-    private const BLACKLIST_HEADERS = ['cache-control' => \true, 'content-type' => \true, 'content-length' => \true, 'expect' => \true, 'max-forwards' => \true, 'pragma' => \true, 'range' => \true, 'te' => \true, 'if-match' => \true, 'if-none-match' => \true, 'if-modified-since' => \true, 'if-unmodified-since' => \true, 'if-range' => \true, 'accept' => \true, 'authorization' => \true, 'proxy-authorization' => \true, 'from' => \true, 'referer' => \true, 'user-agent' => \true, 'x-amz-user-agent' => \true, 'x-amzn-trace-id' => \true, 'aws-sdk-invocation-id' => \true, 'aws-sdk-retry' => \true];
+    private const BLACKLIST_HEADERS = ['cache-control' => \true, 'content-type' => \true, 'content-length' => \true, 'expect' => \true, 'max-forwards' => \true, 'pragma' => \true, 'range' => \true, 'te' => \true, 'if-match' => \true, 'if-none-match' => \true, 'if-modified-since' => \true, 'if-unmodified-since' => \true, 'if-range' => \true, 'accept' => \true, 'authorization' => \true, 'proxy-authorization' => \true, 'from' => \true, 'referer' => \true, 'user-agent' => \true, 'x-amzn-trace-id' => \true, 'aws-sdk-invocation-id' => \true, 'aws-sdk-retry' => \true];
     /**
      * @var string
      */
@@ -33,7 +33,7 @@ class SignerV4 implements Signer
     }
     public function presign(Request $request, Credentials $credentials, RequestContext $context): void
     {
-        $now = $context->getCurrentDate() ?? new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $now = $context->getCurrentDate() ?? new \DateTimeImmutable();
         // Signer date have to be UTC https://docs.aws.amazon.com/general/latest/gr/sigv4-date-handling.html
         $now = $now->setTimezone(new \DateTimeZone('UTC'));
         $expires = $context->getExpirationDate() ?? $now->add(new \DateInterval('PT1H'));
@@ -41,16 +41,16 @@ class SignerV4 implements Signer
     }
     public function sign(Request $request, Credentials $credentials, RequestContext $context): void
     {
-        $now = $context->getCurrentDate() ?? new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $now = $context->getCurrentDate() ?? new \DateTimeImmutable();
         // Signer date have to be UTC https://docs.aws.amazon.com/general/latest/gr/sigv4-date-handling.html
         $now = $now->setTimezone(new \DateTimeZone('UTC'));
         $this->handleSignature($request, $credentials, $now, $now, \false);
     }
     protected function buildBodyDigest(Request $request, bool $isPresign): string
     {
-        if ($request->hasHeader('X-Amz-Content-Sha256')) {
+        if ($request->hasHeader('x-amz-content-sha256')) {
             /** @var string $hash */
-            $hash = $request->getHeader('X-Amz-Content-Sha256');
+            $hash = $request->getHeader('x-amz-content-sha256');
         } else {
             $body = $request->getBody();
             if ($body instanceof ReadOnceResultStream) {
@@ -59,7 +59,7 @@ class SignerV4 implements Signer
             $hash = $request->getBody()->hash();
         }
         if ('UNSIGNED-PAYLOAD' === $hash) {
-            $request->setHeader('X-Amz-Content-Sha256', $hash);
+            $request->setHeader('x-amz-content-sha256', $hash);
         }
         return $hash;
     }
@@ -89,7 +89,7 @@ class SignerV4 implements Signer
         }
         $bodyDigest = $this->buildBodyDigest($request, $isPresign);
         if ($isPresign) {
-            // Should be called after `buildBodyDigest` because this method moves the header `X-Amz-Content-Sha256` in the querystring
+            // Should be called after `buildBodyDigest` because this method may remove the header `x-amz-content-sha256`
             $this->convertHeaderToQuery($request);
         }
         $canonicalHeaders = $this->buildCanonicalHeaders($request, $isPresign);
@@ -99,7 +99,7 @@ class SignerV4 implements Signer
         if ($isPresign) {
             $request->setQueryAttribute('X-Amz-Signature', $signature);
         } else {
-            $request->setHeader('Authorization', \sprintf('%s Credential=%s/%s, SignedHeaders=%s, Signature=%s', self::ALGORITHM_REQUEST, $credentials->getAccessKeyId(), implode('/', $credentialScope), implode(';', array_keys($canonicalHeaders)), $signature));
+            $request->setHeader('authorization', \sprintf('%s Credential=%s/%s, SignedHeaders=%s, Signature=%s', self::ALGORITHM_REQUEST, $credentials->getAccessKeyId(), implode('/', $credentialScope), implode(';', array_keys($canonicalHeaders)), $signature));
         }
     }
     private function removePresign(Request $request): void
@@ -124,7 +124,7 @@ class SignerV4 implements Signer
         if (isset($parsedUrl['port'])) {
             $host .= ':' . $parsedUrl['port'];
         }
-        $request->setHeader('Host', $host);
+        $request->setHeader('host', $host);
     }
     private function assignAmzQueryValues(Request $request, Credentials $credentials, bool $isPresign): void
     {
@@ -136,7 +136,7 @@ class SignerV4 implements Signer
             return;
         }
         if (null !== $sessionToken = $credentials->getSessionToken()) {
-            $request->setHeader('X-Amz-Security-Token', $sessionToken);
+            $request->setHeader('x-amz-security-token', $sessionToken);
         }
     }
     private function buildTime(Request $request, \DateTimeImmutable $now, \DateTimeImmutable $expires, bool $isPresign): void
@@ -169,15 +169,14 @@ class SignerV4 implements Signer
     private function convertHeaderToQuery(Request $request): void
     {
         foreach ($request->getHeaders() as $name => $value) {
-            $lowerName = strtolower($name);
-            if (str_starts_with($lowerName, 'x-amz')) {
+            if ('x-amz' === substr($name, 0, 5)) {
                 $request->setQueryAttribute($name, $value);
             }
-            if (isset(self::BLACKLIST_HEADERS[$lowerName])) {
+            if (isset(self::BLACKLIST_HEADERS[$name])) {
                 $request->removeHeader($name);
             }
         }
-        $request->removeHeader('X-Amz-Content-Sha256');
+        $request->removeHeader('x-amz-content-sha256');
     }
     private function convertBodyToQuery(Request $request): void
     {

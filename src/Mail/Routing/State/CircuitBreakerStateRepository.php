@@ -13,9 +13,9 @@ use Throwable;
  * @since 0.1.0
  */
 #[Service]
-final readonly class CircuitBreakerStateRepository
+final class CircuitBreakerStateRepository
 {
-    public function __construct(private DbalConnection $connection, private TableNameResolver $tableNameResolver)
+    public function __construct(private readonly DbalConnection $connection, private readonly TableNameResolver $tableNameResolver)
     {
     }
     /**

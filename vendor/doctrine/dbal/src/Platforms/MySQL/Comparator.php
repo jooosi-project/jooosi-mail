@@ -4,9 +4,7 @@ declare (strict_types=1);
 namespace JooosiMailDeps\Doctrine\DBAL\Platforms\MySQL;
 
 use JooosiMailDeps\Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use JooosiMailDeps\Doctrine\DBAL\Schema\Column;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Comparator as BaseComparator;
-use JooosiMailDeps\Doctrine\DBAL\Schema\ComparatorConfig;
 use JooosiMailDeps\Doctrine\DBAL\Schema\Table;
 use JooosiMailDeps\Doctrine\DBAL\Schema\TableDiff;
 use function array_diff_assoc;
@@ -16,15 +14,13 @@ use function array_diff_assoc;
  * In MySQL, unless specified explicitly, the column's character set and collation are inherited from its containing
  * table. So during comparison, an omitted value and the value that matches the default value of table in the
  * desired schema must be considered equal.
- *
- * @phpstan-import-type PlatformOptions from Column
  */
 class Comparator extends BaseComparator
 {
     /** @internal The comparator can be only instantiated by a schema manager. */
-    public function __construct(AbstractMySQLPlatform $platform, private readonly CharsetMetadataProvider $charsetMetadataProvider, private readonly CollationMetadataProvider $collationMetadataProvider, private readonly DefaultTableOptions $defaultTableOptions, ComparatorConfig $config = new ComparatorConfig())
+    public function __construct(AbstractMySQLPlatform $platform, private readonly CharsetMetadataProvider $charsetMetadataProvider, private readonly CollationMetadataProvider $collationMetadataProvider, private readonly DefaultTableOptions $defaultTableOptions)
     {
-        parent::__construct($platform, $config);
+        parent::__construct($platform);
     }
     public function compareTables(Table $oldTable, Table $newTable): TableDiff
     {
@@ -51,15 +47,14 @@ class Comparator extends BaseComparator
             if ($overrideOptions === $originalOptions) {
                 continue;
             }
-            /** @phpstan-ignore argument.type */
             $column->setPlatformOptions($overrideOptions);
         }
         return $table;
     }
     /**
-     * @param PlatformOptions $options
+     * @param array<string,string> $options
      *
-     * @return PlatformOptions
+     * @return array<string,string|null>
      */
     private function normalizeOptions(array $options): array
     {

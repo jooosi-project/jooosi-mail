@@ -29,14 +29,10 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\ResponseInterface;
 class MandrillApiTransport extends AbstractApiTransport
 {
     private const HOST = 'mandrillapp.com';
-    public function __construct(
-        #[\SensitiveParameter]
-        private string $key,
-        ?HttpClientInterface $client = null,
-        ?EventDispatcherInterface $dispatcher = null,
-        ?LoggerInterface $logger = null
-    )
+    private string $key;
+    public function __construct(string $key, ?HttpClientInterface $client = null, ?EventDispatcherInterface $dispatcher = null, ?LoggerInterface $logger = null)
     {
+        $this->key = $key;
         parent::__construct($client, $dispatcher, $logger);
     }
     public function __toString(): string
@@ -71,9 +67,6 @@ class MandrillApiTransport extends AbstractApiTransport
     private function getPayload(Email $email, Envelope $envelope): array
     {
         $payload = ['key' => $this->key, 'message' => ['html' => $email->getHtmlBody(), 'text' => $email->getTextBody(), 'subject' => $email->getSubject(), 'from_email' => $envelope->getSender()->getAddress(), 'to' => $this->getRecipientsPayload($email, $envelope)]];
-        if ($email->getHeaders()->get('X-MC-Subaccount')) {
-            $payload['message']['subaccount'] = $email->getHeaders()->get('X-MC-Subaccount')->getBodyAsString();
-        }
         if ('' !== $envelope->getSender()->getName()) {
             $payload['message']['from_name'] = $envelope->getSender()->getName();
         }
@@ -85,13 +78,17 @@ class MandrillApiTransport extends AbstractApiTransport
                 $att['name'] = $name;
             }
             if ('inline' === $disposition) {
+                if ($attachment->hasContentId()) {
+                    $att['name'] = $attachment->getContentId();
+                }
                 $payload['message']['images'][] = $att;
             } else {
                 $payload['message']['attachments'][] = $att;
             }
         }
+        $headersToBypass = ['from', 'to', 'cc', 'bcc', 'subject', 'content-type'];
         foreach ($email->getHeaders()->all() as $name => $header) {
-            if (\in_array($name, ['from', 'to', 'cc', 'bcc', 'subject', 'content-type', 'x-mc-subaccount'], \true)) {
+            if (\in_array($name, $headersToBypass, \true)) {
                 continue;
             }
             if ($header instanceof TagHeader) {

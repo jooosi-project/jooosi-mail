@@ -27,27 +27,24 @@ class RegisterListenersPass implements CompilerPassInterface
     private array $noPreloadEvents = [];
     /**
      * @return $this
-     *
-     * @deprecated since Symfony 8.1, use AddEventAliasesPass instead
      */
     public function setHotPathEvents(array $hotPathEvents): static
     {
-        trigger_deprecation('symfony/event-dispatcher', '8.1', 'The "%s()" method is deprecated, register an "%s" compiler pass with the hot-path events instead.', __METHOD__, AddEventAliasesPass::class);
         $this->hotPathEvents = array_flip($hotPathEvents);
         return $this;
     }
     /**
      * @return $this
-     *
-     * @deprecated since Symfony 8.1, use AddEventAliasesPass instead
      */
     public function setNoPreloadEvents(array $noPreloadEvents): static
     {
-        trigger_deprecation('symfony/event-dispatcher', '8.1', 'The "%s()" method is deprecated, register an "%s" compiler pass with the no-preload events instead.', __METHOD__, AddEventAliasesPass::class);
         $this->noPreloadEvents = array_flip($noPreloadEvents);
         return $this;
     }
-    public function process(ContainerBuilder $container): void
+    /**
+     * @return void
+     */
+    public function process(ContainerBuilder $container)
     {
         if (!$container->hasDefinition('event_dispatcher') && !$container->hasAlias('event_dispatcher')) {
             return;
@@ -56,35 +53,19 @@ class RegisterListenersPass implements CompilerPassInterface
         if ($container->hasParameter('event_dispatcher.event_aliases')) {
             $aliases = $container->getParameter('event_dispatcher.event_aliases');
         }
-        $hotPathEvents = $this->hotPathEvents;
-        $noPreloadEvents = $this->noPreloadEvents;
-        if ($container->hasParameter('event_dispatcher.hot_path_events')) {
-            $hotPathEvents += array_flip($container->getParameter('event_dispatcher.hot_path_events'));
-        }
-        if ($container->hasParameter('event_dispatcher.no_preload_events')) {
-            $noPreloadEvents += array_flip($container->getParameter('event_dispatcher.no_preload_events'));
-        }
         $globalDispatcherDefinition = $container->findDefinition('event_dispatcher');
         foreach ($container->findTaggedServiceIds('kernel.event_listener', \true) as $id => $events) {
             $noPreload = 0;
-            $resolvedEvents = [];
             foreach ($events as $event) {
+                $priority = $event['priority'] ?? 0;
                 if (!isset($event['event'])) {
                     if ($container->getDefinition($id)->hasTag('kernel.event_subscriber')) {
                         continue;
                     }
                     $event['method'] ??= '__invoke';
-                    $eventNames = $this->getEventFromTypeDeclaration($container, $id, $event['method']);
-                } else {
-                    $eventNames = [$event['event']];
+                    $event['event'] = $this->getEventFromTypeDeclaration($container, $id, $event['method']);
                 }
-                foreach ($eventNames as $eventName) {
-                    $event['event'] = $aliases[$eventName] ?? $eventName;
-                    $resolvedEvents[] = $event;
-                }
-            }
-            foreach ($resolvedEvents as $event) {
-                $priority = $event['priority'] ?? 0;
+                $event['event'] = $aliases[$event['event']] ?? $event['event'];
                 if (!isset($event['method'])) {
                     $event['method'] = 'on' . preg_replace_callback(['/(?<=\b|_)[a-z]/i', '/[^a-z0-9]/i'], static fn($matches) => strtoupper($matches[0]), $event['event']);
                     $event['method'] = preg_replace('/[^a-z0-9]/i', '', $event['method']);
@@ -100,9 +81,9 @@ class RegisterListenersPass implements CompilerPassInterface
                     $dispatcherDefinition = $container->findDefinition($event['dispatcher']);
                 }
                 $dispatcherDefinition->addMethodCall('addListener', [$event['event'], [new ServiceClosureArgument(new Reference($id)), $event['method']], $priority]);
-                if (isset($hotPathEvents[$event['event']])) {
+                if (isset($this->hotPathEvents[$event['event']])) {
                     $container->getDefinition($id)->addTag('container.hot_path');
-                } elseif (isset($noPreloadEvents[$event['event']])) {
+                } elseif (isset($this->noPreloadEvents[$event['event']])) {
                     ++$noPreload;
                 }
             }
@@ -141,9 +122,9 @@ class RegisterListenersPass implements CompilerPassInterface
                 foreach ($dispatcherDefinitions as $dispatcherDefinition) {
                     $dispatcherDefinition->addMethodCall('addListener', $args);
                 }
-                if (isset($hotPathEvents[$args[0]])) {
+                if (isset($this->hotPathEvents[$args[0]])) {
                     $container->getDefinition($id)->addTag('container.hot_path');
-                } elseif (isset($noPreloadEvents[$args[0]])) {
+                } elseif (isset($this->noPreloadEvents[$args[0]])) {
                     ++$noPreload;
                 }
             }
@@ -154,26 +135,12 @@ class RegisterListenersPass implements CompilerPassInterface
             ExtractingEventDispatcher::$aliases = [];
         }
     }
-    /**
-     * @return string[]
-     */
-    private function getEventFromTypeDeclaration(ContainerBuilder $container, string $id, string $method): array
+    private function getEventFromTypeDeclaration(ContainerBuilder $container, string $id, string $method): string
     {
-        if (null === ($class = $container->getDefinition($id)->getClass()) || !($r = $container->getReflectionClass($class, \false)) || !$r->hasMethod($method) || 1 > ($m = $r->getMethod($method))->getNumberOfParameters() || !(($type = $m->getParameters()[0]->getType()) instanceof \ReflectionNamedType || $type instanceof \ReflectionUnionType)) {
+        if (null === ($class = $container->getDefinition($id)->getClass()) || !($r = $container->getReflectionClass($class, \false)) || !$r->hasMethod($method) || 1 > ($m = $r->getMethod($method))->getNumberOfParameters() || !($type = $m->getParameters()[0]->getType()) instanceof \ReflectionNamedType || $type->isBuiltin() || Event::class === $name = $type->getName()) {
             throw new InvalidArgumentException(\sprintf('Service "%s" must define the "event" attribute on "kernel.event_listener" tags.', $id));
         }
-        $types = $type instanceof \ReflectionUnionType ? $type->getTypes() : [$type];
-        $names = [];
-        foreach ($types as $type) {
-            if (!$type instanceof \ReflectionNamedType || $type->isBuiltin() || Event::class === $name = $type->getName()) {
-                continue;
-            }
-            $names[] = $name;
-        }
-        if (!$names) {
-            throw new InvalidArgumentException(\sprintf('Service "%s" must define the "event" attribute on "kernel.event_listener" tags.', $id));
-        }
-        return $names;
+        return $name;
     }
 }
 /**

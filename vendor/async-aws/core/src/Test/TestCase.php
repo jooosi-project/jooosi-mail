@@ -60,11 +60,7 @@ class TestCase extends PHPUnitTestCase
             $value = $parts[1] ?? '';
             $expectedHeaders[strtolower($key)] = trim($value);
         }
-        $actualHeaders = [];
-        foreach ($actual->getHeaders() as $key => $value) {
-            $actualHeaders[strtolower($key)] = $value;
-        }
-        self::assertEqualsIgnoringCase($expectedHeaders, $actualHeaders, $message);
+        self::assertEqualsIgnoringCase($expectedHeaders, $actual->getHeaders(), $message);
         switch ($expectedHeaders['content-type'] ?? null) {
             case 'application/x-www-form-urlencoded':
                 self::assertHttpFormEqualsHttpForm(trim($body), $actual->getBody()->stringify(), $message);

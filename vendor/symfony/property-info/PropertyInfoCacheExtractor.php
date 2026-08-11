@@ -11,7 +11,6 @@
 namespace JooosiMailDeps\Symfony\Component\PropertyInfo;
 
 use JooosiMailDeps\Psr\Cache\CacheItemPoolInterface;
-use JooosiMailDeps\Symfony\Component\TypeInfo\Type;
 /**
  * Adds a PSR-6 cache layer on top of an extractor.
  *
@@ -45,27 +44,9 @@ class PropertyInfoCacheExtractor implements PropertyInfoExtractorInterface, Prop
     {
         return $this->extract('getProperties', [$class, $context]);
     }
-    public function getType(string $class, string $property, array $context = []): ?Type
+    public function getTypes(string $class, string $property, array $context = []): ?array
     {
-        try {
-            $serializedArguments = serialize([$class, $property, $context]);
-        } catch (\Exception) {
-            // If arguments are not serializable, skip the cache
-            return $this->propertyInfoExtractor->getType($class, $property, $context);
-        }
-        // Calling rawurlencode escapes special characters not allowed in PSR-6's keys
-        $key = rawurlencode('getType.' . $serializedArguments);
-        if (\array_key_exists($key, $this->arrayCache)) {
-            return $this->arrayCache[$key];
-        }
-        $item = $this->cacheItemPool->getItem($key);
-        if ($item->isHit()) {
-            return $this->arrayCache[$key] = $item->get();
-        }
-        $value = $this->propertyInfoExtractor->getType($class, $property, $context);
-        $item->set($value);
-        $this->cacheItemPool->save($item);
-        return $this->arrayCache[$key] = $value;
+        return $this->extract('getTypes', [$class, $property, $context]);
     }
     public function isInitializable(string $class, string $property, array $context = []): ?bool
     {

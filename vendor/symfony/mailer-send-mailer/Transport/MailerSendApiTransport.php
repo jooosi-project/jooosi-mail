@@ -27,14 +27,16 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class MailerSendApiTransport extends AbstractApiTransport
 {
+    private string $key;
     public function __construct(
         #[\SensitiveParameter]
-        private string $key,
+        string $key,
         ?HttpClientInterface $client = null,
         ?EventDispatcherInterface $dispatcher = null,
         ?LoggerInterface $logger = null
     )
     {
+        $this->key = $key;
         parent::__construct($client, $dispatcher, $logger);
     }
     public function __toString(): string

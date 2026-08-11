@@ -18,9 +18,9 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\HttpClientInterface;
  * @since 0.1.0
  */
 #[Service]
-final readonly class TransportRegistry
+final class TransportRegistry
 {
-    public function __construct(private DiscoveryManifest $manifest, private ContainerInterface $container, private ?EventDispatcherInterface $eventDispatcher = null, private ?HttpClientInterface $httpClient = null, private ?LoggerInterface $logger = null)
+    public function __construct(private readonly DiscoveryManifest $manifest, private readonly ContainerInterface $container, private readonly ?EventDispatcherInterface $eventDispatcher = null, private readonly ?HttpClientInterface $httpClient = null, private readonly ?LoggerInterface $logger = null)
     {
     }
     /**

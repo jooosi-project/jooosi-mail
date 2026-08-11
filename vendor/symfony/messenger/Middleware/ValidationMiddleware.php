@@ -19,13 +19,19 @@ use JooosiMailDeps\Symfony\Component\Validator\Validator\ValidatorInterface;
  */
 class ValidationMiddleware implements MiddlewareInterface
 {
-    public function __construct(private ValidatorInterface $validator)
+    private ValidatorInterface $validator;
+    public function __construct(ValidatorInterface $validator)
     {
+        $this->validator = $validator;
     }
     public function handle(Envelope $envelope, StackInterface $stack): Envelope
     {
         $message = $envelope->getMessage();
-        $groups = $envelope->last(ValidationStamp::class)?->getGroups();
+        $groups = null;
+        /** @var ValidationStamp|null $validationStamp */
+        if ($validationStamp = $envelope->last(ValidationStamp::class)) {
+            $groups = $validationStamp->getGroups();
+        }
         $violations = $this->validator->validate($message, null, $groups);
         if (\count($violations)) {
             throw new ValidationFailedException($message, $violations, $envelope);
