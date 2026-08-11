@@ -37,7 +37,7 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.2"
+          php-version: "8.3"
           coverage: none
           tools: composer:v2
 
@@ -109,6 +109,17 @@ jobs:
             git push origin dist
           fi
 
+      - name: Publish WordPress.org release
+        if: vars.WORDPRESS_ORG_DEPLOY == 'true'
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: jooosi-mail
+          BUILD_DIR: jooosi-mail-prefixed
+          VERSION: ${{ github.ref_name }}
+          ASSETS_DIR: .wordpress-org
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
@@ -117,33 +128,3 @@ jobs:
           files: jooosi-mail-${{ github.ref_name }}.zip
           draft: false
           prerelease: false
-
-      - name: Publish WordPress.org release
-        id: wordpress_release
-        if: vars.WORDPRESS_ORG_DEPLOY == 'true'
-        continue-on-error: true
-        timeout-minutes: 20
-        uses: 10up/action-wordpress-plugin-deploy@stable
-        env:
-          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
-          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
-          SLUG: jooosi-mail
-          BUILD_DIR: jooosi-mail-prefixed
-          VERSION: ${{ github.ref_name }}
-          ASSETS_DIR: .wordpress-org
-
-      - name: Reset WordPress.org checkout for retry
-        if: steps.wordpress_release.outcome == 'failure'
-        run: rm -rf /home/runner/svn-jooosi-mail
-
-      - name: Retry WordPress.org release
-        if: steps.wordpress_release.outcome == 'failure'
-        timeout-minutes: 20
-        uses: 10up/action-wordpress-plugin-deploy@stable
-        env:
-          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
-          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
-          SLUG: jooosi-mail
-          BUILD_DIR: jooosi-mail-prefixed
-          VERSION: ${{ github.ref_name }}
-          ASSETS_DIR: .wordpress-org
