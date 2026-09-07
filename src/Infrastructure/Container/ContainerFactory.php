@@ -59,32 +59,52 @@ final class ContainerFactory
     public function build(): ContainerInterface
     {
         $cache = new ContainerCache($this->paths, $this->environment);
-        $inspection = $cache->inspect();
+        $container = $this->loadCachedContainer($cache);
 
-        if ($inspection['usable']) {
+        if ($container instanceof ContainerInterface) {
+            return $container;
+        }
+
+        return $cache->withBuildLock(function () use ($cache): ContainerInterface {
+            $container = $this->loadCachedContainer($cache);
+
+            if ($container instanceof ContainerInterface) {
+                return $container;
+            }
+
+            $manifest = $this->discover();
+            $builder = new ContainerBuilder();
+
+            $this->registerCoreServices($builder, $manifest);
+            $this->registerDiscoveredServices($builder, $manifest);
+
+            $builder->compile();
+            $cache->dump($builder);
+
             try {
                 return $cache->load();
             } catch (Throwable) {
                 $cache->clear();
+
+                // Keep the current request alive when the dumped PHP file is stale or not reloadable.
+                return $builder;
             }
+        });
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    private function loadCachedContainer(ContainerCache $cache): ?ContainerInterface
+    {
+        if (! $cache->isUsable()) {
+            return null;
         }
-
-        $manifest = $this->discover();
-        $builder = new ContainerBuilder();
-
-        $this->registerCoreServices($builder, $manifest);
-        $this->registerDiscoveredServices($builder, $manifest);
-
-        $builder->compile();
-        $cache->dump($builder);
 
         try {
             return $cache->load();
         } catch (Throwable) {
-            $cache->clear();
-
-            // Keep the current request alive when the dumped PHP file is stale or not reloadable.
-            return $builder;
+            return null;
         }
     }
 

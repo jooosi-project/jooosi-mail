@@ -22,6 +22,11 @@ use Throwable;
  */
 final class ContainerCache
 {
+    /**
+     * @var resource|null
+     */
+    private mixed $buildLock = null;
+
     public function __construct(
         private readonly Paths $paths,
         private readonly Environment $environment,
@@ -65,10 +70,6 @@ final class ContainerCache
         $metadataFile = $this->getMetadataFile();
         $metadata = $this->readMetadata();
         $reasons = [];
-
-        if ($this->environment->debug) {
-            $reasons[] = 'debug_mode';
-        }
 
         if (! is_file($cacheFile)) {
             $reasons[] = 'missing_cache_file';
@@ -170,7 +171,73 @@ final class ContainerCache
      */
     public function dump(ContainerBuilder $builder): void
     {
+        $this->withBuildLock(function () use ($builder): void {
+            $this->dumpUnlocked($builder);
+        });
+    }
+
+    /**
+     * Execute work while holding the container cache build lock.
+     *
+     * @template T
+     *
+     * @param callable(): T $callback
+     * @return T
+     *
+     * @since 0.1.0
+     */
+    public function withBuildLock(callable $callback): mixed
+    {
+        if (is_resource($this->buildLock)) {
+            return $callback();
+        }
+
         $this->ensureCacheDirectoryExists();
+        $lock = fopen($this->getBuildLockFile(), 'c');
+
+        if (! is_resource($lock)) {
+            throw new RuntimeException(sprintf('Unable to open the Jooosi Mail container cache build lock at "%s".', $this->getBuildLockFile()));
+        }
+
+        $locked = false;
+
+        try {
+            $locked = flock($lock, LOCK_EX);
+
+            if (! $locked) {
+                throw new RuntimeException(sprintf('Unable to acquire the Jooosi Mail container cache build lock at "%s".', $this->getBuildLockFile()));
+            }
+
+            $this->buildLock = $lock;
+
+            return $callback();
+        } finally {
+            $this->buildLock = null;
+
+            if ($locked) {
+                flock($lock, LOCK_UN);
+            }
+
+            fclose($lock);
+        }
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public function clear(): void
+    {
+        $this->withBuildLock(function (): void {
+            $this->deleteFile($this->getCacheFile());
+            $this->deleteFile($this->getMetadataFile());
+        });
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    private function dumpUnlocked(ContainerBuilder $builder): void
+    {
         $signature = $this->buildSignature();
 
         $dumper = new PhpDumper($builder);
@@ -193,15 +260,6 @@ final class ContainerCache
         ));
     }
 
-    /**
-     * @since 0.1.0
-     */
-    public function clear(): void
-    {
-        $this->deleteFile($this->getCacheFile());
-        $this->deleteFile($this->getMetadataFile());
-    }
-
     private function getCacheFile(): string
     {
         return $this->paths->cacheDir . '/container.php';
@@ -210,6 +268,11 @@ final class ContainerCache
     private function getMetadataFile(): string
     {
         return $this->paths->cacheDir . '/container.meta.php';
+    }
+
+    private function getBuildLockFile(): string
+    {
+        return $this->paths->cacheDir . '/container.build.lock';
     }
 
     /**
@@ -374,20 +437,25 @@ final class ContainerCache
             throw new RuntimeException(sprintf('Unable to allocate a temporary file for "%s".', $path));
         }
 
-        if (file_put_contents($temporaryFile, $contents, LOCK_EX) === false) {
+        $bytesWritten = file_put_contents($temporaryFile, $contents, LOCK_EX);
+
+        if ($bytesWritten === false || $bytesWritten !== strlen($contents)) {
             $this->deleteFile($temporaryFile);
 
             // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
             throw new RuntimeException(sprintf('Unable to write the Jooosi Mail cache file "%s".', $path));
         }
 
-        global $wp_filesystem;
-        if ($wp_filesystem === null) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-            \WP_Filesystem();
+        $permissions = defined('FS_CHMOD_FILE') ? FS_CHMOD_FILE : 0644;
+
+        if (! chmod($temporaryFile, $permissions)) {
+            $this->deleteFile($temporaryFile);
+
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+            throw new RuntimeException(sprintf('Unable to set permissions on the Jooosi Mail cache file "%s".', $path));
         }
 
-        if (! $wp_filesystem->move($temporaryFile, $path, true)) {
+        if (! rename($temporaryFile, $path)) {
             $this->deleteFile($temporaryFile);
 
             // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped

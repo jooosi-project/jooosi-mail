@@ -55,7 +55,7 @@ wp jooosi-mail container:status
 wp jooosi-mail container:clear
 ```
 
-In production, Jooosi Mail only reuses the compiled container when both the cache file and metadata file are present and their source hash matches the current plugin sources. If the cache becomes stale or corrupted, Jooosi Mail reruns discovery and rebuilds the container automatically.
+Jooosi Mail only reuses the compiled container when both the cache file and metadata file are present and their source hash matches the current plugin sources. This validation also applies in debug mode. If the cache becomes stale or corrupted, Jooosi Mail serializes concurrent rebuild attempts, reruns discovery, and atomically publishes the rebuilt container.
 
 ## Connection Management
 

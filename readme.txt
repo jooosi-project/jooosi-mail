@@ -1,9 +1,9 @@
 === Jooosi Mail ===
-Contributors: suabahasa
+Contributors: suasgn, jooosi, suabahasa
 Donate link: https://ko-fi.com/Q5Q75XSF7
 Tags: email, smtp, mailer, transactional email, logs
 Requires at least: 7.0
-Tested up to: 7.0
+Tested up to: 7.1
 Stable tag: 1.0.8
 Requires PHP: 8.1
 License: GPLv3 or later

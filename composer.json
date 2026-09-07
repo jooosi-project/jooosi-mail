@@ -55,7 +55,7 @@
             "name": "Jooosi Mail",
             "version": "1.0.8",
             "requires-wp": "7.0",
-            "tested-wp": "7.0",
+            "tested-wp": "7.1",
             "requires-php": "8.1"
         }
     },

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Prevented concurrent requests from racing while rebuilding and publishing the compiled container cache.
+
+### Changed
+- Fresh compiled container caches are now reused in debug mode and invalidated by their source signature.
+- Tested with WordPress 7.1.
+
 ## [1.0.8] - 2026-08-11
 
 ### Changed

@@ -64,9 +64,10 @@ The architecture is designed to keep WordPress integration thin while making del
 1. WordPress loads `jooosi-mail.php`.
 2. `Plugin` boots the `Kernel`.
 3. The container cache metadata is checked against the current source hash.
-4. If the cached class is stale, missing, or invalid, discovery reruns and a new compiled container is written.
-5. Discovery output is rehydrated into a manifest.
-6. Lifecycle services register WordPress hooks, REST routes, and CLI commands.
+4. If the cached class is stale, missing, or invalid, the request acquires the container build lock and checks the cache again.
+5. When a rebuild is still required, discovery reruns and the new compiled container is published atomically.
+6. Discovery output is rehydrated into a manifest.
+7. Lifecycle services register WordPress hooks, REST routes, and CLI commands.
 
 ### Mail Flow
 
