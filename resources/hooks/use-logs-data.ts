@@ -6,7 +6,5 @@ import { getLogs } from "@/lib/admin-api"
 export function useLogsData() {
   const loadLogs = React.useCallback(() => getLogs(), [])
 
-  return useAdminQuery(loadLogs, {
-    pollMs: 15000,
-  })
+  return useAdminQuery(loadLogs)
 }

@@ -39,7 +39,7 @@ pnpm wp-env:test:start
 pnpm test:php:docker
 ```
 
-Pull requests and pushes to `main` run the same frontend validation and WordPress-backed PHP integration tests in GitHub Actions. Prepare a release with `pnpm run release -- <major.minor.patch>`, review the generated commit and tag, then push both to trigger the deployment workflow.
+Run frontend validation and WordPress-backed PHP integration tests before submitting changes. The current GitHub Actions configuration contains the tag-triggered deployment workflow; a pull-request validation workflow remains planned. Prepare a release with `pnpm run release -- <major.minor.patch>`, review the generated commit and tag, then push both to trigger the deployment workflow.
 
 ## Docker Test Workflow
 
@@ -66,16 +66,24 @@ Notes:
 - `.wp-env.json` is the normal development environment. `.wp-env.test.json` is the isolated environment used by `pnpm test:php:docker`.
 - A custom Docker stack would only be worth the extra maintenance if the project later needs tighter image control, service customization, or a broader CI matrix.
 
+## Frontend Query Regression Tests
+
+Run `node tests/Frontend/run-browser-tests.mjs` to exercise `useAdminQuery`, `useAdminLogQuery`, the log API loaders, and UTC timestamp parsing with real React in headless Chrome. Set `CHROME_PATH` if Chrome is not installed in a standard location. The runner bundles only the test entry into a temporary directory, uses an isolated browser profile, and removes its generated files afterward. It does not start the application dev server or create a production build.
+
+The tests cover response ordering, loading/error state, retained refresh data, unmounting, Strict Mode, slow polling, request cancellation, manual refresh, and server-clamped pagination across all three log endpoints. Continue to run `pnpm check` for application TypeScript validation.
+
+The browser runner repeats the cases in UTC, Asia/Jakarta, and America/Los_Angeles and verifies that Chrome actually uses each requested timezone.
+
 ## Code Organization
 
 - `src/Bootstrap` - plugin boot, lifecycle, paths, environment, kernel
 - `src/Discovery` - attributes, discovery, runtime manifest
-- `src/Infrastructure` - container, database, security, and WordPress bridge services
-- `src/Mail` - normalization, profiles, connections, routing, logging, delivery
-- `src/Queue` - bus, messages, transport, retry, worker, triggers
-- `src/Webhook` - adapters, controller, persistence, event projection
-- `src/Cli` - WP-CLI commands
-- `src/Admin` - admin menu, REST controllers, authorization, connection payloads, and test-email admin helpers
+- `src/Infrastructure` - container signatures/artifacts/locks, database, security, and WordPress bridge services
+- `src/Mail` - normalization, submission, profiles, connection input, routing, logging, and delivery lifecycle collaborators
+- `src/Queue` - bus, messages, state repositories, owner leases, transport, retry, workers, and triggers
+- `src/Webhook` - application ingestion services, provider adapters, the REST controller, persistence, and event projection
+- `src/Cli` - discovered WP-CLI facades plus application and presentation collaborators
+- `src/Admin` - thin REST controllers, read models, presenters, application services, settings boundaries, the admin menu, and test-email helpers
 - `resources/admin` and `resources/pages` - React admin app routes and screens
 - `src/Database/Migration` - schema management
 
@@ -86,10 +94,35 @@ Notes:
 - Register WordPress hooks, REST routes, and CLI commands through discovery and registrars.
 - Keep provider-specific behavior in profiles and webhook adapters.
 - Use Doctrine DBAL-backed repositories for persistence.
+- Keep WordPress controllers, hooks, and CLI commands as adapters. Put SQL in repositories/read models, stable output shapes in presenters, and use-case coordination in application/domain services.
+- Preserve supported REST, CLI, hook, schema, payload, provider, and queue contracts while refactoring. Long-lived facades should retain positional constructor compatibility by adding optional collaborators at the end.
 - Treat mail requests, delivery plans, and queue messages as stable internal contracts.
+- Keep normalized submission orchestration in `MailSubmissionService`; WordPress interception should only adapt the hook contract. Persist the mail log and queue envelope together, and trigger workers after commit.
+- Use `useAdminLogQuery` for paginated log loaders, and forward its abort signal through the API client. Parse API timestamps through `parseAdminDateTime` before interpreting their time or age.
 - Use `wp jooosi-mail connection:profiles` and `wp jooosi-mail webhook:status` as the fastest way to confirm the live feature surface before changing docs.
 
 ## Extension Points
+
+### Customize Manual Resends
+
+Manual resend reconstructs a retained `MailRequest`, removes stale `Date`, `Message-ID`, and `X-Schedule-Time` headers, then submits a new lifecycle entry through the current routing policy. The source log is never mutated.
+
+Use `f!jooosi-mail/mail:resend.request` to replace the reconstructed request before submission. The filter receives the request and source mail-log ID:
+
+```php
+use JooosiMail\Mail\ValueObject\MailRequest;
+
+add_filter(
+    'f!jooosi-mail/mail:resend.request',
+    static function (MailRequest $mailRequest, int $sourceMailLogId): MailRequest {
+        return $mailRequest;
+    },
+    10,
+    2,
+);
+```
+
+After submission, `a!jooosi-mail/mail:resend.submitted` receives the source mail-log ID, new mail-log ID, and acceptance status. Exceptions from action subscribers are logged without changing the already-completed submission result.
 
 ### Add a New Profile
 

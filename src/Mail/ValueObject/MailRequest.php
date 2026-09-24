@@ -39,6 +39,75 @@ final class MailRequest
     }
 
     /**
+     * Create an immutable copy with only the supplied fields changed.
+     *
+     * Array keys are checked explicitly so nullable fields can be cleared by
+     * passing null without changing the existing constructor contract.
+     *
+     * @param array{
+     *     from?: list<MailAddress>,
+     *     to?: list<MailAddress>,
+     *     cc?: list<MailAddress>,
+     *     bcc?: list<MailAddress>,
+     *     replyTo?: list<MailAddress>,
+     *     subject?: string,
+     *     textBody?: string|null,
+     *     htmlBody?: string|null,
+     *     attachments?: list<MailAttachment>,
+     *     headers?: array<string, string>,
+     *     envelopeSender?: MailAddress|null,
+     *     source?: string,
+     *     metadata?: array<string, mixed>
+     * } $changes
+     *
+     * @since 1.0.9
+     */
+    public function with(array $changes): self
+    {
+        return new self(
+            from: array_key_exists('from', $changes) ? $changes['from'] : $this->from,
+            to: array_key_exists('to', $changes) ? $changes['to'] : $this->to,
+            cc: array_key_exists('cc', $changes) ? $changes['cc'] : $this->cc,
+            bcc: array_key_exists('bcc', $changes) ? $changes['bcc'] : $this->bcc,
+            replyTo: array_key_exists('replyTo', $changes) ? $changes['replyTo'] : $this->replyTo,
+            subject: array_key_exists('subject', $changes) ? $changes['subject'] : $this->subject,
+            textBody: array_key_exists('textBody', $changes) ? $changes['textBody'] : $this->textBody,
+            htmlBody: array_key_exists('htmlBody', $changes) ? $changes['htmlBody'] : $this->htmlBody,
+            attachments: array_key_exists('attachments', $changes) ? $changes['attachments'] : $this->attachments,
+            headers: array_key_exists('headers', $changes) ? $changes['headers'] : $this->headers,
+            envelopeSender: array_key_exists('envelopeSender', $changes) ? $changes['envelopeSender'] : $this->envelopeSender,
+            source: array_key_exists('source', $changes) ? $changes['source'] : $this->source,
+            metadata: array_key_exists('metadata', $changes) ? $changes['metadata'] : $this->metadata,
+        );
+    }
+
+    /**
+     * Alias for callers that prefer copy semantics.
+     *
+     * @param array{
+     *     from?: list<MailAddress>,
+     *     to?: list<MailAddress>,
+     *     cc?: list<MailAddress>,
+     *     bcc?: list<MailAddress>,
+     *     replyTo?: list<MailAddress>,
+     *     subject?: string,
+     *     textBody?: string|null,
+     *     htmlBody?: string|null,
+     *     attachments?: list<MailAttachment>,
+     *     headers?: array<string, string>,
+     *     envelopeSender?: MailAddress|null,
+     *     source?: string,
+     *     metadata?: array<string, mixed>
+     * } $changes
+     *
+     * @since 1.0.9
+     */
+    public function copy(array $changes = []): self
+    {
+        return $this->with($changes);
+    }
+
+    /**
      * @since 0.1.0
      */
     public static function fromArray(array $data): self

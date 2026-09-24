@@ -35,6 +35,66 @@ final class Connection
     }
 
     /**
+     * Create an immutable copy with only the supplied fields changed.
+     *
+     * @param array{
+     *     id?: int|null,
+     *     profileKey?: string,
+     *     name?: string,
+     *     dsn?: string|null,
+     *     settings?: array<string, mixed>,
+     *     secrets?: array<string, mixed>,
+     *     enabled?: bool,
+     *     default?: bool,
+     *     priority?: int,
+     *     weight?: int,
+     *     webhookEnabled?: bool
+     * } $changes
+     *
+     * @since 1.0.9
+     */
+    public function with(array $changes): self
+    {
+        return new self(
+            id: array_key_exists('id', $changes) ? $changes['id'] : $this->id,
+            profileKey: array_key_exists('profileKey', $changes) ? $changes['profileKey'] : $this->profileKey,
+            name: array_key_exists('name', $changes) ? $changes['name'] : $this->name,
+            dsn: array_key_exists('dsn', $changes) ? $changes['dsn'] : $this->dsn,
+            settings: array_key_exists('settings', $changes) ? $changes['settings'] : $this->settings,
+            secrets: array_key_exists('secrets', $changes) ? $changes['secrets'] : $this->secrets,
+            enabled: array_key_exists('enabled', $changes) ? $changes['enabled'] : $this->enabled,
+            default: array_key_exists('default', $changes) ? $changes['default'] : $this->default,
+            priority: array_key_exists('priority', $changes) ? $changes['priority'] : $this->priority,
+            weight: array_key_exists('weight', $changes) ? $changes['weight'] : $this->weight,
+            webhookEnabled: array_key_exists('webhookEnabled', $changes) ? $changes['webhookEnabled'] : $this->webhookEnabled,
+        );
+    }
+
+    /**
+     * Alias for callers that prefer copy semantics.
+     *
+     * @param array{
+     *     id?: int|null,
+     *     profileKey?: string,
+     *     name?: string,
+     *     dsn?: string|null,
+     *     settings?: array<string, mixed>,
+     *     secrets?: array<string, mixed>,
+     *     enabled?: bool,
+     *     default?: bool,
+     *     priority?: int,
+     *     weight?: int,
+     *     webhookEnabled?: bool
+     * } $changes
+     *
+     * @since 1.0.9
+     */
+    public function copy(array $changes = []): self
+    {
+        return $this->with($changes);
+    }
+
+    /**
      * @since 0.1.0
      */
     public function hasDsnOverride(): bool

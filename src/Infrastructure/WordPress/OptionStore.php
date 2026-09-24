@@ -39,6 +39,18 @@ final class OptionStore
     }
 
     /**
+     * Persist several nested config or state values atomically at option level.
+     *
+     * @param array<string, mixed> $values
+     *
+     * @since 1.0.9
+     */
+    public function setMany(array $values): bool
+    {
+        return $this->config->setMany($values);
+    }
+
+    /**
      * Delete a nested config or state value.
      *
      * @since 0.1.0

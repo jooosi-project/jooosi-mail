@@ -124,6 +124,7 @@ final class MailLogRepository
             'status' => 'sent',
             'final_connection_id' => $connectionId,
             'transport_message_id' => $transportMessageId,
+            'last_error' => null,
             'sent_at' => $now,
             'updated_at' => $now,
         ], ['id' => $mailLogId]);

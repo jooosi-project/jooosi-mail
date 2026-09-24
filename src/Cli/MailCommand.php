@@ -92,13 +92,13 @@ final class MailCommand
             isset($assocArgs['connection-id']) ? max(0, (int) $assocArgs['connection-id']) : null,
         );
 
-        if ($result) {
+        if ($result->sent) {
             WP_CLI::success('The test email was queued or sent successfully.');
 
             return;
         }
 
-        WP_CLI::error('The test email failed.');
+        WP_CLI::error($result->errorMessage ?? 'The test email failed.');
     }
 
     /**

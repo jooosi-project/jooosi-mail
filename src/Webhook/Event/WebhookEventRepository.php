@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace JooosiMail\Webhook\Event;
 
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection as DbalConnection;
 use JooosiMail\Discovery\Attribute\Service;
 use JooosiMail\Infrastructure\Database\TableNameResolver;
@@ -100,34 +99,32 @@ final class WebhookEventRepository
             return [];
         }
 
+        $sampleSize = max(1, $sampleSize);
         $since = gmdate('Y-m-d H:i:s', time() - ($hours * 3600));
-        $rows = $this->connection->createQueryBuilder()
-            ->select('connection_id', 'event_type')
-            ->from($this->tableNameResolver->resolve('webhook_events'))
-            ->where('connection_id IN (:connection_ids)')
-            ->andWhere('COALESCE(occurred_at, created_at) >= :since')
-            ->orderBy('id', 'DESC')
-            ->setMaxResults(max($sampleSize * count($connectionIds), 50))
-            ->setParameter('connection_ids', array_values($connectionIds), ArrayParameterType::INTEGER)
-            ->setParameter('since', $since)
-            ->fetchAllAssociative();
-
         $eventsByConnection = [];
 
-        foreach ($rows as $row) {
-            $connectionId = (int) ($row['connection_id'] ?? 0);
-
+        foreach (array_values(array_unique($connectionIds)) as $connectionId) {
             if ($connectionId <= 0) {
                 continue;
             }
 
-            $eventsByConnection[$connectionId] ??= [];
+            $eventTypes = array_map(
+                static fn (array $row): string => strtolower((string) ($row['event_type'] ?? '')),
+                $this->connection->createQueryBuilder()
+                    ->select('event_type')
+                    ->from($this->tableNameResolver->resolve('webhook_events'))
+                    ->where('connection_id = :connection_id')
+                    ->andWhere('COALESCE(occurred_at, created_at) >= :since')
+                    ->orderBy('id', 'DESC')
+                    ->setMaxResults($sampleSize)
+                    ->setParameter('connection_id', $connectionId)
+                    ->setParameter('since', $since)
+                    ->fetchAllAssociative(),
+            );
 
-            if (count($eventsByConnection[$connectionId]) >= $sampleSize) {
-                continue;
+            if ($eventTypes !== []) {
+                $eventsByConnection[$connectionId] = $eventTypes;
             }
-
-            $eventsByConnection[$connectionId][] = strtolower((string) ($row['event_type'] ?? ''));
         }
 
         return $eventsByConnection;

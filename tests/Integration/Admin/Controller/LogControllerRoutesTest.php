@@ -30,6 +30,7 @@ final class LogControllerRoutesTest extends JooosiMailIntegrationTestCase
         self::assertArrayHasKey('/jooosi-mail/v1/admin/logs', $routes);
         self::assertArrayHasKey('/jooosi-mail/v1/admin/logs/mail', $routes);
         self::assertArrayHasKey('/jooosi-mail/v1/admin/logs/mail/(?P<mail_log_id>\d+)', $routes);
+        self::assertArrayHasKey('/jooosi-mail/v1/admin/logs/mail/(?P<mail_log_id>\d+)/resend', $routes);
         self::assertArrayHasKey('/jooosi-mail/v1/admin/logs/mail/test', $routes);
         self::assertArrayHasKey('/jooosi-mail/v1/admin/logs/queue', $routes);
         self::assertArrayHasKey('/jooosi-mail/v1/admin/logs/webhooks', $routes);

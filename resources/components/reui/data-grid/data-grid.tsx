@@ -184,11 +184,12 @@ export interface DataGridContextProps<TData extends object> {
 
 export type DataGridAutoSizeController = {
   /**
-   * Grows the first visible `meta.autoSize` column by the given free space.
-   * Applies at most once per column id; safe to call from every viewport
-   * measurement. Returns true when a sizing update was dispatched.
+   * Fits the first visible `meta.autoSize` column to the measured free space.
+   * Reconciles prior automatic sizing when the viewport changes, but leaves
+   * user-resized columns untouched. Returns true when a sizing update was
+   * dispatched.
    */
-  apply: (fillWidth: number) => boolean;
+  apply: (widthDelta: number) => boolean;
 };
 
 function createDataGridAutoSizeController<TData extends object>(
@@ -207,7 +208,7 @@ function createDataGridAutoSizeController<TData extends object>(
   let applied: { columnId: string; base: number; grown: number } | null = null;
 
   return {
-    apply(fillWidth: number) {
+    apply(widthDelta: number) {
       const table = getTable();
       const columnSizing = table.state.columnSizing;
 
@@ -218,15 +219,29 @@ function createDataGridAutoSizeController<TData extends object>(
         applied = null;
       }
 
-      if (fillWidth <= 0) return false;
-
       const autoSizeColumn = table
         .getVisibleLeafColumns()
         .find((column) => column.columnDef.meta?.autoSize && column.getCanResize());
 
-      if (!autoSizeColumn || applied?.columnId === autoSizeColumn.id) {
-        return false;
+      if (!autoSizeColumn) return false;
+
+      const currentSize = columnSizing[autoSizeColumn.id];
+
+      // Keep the flex column in sync when the viewport changes. A size that
+      // no longer matches our last write belongs to the user, so preserve it.
+      if (applied?.columnId === autoSizeColumn.id) {
+        if (currentSize !== applied.grown || widthDelta === 0) return false;
+
+        const grown = Math.max(applied.base, currentSize + widthDelta);
+        if (grown === currentSize) return false;
+
+        applied = { ...applied, grown };
+        table.setColumnSizing((old) => ({ ...old, [autoSizeColumn.id]: grown }));
+
+        return true;
       }
+
+      if (widthDelta <= 0) return false;
 
       // A width this coordinator did not write belongs to someone else -
       // almost always the user, who just dragged the column's resize handle.
@@ -239,7 +254,6 @@ function createDataGridAutoSizeController<TData extends object>(
       // (a remount, a new table store) forgets what it did, and the guard has
       // to survive that. An explicit reset clears the entry and re-arms the
       // fill, which is what makes double-click-to-reset still work.
-      const currentSize = columnSizing[autoSizeColumn.id];
       if (currentSize !== undefined && currentSize !== applied?.grown) {
         return false;
       }
@@ -250,7 +264,8 @@ function createDataGridAutoSizeController<TData extends object>(
       // toggles cannot ratchet the table wider than its container forever.
       const revert = applied && columnSizing[applied.columnId] === applied.grown ? applied : null;
       const base = columnSizing[autoSizeColumn.id] ?? autoSizeColumn.getSize();
-      const grown = base + fillWidth;
+      const restoredWidth = revert ? revert.grown - revert.base : 0;
+      const grown = base + Math.max(0, widthDelta + restoredWidth);
 
       applied = { columnId: autoSizeColumn.id, base, grown };
       table.setColumnSizing((old) => {

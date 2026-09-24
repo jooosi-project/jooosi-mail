@@ -39,4 +39,11 @@ export default defineConfig({
   optimizeDeps: {
     include: ["@tanstack/react-table"],
   },
+	build: {
+		sourcemap: false,
+	},
+	server: {
+		// WordPress is served by Docker on a different origin during development.
+		cors: true,
+	}
 });

@@ -1,0 +1,5 @@
+overrides:
+  es-toolkit: 1.46.1
+
+allowBuilds:
+  fs-ext-extra-prebuilt: true

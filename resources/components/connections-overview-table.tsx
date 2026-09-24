@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-table";
 
 import { MailLogTableFacetedFilter } from "@/components/mail-log-table-faceted-filter";
+import { usePersistentState } from "@/hooks/use-persistent-state";
 import { ProfileBrandIcon } from "@/components/profile-brand-icon";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
 import { Badge } from "@/components/reui/badge";
@@ -458,10 +459,19 @@ export function ConnectionsOverviewTable({
   enabledSavingConnectionIds,
   defaultSavingConnectionId,
 }: ConnectionsOverviewTableProps) {
-  const [searchValue, setSearchValue] = React.useState("");
+  const [searchValue, setSearchValue] = usePersistentState(
+    "jooosimail:table-filters:v1:connections:search",
+    "",
+  );
   const deferredSearchValue = React.useDeferredValue(searchValue);
-  const [selectedStatuses, setSelectedStatuses] = React.useState<string[]>([]);
-  const [selectedProfiles, setSelectedProfiles] = React.useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = usePersistentState<string[]>(
+    "jooosimail:table-filters:v1:connections:statuses",
+    [],
+  );
+  const [selectedProfiles, setSelectedProfiles] = usePersistentState<string[]>(
+    "jooosimail:table-filters:v1:connections:profiles",
+    [],
+  );
   const [sorting, setSorting] = React.useState<SortingState>([
     {
       id: "name",

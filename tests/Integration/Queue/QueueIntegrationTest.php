@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace JooosiMail\Tests\Integration\Queue;
 
 use JooosiMail\Queue\Trigger\ActionSchedulerTrigger;
+use JooosiMail\Queue\State\QueueLease;
+use JooosiMail\Queue\State\QueueLeaseService;
 use JooosiMail\Queue\Worker\WorkerRunner;
 use JooosiMail\Tests\Integration\Support\JooosiMailIntegrationTestCase;
 
@@ -56,12 +58,19 @@ final class QueueIntegrationTest extends JooosiMailIntegrationTestCase
 
         $mailLog = $this->latestRow('mail_logs');
         $queueMessage = $this->latestRow('queue_messages');
+        $queueAttempt = $this->latestRow('queue_message_attempts');
         $attempt = $this->mailAttemptRepository()->listRecent(limit: 1)[0] ?? null;
 
         self::assertIsArray($mailLog);
         self::assertSame('sent', $mailLog['status']);
         self::assertIsArray($queueMessage);
         self::assertSame('completed', $queueMessage['status']);
+        self::assertIsArray($queueAttempt);
+        self::assertSame((int) $queueMessage['id'], (int) $queueAttempt['queue_message_id']);
+        self::assertSame(1, (int) $queueAttempt['attempt_number']);
+        self::assertSame('completed', $queueAttempt['outcome']);
+        self::assertNotEmpty($queueAttempt['worker_id']);
+        self::assertNotSame('', (string) ($queueAttempt['finished_at'] ?? ''));
         self::assertIsArray($attempt);
         self::assertSame('sent', $attempt['status']);
     }
@@ -170,6 +179,51 @@ final class QueueIntegrationTest extends JooosiMailIntegrationTestCase
     /**
      * @since 0.1.0
      */
+    public function testScheduledRunnerReclaimsAnExpiredLegacyRunnerLease(): void
+    {
+        $this->createNullConnection();
+        $this->optionStore()->set('settings.delivery.mode', 'async');
+        $this->optionStore()->set('settings.delivery.strategy', 'single');
+
+        wp_mail('recipient@example.test', 'Expired lease subject', 'Expired lease body');
+        add_option(WorkerRunner::RUNNER_LEASE_OPTION, (string) (time() - 60), '', false);
+
+        $processed = $this->workerRunner()->runScheduled(limit: 5, timeLimit: 20);
+
+        self::assertSame(1, $processed);
+        self::assertFalse(get_option(WorkerRunner::RUNNER_LEASE_OPTION, false));
+        self::assertSame('completed', $this->latestRow('queue_messages')['status'] ?? null);
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public function testLateRunnerLeaseReleaseCannotDeleteTheNewOwnerLease(): void
+    {
+        $leaseService = $this->container()->get(QueueLeaseService::class);
+        $firstLease = $leaseService->acquire(WorkerRunner::RUNNER_LEASE_OPTION, -1);
+        $secondLease = null;
+
+        $leaseService->setBeforeConditionalDeleteHook(function () use ($leaseService, &$secondLease): void {
+            $secondLease = $leaseService->acquire(WorkerRunner::RUNNER_LEASE_OPTION, 30);
+        });
+
+        self::assertInstanceOf(QueueLease::class, $firstLease);
+        self::assertFalse($leaseService->release($firstLease));
+        self::assertInstanceOf(QueueLease::class, $secondLease);
+        self::assertNotSame($firstLease->ownerToken, $secondLease->ownerToken);
+
+        $currentLease = get_option(WorkerRunner::RUNNER_LEASE_OPTION, null);
+
+        self::assertIsArray($currentLease);
+        self::assertSame($secondLease->ownerToken, $currentLease['owner_token'] ?? null);
+        self::assertTrue($leaseService->release($secondLease));
+        self::assertFalse(get_option(WorkerRunner::RUNNER_LEASE_OPTION, false));
+    }
+
+    /**
+     * @since 0.1.0
+     */
     public function testScheduledRunnerQueuesAContinuationWhenReadyMessagesRemain(): void
     {
         $this->createNullConnection();
@@ -243,6 +297,7 @@ final class QueueIntegrationTest extends JooosiMailIntegrationTestCase
 
         self::assertNotNull($firstEnvelope);
         self::assertIsArray($firstClaim);
+        self::assertNotEmpty($firstClaim['claimed_worker_id']);
 
         $this->db()->update($this->tableNameResolver()->resolve('queue_messages'), [
             'claimed_at' => gmdate('Y-m-d H:i:s', time() - 600),
@@ -252,25 +307,31 @@ final class QueueIntegrationTest extends JooosiMailIntegrationTestCase
         ]);
 
         $released = $this->queueMaintenanceService()->releaseStaleClaims(300);
+        $releasedClaim = $this->latestRow('queue_messages');
         $secondEnvelope = $this->databaseReceiver()->receive(1)[0] ?? null;
         $secondClaim = $this->latestRow('queue_messages');
 
         self::assertSame(1, $released);
+        self::assertIsArray($releasedClaim);
+        self::assertNull($releasedClaim['claimed_worker_id']);
         self::assertNotNull($secondEnvelope);
         self::assertIsArray($secondClaim);
         self::assertSame('processing', $secondClaim['status']);
         self::assertNotSame($firstClaim['claimed_by'], $secondClaim['claimed_by']);
+        self::assertSame($firstClaim['claimed_worker_id'], $secondClaim['claimed_worker_id']);
 
-        $this->databaseReceiver()->ack($firstEnvelope);
+        self::assertFalse($this->databaseReceiver()->ackClaimed($firstEnvelope));
         $afterLateAck = $this->latestRow('queue_messages');
 
         self::assertIsArray($afterLateAck);
         self::assertSame('processing', $afterLateAck['status']);
         self::assertSame($secondClaim['claimed_by'], $afterLateAck['claimed_by']);
 
-        $this->databaseReceiver()->ack($secondEnvelope);
+        self::assertTrue($this->databaseReceiver()->ackClaimed($secondEnvelope));
 
-        self::assertSame('completed', $this->latestRow('queue_messages')['status'] ?? null);
+        $completedQueueMessage = $this->latestRow('queue_messages');
+        self::assertSame('completed', $completedQueueMessage['status'] ?? null);
+        self::assertNull($completedQueueMessage['claimed_worker_id'] ?? null);
     }
 
     /**
@@ -332,6 +393,12 @@ final class QueueIntegrationTest extends JooosiMailIntegrationTestCase
         self::assertSame([], $envelopes);
         self::assertIsArray($queueMessage);
         self::assertSame('failed', $queueMessage['status']);
+        self::assertSame(1, (int) $queueMessage['attempt_count']);
         self::assertNotSame('', trim((string) ($queueMessage['last_error'] ?? '')));
+        $attempt = $this->latestRow('queue_message_attempts');
+        self::assertIsArray($attempt);
+        self::assertSame((int) $queueMessage['id'], (int) $attempt['queue_message_id']);
+        self::assertSame('failed', $attempt['outcome']);
+        self::assertSame($queueMessage['last_error'], $attempt['error_message']);
     }
 }

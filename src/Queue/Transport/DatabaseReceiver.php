@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace JooosiMail\Queue\Transport;
 
-use Doctrine\DBAL\Connection as DbalConnection;
 use JooosiMail\Discovery\Attribute\Service;
-use JooosiMail\Infrastructure\Database\TableNameResolver;
+use JooosiMail\Infrastructure\Event\EventPublisherInterface;
+use JooosiMail\Queue\Logging\QueueAttemptRepository;
+use JooosiMail\Queue\State\QueueClaim;
+use JooosiMail\Queue\State\QueueClock;
+use JooosiMail\Queue\State\QueueMessageRepository;
 use JooosiMail\Queue\Stamp\DatabaseMessageStamp;
+use JooosiMail\Queue\Worker\QueueWorkerIdentity;
 use Override;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\MessageDecodingFailedException;
@@ -25,8 +29,11 @@ use Throwable;
 final class DatabaseReceiver implements ReceiverInterface
 {
     public function __construct(
-        private readonly DbalConnection $connection,
-        private readonly TableNameResolver $tableNameResolver,
+        private readonly QueueMessageRepository $queueMessageRepository,
+        private readonly QueueAttemptRepository $queueAttemptRepository,
+        private readonly QueueClock $queueClock,
+        private readonly QueueWorkerIdentity $workerIdentity,
+        private readonly EventPublisherInterface $eventPublisher,
         private readonly SerializerInterface $serializer,
     ) {
     }
@@ -49,38 +56,13 @@ final class DatabaseReceiver implements ReceiverInterface
      */
     public function receive(int $limit = 25): array
     {
-        $rows = $this->connection->fetchAllAssociative(
-            sprintf(
-                'SELECT * FROM %s WHERE status = :status AND available_at <= :available_at ORDER BY priority ASC, id ASC LIMIT %d',
-                $this->tableNameResolver->resolve('queue_messages'),
-                $limit,
-            ),
-            [
-                'status' => 'pending',
-                'available_at' => gmdate('Y-m-d H:i:s'),
-            ],
-        );
+        $rows = $this->queueMessageRepository->findReady($limit);
 
         $envelopes = [];
-        $claimedAt = gmdate('Y-m-d H:i:s');
-        $claimedBy = wp_generate_uuid4();
+        $claim = QueueClaim::create($this->queueClock->now(), $this->workerIdentity->id());
 
         foreach ($rows as $row) {
-            $updated = $this->connection->update(
-                $this->tableNameResolver->resolve('queue_messages'),
-                [
-                    'status' => 'processing',
-                    'claimed_at' => $claimedAt,
-                    'claimed_by' => $claimedBy,
-                    'updated_at' => $claimedAt,
-                ],
-                [
-                    'id' => (int) $row['id'],
-                    'status' => 'pending',
-                ],
-            );
-
-            if ($updated !== 1) {
+            if (! $this->queueMessageRepository->claim((int) $row['id'], $claim)) {
                 continue;
             }
 
@@ -90,46 +72,49 @@ final class DatabaseReceiver implements ReceiverInterface
             ];
 
             try {
-                $envelope = $this->serializer->decode($encodedEnvelope)
-                    ->with(new TransportMessageIdStamp((string) $row['id']))
-                    ->with(new DatabaseMessageStamp(
-                        messageId: (int) $row['id'],
-                        attemptCount: (int) $row['attempt_count'],
-                        maxAttempts: (int) ($row['max_attempts'] ?? 3),
-                        queueName: (string) ($row['queue_name'] ?? DatabaseTransport::NAME),
-                        claimedBy: $claimedBy,
-                    ));
-
-                $message = $envelope->getMessage();
-
-                if ($message instanceof MessageDecodingFailedException) {
-                    $this->connection->update($this->tableNameResolver->resolve('queue_messages'), [
-                        'status' => 'failed',
-                        'last_error' => $message->getMessage(),
-                        'processed_at' => gmdate('Y-m-d H:i:s'),
-                        'updated_at' => gmdate('Y-m-d H:i:s'),
-                    ], [
-                        'id' => (int) $row['id'],
-                        'status' => 'processing',
-                        'claimed_by' => $claimedBy,
-                    ]);
-
-                    continue;
-                }
-
-                $envelopes[] = $envelope;
+                $envelope = $this->serializer->decode($encodedEnvelope);
             } catch (Throwable $throwable) {
-                $this->connection->update($this->tableNameResolver->resolve('queue_messages'), [
-                    'status' => 'failed',
-                    'last_error' => $throwable->getMessage(),
-                    'processed_at' => gmdate('Y-m-d H:i:s'),
-                    'updated_at' => gmdate('Y-m-d H:i:s'),
-                ], [
-                    'id' => (int) $row['id'],
-                    'status' => 'processing',
-                    'claimed_by' => $claimedBy,
-                ]);
+                $this->recordDecodeFailure(
+                    (int) $row['id'],
+                    (int) $row['attempt_count'],
+                    (int) ($row['max_attempts'] ?? 3),
+                    (string) ($row['queue_name'] ?? DatabaseTransport::NAME),
+                    $claim->claimedBy,
+                    $claim->workerId,
+                    $throwable->getMessage(),
+                );
+
+                continue;
             }
+
+            $envelope = $envelope
+                ->with(new TransportMessageIdStamp((string) $row['id']))
+                ->with(new DatabaseMessageStamp(
+                    messageId: (int) $row['id'],
+                    attemptCount: (int) $row['attempt_count'],
+                    maxAttempts: (int) ($row['max_attempts'] ?? 3),
+                    queueName: (string) ($row['queue_name'] ?? DatabaseTransport::NAME),
+                    claimedBy: $claim->claimedBy,
+                    workerId: $claim->workerId,
+                ));
+
+            $message = $envelope->getMessage();
+
+            if ($message instanceof MessageDecodingFailedException) {
+                $this->recordDecodeFailure(
+                    (int) $row['id'],
+                    (int) $row['attempt_count'],
+                    (int) ($row['max_attempts'] ?? 3),
+                    (string) ($row['queue_name'] ?? DatabaseTransport::NAME),
+                    $claim->claimedBy,
+                    $claim->workerId,
+                    $message->getMessage(),
+                );
+
+                continue;
+            }
+
+            $envelopes[] = $envelope;
         }
 
         return $envelopes;
@@ -155,12 +140,7 @@ final class DatabaseReceiver implements ReceiverInterface
             return false;
         }
 
-        return $this->connection->update($this->tableNameResolver->resolve('queue_messages'), [
-            'status' => 'completed',
-            'last_error' => null,
-            'processed_at' => gmdate('Y-m-d H:i:s'),
-            'updated_at' => gmdate('Y-m-d H:i:s'),
-        ], $this->ownedProcessingCriteria($stamp)) === 1;
+        return $this->queueMessageRepository->ack($stamp);
     }
 
     /**
@@ -173,9 +153,12 @@ final class DatabaseReceiver implements ReceiverInterface
     }
 
     /**
+     * Rejects a message only while this receiver still owns its processing claim.
+     * Omitting the error preserves the last recorded failure for Messenger callers.
+     *
      * @since 0.1.0
      */
-    public function rejectClaimed(Envelope $envelope): bool
+    public function rejectClaimed(Envelope $envelope, ?string $error = null): bool
     {
         $stamp = $envelope->last(DatabaseMessageStamp::class);
 
@@ -183,11 +166,7 @@ final class DatabaseReceiver implements ReceiverInterface
             return false;
         }
 
-        return $this->connection->update($this->tableNameResolver->resolve('queue_messages'), [
-            'status' => 'failed',
-            'processed_at' => gmdate('Y-m-d H:i:s'),
-            'updated_at' => gmdate('Y-m-d H:i:s'),
-        ], $this->ownedProcessingCriteria($stamp)) === 1;
+        return $this->queueMessageRepository->reject($stamp, $error);
     }
 
     /**
@@ -201,15 +180,13 @@ final class DatabaseReceiver implements ReceiverInterface
             return null;
         }
 
-        $attemptCount = $stamp->attemptCount + 1;
-        $updated = $this->connection->update($this->tableNameResolver->resolve('queue_messages'), [
-            'attempt_count' => $attemptCount,
-            'updated_at' => gmdate('Y-m-d H:i:s'),
-        ], $this->ownedProcessingCriteria($stamp));
+        $attemptCount = $this->queueMessageRepository->beginAttempt($stamp);
 
-        if ($updated !== 1) {
+        if ($attemptCount === null) {
             return null;
         }
+
+        $this->recordAttemptStarted($stamp->messageId, $attemptCount, $stamp->claimedBy, $stamp->workerId);
 
         return $envelope->with(new DatabaseMessageStamp(
             messageId: $stamp->messageId,
@@ -217,7 +194,94 @@ final class DatabaseReceiver implements ReceiverInterface
             maxAttempts: $stamp->maxAttempts,
             queueName: $stamp->queueName,
             claimedBy: $stamp->claimedBy,
+            workerId: $stamp->workerId,
         ));
+    }
+
+    /**
+     * Records decode failures as queue attempts even though they never reach the worker handler.
+     *
+     * @since 1.0.9
+     */
+    private function recordDecodeFailure(
+        int $messageId,
+        int $attemptCount,
+        int $maxAttempts,
+        string $queueName,
+        string $claimedBy,
+        string $workerId,
+        string $error,
+    ): void {
+        $stamp = new DatabaseMessageStamp(
+            messageId: $messageId,
+            attemptCount: $attemptCount,
+            maxAttempts: $maxAttempts,
+            queueName: $queueName,
+            claimedBy: $claimedBy,
+            workerId: $workerId,
+        );
+        $nextAttemptCount = $this->queueMessageRepository->beginAttempt($stamp);
+
+        if ($nextAttemptCount === null) {
+            return;
+        }
+
+        $this->recordAttemptStarted($messageId, $nextAttemptCount, $claimedBy, $workerId);
+        $markedFailed = $this->queueMessageRepository->markDecodeFailed($messageId, $claimedBy, $error);
+
+        $this->recordAttemptFinished(
+            $messageId,
+            $claimedBy,
+            $markedFailed ? 'failed' : 'claim_lost',
+            $error,
+        );
+    }
+
+    /**
+     * @since 1.0.9
+     */
+    private function recordAttemptStarted(
+        int $messageId,
+        int $attemptNumber,
+        string $claimedBy,
+        string $workerId,
+    ): void {
+        try {
+            $this->queueAttemptRepository->recordStarted($messageId, $attemptNumber, $claimedBy, $workerId);
+        } catch (Throwable $throwable) {
+            $this->publishAttemptLogFailure($messageId, $throwable);
+        }
+    }
+
+    /**
+     * @since 1.0.9
+     */
+    private function recordAttemptFinished(
+        int $messageId,
+        string $claimedBy,
+        string $outcome,
+        ?string $error,
+    ): void {
+        try {
+            $this->queueAttemptRepository->finish($messageId, $claimedBy, $outcome, $error);
+        } catch (Throwable $throwable) {
+            $this->publishAttemptLogFailure($messageId, $throwable);
+        }
+    }
+
+    /**
+     * @since 1.0.9
+     */
+    private function publishAttemptLogFailure(int $messageId, Throwable $throwable): void
+    {
+        try {
+            $this->eventPublisher->doAction(
+                'a!jooosi-mail/queue:attempt-log.failed',
+                $messageId,
+                $throwable,
+            );
+        } catch (Throwable) {
+        }
     }
 
     /**
@@ -231,15 +295,7 @@ final class DatabaseReceiver implements ReceiverInterface
             return false;
         }
 
-        return $this->connection->update($this->tableNameResolver->resolve('queue_messages'), [
-            'status' => 'pending',
-            'available_at' => gmdate('Y-m-d H:i:s', time() + $delaySeconds),
-            'claimed_at' => null,
-            'claimed_by' => null,
-            'last_error' => $error,
-            'processed_at' => null,
-            'updated_at' => gmdate('Y-m-d H:i:s'),
-        ], $this->ownedProcessingCriteria($stamp)) === 1;
+        return $this->queueMessageRepository->reschedule($stamp, $error, $delaySeconds);
     }
 
     /**
@@ -255,25 +311,6 @@ final class DatabaseReceiver implements ReceiverInterface
             return false;
         }
 
-        return $this->connection->update($this->tableNameResolver->resolve('queue_messages'), [
-            'status' => 'pending',
-            'claimed_at' => null,
-            'claimed_by' => null,
-            'updated_at' => gmdate('Y-m-d H:i:s'),
-        ], $this->ownedProcessingCriteria($stamp)) === 1;
-    }
-
-    /**
-     * @return array{id: int, status: string, claimed_by: string}
-     *
-     * @since 0.1.0
-     */
-    private function ownedProcessingCriteria(DatabaseMessageStamp $stamp): array
-    {
-        return [
-            'id' => $stamp->messageId,
-            'status' => 'processing',
-            'claimed_by' => $stamp->claimedBy,
-        ];
+        return $this->queueMessageRepository->release($stamp);
     }
 }

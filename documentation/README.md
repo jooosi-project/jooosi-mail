@@ -9,7 +9,9 @@ Third-party code incorporated into the plugin is documented in [`THIRD_PARTY_NOT
 - [`../README.md`](../README.md) - product overview and entry points
 - [`OPERATIONS.md`](OPERATIONS.md) - setup, admin and CLI workflows, queue, routing, webhooks, observability, and current operational limits
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) - how the runtime is structured and why
+- [`BACKEND_REBUILD.md`](BACKEND_REBUILD.md) - compatibility boundary, implemented internal slices, and remaining migration plan
 - [`DEVELOPMENT.md`](DEVELOPMENT.md) - local development notes and extension points
+- [`CODE_REVIEW.md`](CODE_REVIEW.md) - September 2026 review findings, completed refactors, and follow-up work
 
 ## Document Roles
 

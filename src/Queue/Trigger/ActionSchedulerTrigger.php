@@ -6,6 +6,8 @@ namespace JooosiMail\Queue\Trigger;
 
 use JooosiMail\Discovery\Attribute\Hook;
 use JooosiMail\Discovery\Attribute\Service;
+use JooosiMail\Queue\State\QueueLease;
+use JooosiMail\Queue\State\QueueLeaseService;
 
 /**
  * Uses Action Scheduler as a queue runner trigger and fallback.
@@ -45,6 +47,11 @@ final class ActionSchedulerTrigger
      */
     private const SCHEDULE_LOCK_TTL = 15;
 
+    public function __construct(
+        private readonly QueueLeaseService $queueLeaseService,
+    ) {
+    }
+
     /**
      * @since 0.1.0
      */
@@ -54,7 +61,9 @@ final class ActionSchedulerTrigger
             return;
         }
 
-        if (! $this->acquireScheduleLock()) {
+        $lease = $this->queueLeaseService->acquire(self::SCHEDULE_LOCK_OPTION, self::SCHEDULE_LOCK_TTL);
+
+        if (! $lease instanceof QueueLease) {
             return;
         }
 
@@ -66,7 +75,7 @@ final class ActionSchedulerTrigger
             as_enqueue_async_action(self::RUN_HOOK, [], self::GROUP, false);
             $this->wakeActionSchedulerAsyncRunner();
         } finally {
-            $this->releaseScheduleLock();
+            $this->queueLeaseService->release($lease);
         }
     }
 
@@ -122,22 +131,6 @@ final class ActionSchedulerTrigger
     }
 
     /**
-     * @since 0.1.0
-     */
-    private function acquireScheduleLock(): bool
-    {
-        return $this->acquireLock(self::SCHEDULE_LOCK_OPTION, self::SCHEDULE_LOCK_TTL);
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function releaseScheduleLock(): void
-    {
-        delete_option(self::SCHEDULE_LOCK_OPTION);
-    }
-
-    /**
      * Nudges Action Scheduler's internal async runner so due actions can start
      * without waiting for another site visit.
      *
@@ -177,25 +170,4 @@ final class ActionSchedulerTrigger
         return function_exists('admin_url');
     }
 
-    /**
-     * @since 0.1.0
-     */
-    private function acquireLock(string $optionName, int $ttl): bool
-    {
-        $expiresAt = time() + $ttl;
-
-        if (add_option($optionName, (string) $expiresAt, '', false)) {
-            return true;
-        }
-
-        $existingExpiresAt = (int) get_option($optionName, '0');
-
-        if ($existingExpiresAt >= time()) {
-            return false;
-        }
-
-        delete_option($optionName);
-
-        return add_option($optionName, (string) $expiresAt, '', false);
-    }
 }

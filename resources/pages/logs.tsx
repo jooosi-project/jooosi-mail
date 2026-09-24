@@ -86,7 +86,7 @@ export default function MailLogsPage() {
         <MetricCard
           label="Total"
           value={formatAdminNumber(data.summary.mail.total)}
-          description="Every intercepted message recorded in the mail lifecycle table."
+          description="Every email recorded with its delivery history."
         />
         <MetricCard
           label="Sent"

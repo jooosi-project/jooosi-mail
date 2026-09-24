@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace JooosiMail\Mail\Logging;
 
 use JooosiMail\Discovery\Attribute\Service;
+use JooosiMail\Queue\Logging\QueueAttemptRepository;
 
 /**
- * Applies email log deletion after terminal delivery and retention windows.
+ * Applies email log and terminal queue attempt retention policies.
  *
  * @since 0.1.0
  */
@@ -17,6 +18,7 @@ final class MailLogRetentionService
     public function __construct(
         private readonly MailLogRetentionPolicy $retentionPolicy,
         private readonly MailLogRepository $mailLogRepository,
+        private readonly QueueAttemptRepository $queueAttemptRepository,
     ) {
     }
 
@@ -39,16 +41,20 @@ final class MailLogRetentionService
      */
     public function pruneExpired(int $limit = 500): int
     {
-        if (! $this->retentionPolicy->isEmailLoggingEnabled()) {
-            return $this->mailLogRepository->deleteTerminalLogs($limit);
-        }
-
         $retentionDays = $this->retentionPolicy->getRetentionDays();
+        $deletedQueueAttempts = $retentionDays === null
+            ? 0
+            : $this->queueAttemptRepository->pruneTerminalHistoryOlderThan($retentionDays, $limit);
+
+        if (! $this->retentionPolicy->isEmailLoggingEnabled()) {
+            return $deletedQueueAttempts + $this->mailLogRepository->deleteTerminalLogs($limit);
+        }
 
         if ($retentionDays === null) {
-            return 0;
+            return $deletedQueueAttempts;
         }
 
-        return $this->mailLogRepository->deleteTerminalLogsOlderThan($retentionDays, $limit);
+        return $deletedQueueAttempts
+            + $this->mailLogRepository->deleteTerminalLogsOlderThan($retentionDays, $limit);
     }
 }

@@ -148,6 +148,13 @@ final class DeliveryFailureTest extends JooosiMailIntegrationTestCase
 
             $firstRunProcessed = $this->queueWorker()->run(limit: 5, timeLimit: 20);
             $afterFirstRun = $this->latestRow('queue_messages');
+            $queueAttemptHistory = $this->db()->fetchAllAssociative(
+                sprintf(
+                    'SELECT attempt_number, outcome, error_message FROM %s WHERE queue_message_id = :queue_message_id ORDER BY id ASC',
+                    $this->tableNameResolver()->resolve('queue_message_attempts'),
+                ),
+                ['queue_message_id' => (int) ($afterFirstRun['id'] ?? 0)],
+            );
             $mailLog = $this->latestRow('mail_logs');
             $firstRunAttempts = $this->mailAttemptRepository()->listRecent(limit: 10, mailLogId: (int) ($mailLog['id'] ?? 0));
 
@@ -164,6 +171,12 @@ final class DeliveryFailureTest extends JooosiMailIntegrationTestCase
         self::assertSame('failed', $afterFirstRun['status']);
         self::assertSame(3, (int) $afterFirstRun['attempt_count']);
         self::assertStringContainsString('No connection could deliver this message.', (string) $afterFirstRun['last_error']);
+        self::assertSame(['retrying', 'retrying', 'failed'], array_column($queueAttemptHistory, 'outcome'));
+        self::assertSame([1, 2, 3], array_map('intval', array_column($queueAttemptHistory, 'attempt_number')));
+        self::assertStringContainsString(
+            'No connection could deliver this message.',
+            (string) $queueAttemptHistory[0]['error_message'],
+        );
         self::assertNotSame('', trim((string) ($afterFirstRun['processed_at'] ?? '')));
         self::assertIsArray($mailLog);
         self::assertSame('failed', $mailLog['status']);

@@ -59,21 +59,10 @@ final class SenderPolicyResolver
             return $mailRequest;
         }
 
-        return new MailRequest(
-            from: $from,
-            to: $mailRequest->to,
-            cc: $mailRequest->cc,
-            bcc: $mailRequest->bcc,
-            replyTo: $mailRequest->replyTo,
-            subject: $mailRequest->subject,
-            textBody: $mailRequest->textBody,
-            htmlBody: $mailRequest->htmlBody,
-            attachments: $mailRequest->attachments,
-            headers: $mailRequest->headers,
-            envelopeSender: $envelopeSender,
-            source: $mailRequest->source,
-            metadata: $mailRequest->metadata,
-        );
+        return $mailRequest->with([
+            'from' => $from,
+            'envelopeSender' => $envelopeSender,
+        ]);
     }
 
     /**

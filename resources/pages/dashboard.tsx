@@ -1,17 +1,18 @@
 import * as React from "react";
 import { format, subDays } from "date-fns";
 
-import { buildAdminHashHref } from "@/admin/routes";
 import {
   ChartAreaInteractive,
   type DashboardSendingStatsRange,
 } from "@/components/chart-area-interactive";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/reui/alert";
+import { Badge } from "@/components/reui/badge";
 import { Frame, FramePanel } from "@/components/reui/frame";
 import { SectionCards } from "@/components/section-cards";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminQuery } from "@/hooks/use-admin-query";
+import { usePersistentState } from "@/hooks/use-persistent-state";
 import { getDashboard, type AdminDashboardQuery } from "@/lib/admin-api";
 import AlertCircleIcon from "~icons/hugeicons/alert-circle";
 import Cancel01Icon from "~icons/hugeicons/cancel-01";
@@ -80,31 +81,19 @@ function DashboardSkeleton() {
 }
 
 export default function DashboardPage() {
-  const [sendingStatsRange, setSendingStatsRange] = React.useState<DashboardSendingStatsRange>({
-    preset: "90d",
-  });
+  const [sendingStatsRange, setSendingStatsRange] = usePersistentState<DashboardSendingStatsRange>(
+    "jooosimail:table-filters:v1:dashboard:sending-volume-range",
+    { preset: "7d" },
+  );
   const dashboardQuery = React.useMemo(
     () => resolveSendingStatsQuery(sendingStatsRange),
     [sendingStatsRange],
   );
   const dashboardQueryKey = getDashboardQueryKey(dashboardQuery);
-  const loadDashboard = React.useCallback(() => getDashboard(dashboardQuery), [dashboardQuery]);
+  const loadDashboard = React.useCallback((signal: AbortSignal) => getDashboard(dashboardQuery, signal), [dashboardQuery]);
   const { data, loading, refreshing, error, refresh } = useAdminQuery(loadDashboard, {
-    pollMs: 15000,
+    reloadKey: dashboardQueryKey,
   });
-  const hasLoadedDashboard = React.useRef(false);
-
-  React.useEffect(() => {
-    if (data !== null) {
-      hasLoadedDashboard.current = true;
-    }
-  }, [data]);
-
-  React.useEffect(() => {
-    if (hasLoadedDashboard.current) {
-      void refresh();
-    }
-  }, [dashboardQueryKey, refresh]);
 
   if (loading && !data) {
     return <DashboardSkeleton />;
@@ -140,47 +129,32 @@ export default function DashboardPage() {
             Delivery capacity, queue pressure, and provider feedback in one live view.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={refreshing}
-          onClick={() => void refresh()}
-        >
-          <RefreshIcon
-            data-icon="inline-start"
-            className={refreshing ? "animate-spin" : undefined}
-            aria-hidden="true"
-          />
-          <span aria-live="polite">{refreshing ? "Refreshing..." : "Refresh"}</span>
-        </Button>
-      </div>
-
-      <div className="px-4 lg:px-6">
-        <Frame>
-          <FramePanel className="p-0!">
-            <Alert variant={data.summary.interceptEnabled ? "success" : "warning"}>
-              {data.summary.interceptEnabled ? <CheckmarkCircle01Icon /> : <Cancel01Icon />}
-              <AlertTitle>
-                {data.summary.interceptEnabled
-                  ? "WordPress mail interception is active"
-                  : "WordPress mail interception is disabled"}
-              </AlertTitle>
-              <AlertDescription>
-                {data.summary.interceptEnabled
-                  ? `${data.summary.availableConnections} of ${data.summary.activeConnections} active connections are available for routing.`
-                  : "Jooosi Mail is not currently handling calls to wp_mail()."}
-              </AlertDescription>
-              <AlertAction>
-                <a
-                  className={buttonVariants({ variant: "outline", size: "xs" })}
-                  href={buildAdminHashHref("/settings")}
-                >
-                  Review settings
-                </a>
-              </AlertAction>
-            </Alert>
-          </FramePanel>
-        </Frame>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge
+            variant={data.summary.interceptEnabled ? "success-light" : "warning-light"}
+            radius="full"
+          >
+            {data.summary.interceptEnabled ? (
+              <CheckmarkCircle01Icon aria-hidden="true" />
+            ) : (
+              <Cancel01Icon aria-hidden="true" />
+            )}
+            {data.summary.interceptEnabled ? "Mail delivery active" : "Mail delivery off"}
+          </Badge>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={refreshing}
+            onClick={() => void refresh()}
+          >
+            <RefreshIcon
+              data-icon="inline-start"
+              className={refreshing ? "animate-spin" : undefined}
+              aria-hidden="true"
+            />
+            <span aria-live="polite">{refreshing ? "Refreshing..." : "Refresh"}</span>
+          </Button>
+        </div>
       </div>
 
       {error ? (

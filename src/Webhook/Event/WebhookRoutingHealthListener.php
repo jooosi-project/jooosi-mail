@@ -23,6 +23,7 @@ final class WebhookRoutingHealthListener
         private readonly ConnectionRepository $connectionRepository,
         private readonly ConnectionCircuitBreaker $connectionCircuitBreaker,
         private readonly EventPublisherInterface $eventPublisher,
+        private readonly WebhookEventSeverityPolicy $severityPolicy,
     ) {
     }
 
@@ -44,7 +45,7 @@ final class WebhookRoutingHealthListener
 
         $eventType = strtolower($event->eventType);
 
-        if (! $this->shouldAffectCircuitBreaker($eventType)) {
+        if (! $this->severityPolicy->affectsCircuitBreaker($eventType)) {
             return;
         }
 
@@ -52,25 +53,5 @@ final class WebhookRoutingHealthListener
         $this->connectionCircuitBreaker->recordFailure($connection, new RuntimeException($message));
 
         $this->eventPublisher->doAction('a!jooosi-mail/routing:webhook-feedback.recorded', $connection, $event);
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function shouldAffectCircuitBreaker(string $eventType): bool
-    {
-        return in_array($eventType, [
-            'provider_unavailable',
-            'outage',
-            'temporarily_unavailable',
-            'connection_error',
-            'api_error',
-            'throttled',
-            'rate_limited',
-            'rejected',
-            'blocked',
-            'dropped',
-            'failed',
-        ], true);
     }
 }

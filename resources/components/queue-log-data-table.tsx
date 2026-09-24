@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { useAdminLogQuery } from "@/hooks/use-admin-log-query";
+import { usePersistentState } from "@/hooks/use-persistent-state";
 import {
   useTable,
   type ColumnDef,
@@ -17,12 +19,12 @@ import { QueueLogTableViewOptions } from "@/components/queue-log-table-view-opti
 import { Alert, AlertDescription, AlertTitle } from "@/components/reui/alert";
 import type { MailLogDateRangeFilter } from "@/components/mail-log-table-types";
 import type {
-  AdminMailLogFilterOption,
+  AdminQueueAttempt,
   AdminQueueLogQuery,
   AdminQueueMessage,
 } from "@/lib/admin-api";
 import { getQueueLogs } from "@/lib/admin-api";
-import { formatAdminDateTime, titleCase } from "@/lib/admin-format";
+import { formatAdminDateTime, parseAdminDateTime, titleCase } from "@/lib/admin-format";
 import { getLogStatusVariant } from "@/lib/admin-log-helpers";
 import { Badge } from "@/components/reui/badge";
 import {
@@ -55,8 +57,6 @@ type QueueLogDataTableProps = {
   refreshToken?: number;
 };
 
-const LOG_TABLE_POLL_MS = 15_000;
-
 const QUEUE_CLAIM_STALE_AFTER_SECONDS = 300;
 
 function getQueueMessageDateTime(message: AdminQueueMessage): string | null {
@@ -67,16 +67,6 @@ function getQueueMessageDateTime(message: AdminQueueMessage): string | null {
     message.availableAt ??
     message.createdAt
   );
-}
-
-function parseDateTime(value: string | null | undefined): Date | null {
-  if (!value) {
-    return null;
-  }
-
-  const parsedValue = new Date(value);
-
-  return Number.isNaN(parsedValue.getTime()) ? null : parsedValue;
 }
 
 function formatDurationLabel(totalSeconds: number): string {
@@ -105,7 +95,7 @@ function formatDurationLabel(totalSeconds: number): string {
 }
 
 function getClaimAgeLabel(claimedAt: string | null | undefined, now: number): string | null {
-  const claimedAtDate = parseDateTime(claimedAt);
+  const claimedAtDate = parseAdminDateTime(claimedAt);
 
   if (claimedAtDate === null) {
     return null;
@@ -119,7 +109,7 @@ function isStaleClaim(message: AdminQueueMessage, now: number): boolean {
     return false;
   }
 
-  const claimedAtDate = parseDateTime(message.claimedAt);
+  const claimedAtDate = parseAdminDateTime(message.claimedAt);
 
   if (claimedAtDate === null) {
     return false;
@@ -137,6 +127,93 @@ function formatClaimedTooltipValue(message: AdminQueueMessage, now: number): str
   }
 
   return `${claimedAtLabel} (Age ${claimAgeLabel})`;
+}
+
+function QueueAttemptHistory({ message }: { message: AdminQueueMessage }) {
+  const attemptHistory = message.attemptHistory ?? [];
+  const attemptCountLabel = `${message.attemptCount} / ${message.maxAttempts}`;
+
+  if (attemptHistory.length === 0) {
+    return <span>{attemptCountLabel}</span>;
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<span className="cursor-help underline decoration-dotted underline-offset-2" />}
+      >
+        {attemptCountLabel}
+      </TooltipTrigger>
+      <TooltipContent className="max-h-80 max-w-sm flex-col items-stretch gap-2 overflow-y-auto p-3">
+        <div className="text-sm font-semibold">Attempt history</div>
+        {attemptHistory.map((attempt: AdminQueueAttempt, index) => (
+          <div
+            key={`${attempt.attemptNumber}-${attempt.startedAt}-${index}`}
+            className="flex flex-col gap-1 border-t border-background/20 pt-2 first:border-t-0 first:pt-0"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium">
+                Run {attempt.sequenceNumber} · attempt {attempt.attemptNumber}
+              </span>
+              <Badge variant={getLogStatusVariant(attempt.outcome)}>
+                {titleCase(attempt.outcome)}
+              </Badge>
+            </div>
+            <p className="break-all text-background/70">
+              Claimed by {attempt.workerId ?? "Unknown"}
+            </p>
+            <p className="text-background/70">Started {formatAdminDateTime(attempt.startedAt)}</p>
+            {attempt.finishedAt ? (
+              <p className="text-background/70">Finished {formatAdminDateTime(attempt.finishedAt)}</p>
+            ) : null}
+            {attempt.retryDelaySeconds !== null ? (
+              <p className="text-background/70">
+                Retry delay {formatDurationLabel(attempt.retryDelaySeconds)}
+              </p>
+            ) : null}
+            {attempt.errorMessage ? (
+              <p className="whitespace-pre-wrap break-words">{attempt.errorMessage}</p>
+            ) : null}
+          </div>
+        ))}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function QueueLastWorker({ message }: { message: AdminQueueMessage }) {
+  const latestAttempt = message.attemptHistory?.[message.attemptHistory.length - 1];
+  const workerId =
+    (message.status === "processing" ? message.workerId?.trim() : null) ||
+    latestAttempt?.workerId?.trim();
+
+  if (!workerId) {
+    if (message.status !== "processing") {
+      return <span className="text-muted-foreground">—</span>;
+    }
+
+    return (
+      <Tooltip>
+        <TooltipTrigger
+          render={<span className="cursor-help text-muted-foreground underline decoration-dotted underline-offset-2" />}
+        >
+          Unknown
+        </TooltipTrigger>
+        <TooltipContent>Worker identity was not recorded for the active claim.</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<span className="block max-w-40 cursor-help truncate underline decoration-dotted underline-offset-2" />}
+      >
+        {workerId}
+      </TooltipTrigger>
+      <TooltipContent className="max-w-sm break-all">{workerId}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 function QueueDateValue({ message, now }: { message: AdminQueueMessage; now: number }) {
@@ -232,16 +309,19 @@ export function QueueLogDataTable({ refreshToken = 0 }: QueueLogDataTableProps) 
     pageIndex: 0,
     pageSize: 25,
   });
-  const [searchValue, setSearchValue] = React.useState("");
+  const [searchValue, setSearchValue] = usePersistentState(
+    "jooosimail:table-filters:v1:queue-logs:search",
+    "",
+  );
   const deferredSearchValue = React.useDeferredValue(searchValue);
-  const [selectedStatuses, setSelectedStatuses] = React.useState<string[]>([]);
-  const [dateRange, setDateRange] = React.useState<MailLogDateRangeFilter | undefined>(undefined);
-  const [rows, setRows] = React.useState<AdminQueueMessage[]>([]);
-  const [statusOptions, setStatusOptions] = React.useState<AdminMailLogFilterOption[]>([]);
-  const [totalRows, setTotalRows] = React.useState(0);
-  const [pageCount, setPageCount] = React.useState(1);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const [selectedStatuses, setSelectedStatuses] = usePersistentState<string[]>(
+    "jooosimail:table-filters:v1:queue-logs:statuses",
+    [],
+  );
+  const [dateRange, setDateRange] = usePersistentState<MailLogDateRangeFilter | undefined>(
+    "jooosimail:table-filters:v1:queue-logs:date-range",
+    undefined,
+  );
   const [now, setNow] = React.useState(() => Date.now());
 
   const openRelatedMailLog = React.useCallback((mailLogId: number) => {
@@ -309,76 +389,15 @@ export function QueueLogDataTable({ refreshToken = 0 }: QueueLogDataTableProps) 
     ],
   );
 
-  React.useEffect(() => {
-    let active = true;
-    let requestId = 0;
-
-    const loadQueueLogs = (showLoading: boolean) => {
-      const currentRequestId = requestId + 1;
-
-      requestId = currentRequestId;
-
-      if (showLoading) {
-        setLoading(true);
-      }
-
-      setError(null);
-
-      void getQueueLogs(query)
-        .then((response) => {
-          if (!active || currentRequestId !== requestId) {
-            return;
-          }
-
-          setRows(response.items);
-          setStatusOptions(response.filters.statuses);
-          setTotalRows(response.pagination.total);
-          setPageCount(response.pagination.totalPages);
-          setPagination((currentPagination) => {
-            const nextPageIndex = Math.max(0, response.pagination.page - 1);
-
-            if (
-              currentPagination.pageIndex === nextPageIndex &&
-              currentPagination.pageSize === response.pagination.perPage
-            ) {
-              return currentPagination;
-            }
-
-            return {
-              pageIndex: nextPageIndex,
-              pageSize: response.pagination.perPage,
-            };
-          });
-        })
-        .catch((caughtError) => {
-          if (!active || currentRequestId !== requestId) {
-            return;
-          }
-
-          setError(
-            caughtError instanceof Error
-              ? caughtError.message
-              : "The queue logs could not be loaded.",
-          );
-        })
-        .finally(() => {
-          if (active && currentRequestId === requestId) {
-            setLoading(false);
-          }
-        });
-    };
-
-    loadQueueLogs(true);
-
-    const intervalId = window.setInterval(() => {
-      loadQueueLogs(false);
-    }, LOG_TABLE_POLL_MS);
-
-    return () => {
-      active = false;
-      window.clearInterval(intervalId);
-    };
-  }, [query, refreshToken]);
+  const { data, loading, error } = useAdminLogQuery(getQueueLogs, query, {
+    refreshToken,
+    setPagination,
+    errorMessage: "The queue logs could not be loaded.",
+  });
+  const rows = React.useMemo(() => data ? data.items : [], [data]);
+  const totalRows = data?.pagination.total ?? 0;
+  const pageCount = data?.pagination.totalPages ?? 1;
+  const statusOptions = data?.filters.statuses ?? [];
 
   const columns = React.useMemo<ColumnDef<DataGridFeatures, AdminQueueMessage>[]>(
     () => [
@@ -444,25 +463,20 @@ export function QueueLogDataTable({ refreshToken = 0 }: QueueLogDataTableProps) 
         minSize: 100,
         size: 110,
         header: ({ column }) => <SortableHeader column={column} title="Status" />,
-        cell: ({ row }) => {
-          const statusLabel = titleCase(row.original.status);
-          const statusVariant = getLogStatusVariant(row.original.status);
-
-          if (!row.original.lastError) {
-            return <Badge variant={statusVariant}>{statusLabel}</Badge>;
-          }
-
-          return (
-            <Tooltip>
-              <TooltipTrigger render={<Badge variant={statusVariant} />}>
-                {statusLabel}
-              </TooltipTrigger>
-              <TooltipContent className="max-w-sm whitespace-pre-wrap break-words">
-                {row.original.lastError}
-              </TooltipContent>
-            </Tooltip>
-          );
-        },
+        cell: ({ row }) => (
+          <Badge variant={getLogStatusVariant(row.original.status)}>
+            {titleCase(row.original.status)}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: "workerId",
+        id: "workerId",
+        minSize: 130,
+        size: 170,
+        header: () => <span>Last worker</span>,
+        cell: ({ row }) => <QueueLastWorker message={row.original} />,
+        enableSorting: false,
       },
       {
         accessorKey: "priority",
@@ -478,11 +492,7 @@ export function QueueLogDataTable({ refreshToken = 0 }: QueueLogDataTableProps) 
         minSize: 92,
         size: 100,
         header: ({ column }) => <SortableHeader column={column} title="Attempts" />,
-        cell: ({ row }) => (
-          <span>
-            {row.original.attemptCount} / {row.original.maxAttempts}
-          </span>
-        ),
+        cell: ({ row }) => <QueueAttemptHistory message={row.original} />,
       },
       {
         accessorFn: (row) => getQueueMessageDateTime(row) ?? "",

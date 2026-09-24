@@ -7,6 +7,8 @@ namespace JooosiMail\Queue\Worker;
 use JooosiMail\Discovery\Attribute\Hook;
 use JooosiMail\Discovery\Attribute\Service;
 use JooosiMail\Queue\Query\QueueMessageQuery;
+use JooosiMail\Queue\State\QueueLease;
+use JooosiMail\Queue\State\QueueLeaseService;
 use JooosiMail\Queue\Trigger\ActionSchedulerTrigger;
 
 /**
@@ -26,6 +28,7 @@ final class WorkerRunner
         private readonly QueueWorker $queueWorker,
         private readonly QueueMessageQuery $queueMessageQuery,
         private readonly ActionSchedulerTrigger $actionSchedulerTrigger,
+        private readonly QueueLeaseService $queueLeaseService,
     ) {
     }
 
@@ -44,7 +47,12 @@ final class WorkerRunner
     #[Hook(name: ActionSchedulerTrigger::RECURRING_HOOK, kind: 'action', acceptedArgs: 0)]
     public function runScheduled(int $limit = 25, int $timeLimit = 20): int
     {
-        if (! $this->acquireRunnerLease($timeLimit)) {
+        $lease = $this->queueLeaseService->acquire(
+            self::RUNNER_LEASE_OPTION,
+            max(30, $timeLimit + 15),
+        );
+
+        if (! $lease instanceof QueueLease) {
             return 0;
         }
 
@@ -58,38 +66,7 @@ final class WorkerRunner
 
             return $processed;
         } finally {
-            $this->releaseRunnerLease();
+            $this->queueLeaseService->release($lease);
         }
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function acquireRunnerLease(int $timeLimit): bool
-    {
-        $ttl = max(30, $timeLimit + 15);
-        $expiresAt = time() + $ttl;
-
-        if (add_option(self::RUNNER_LEASE_OPTION, (string) $expiresAt, '', false)) {
-            return true;
-        }
-
-        $existingExpiresAt = (int) get_option(self::RUNNER_LEASE_OPTION, '0');
-
-        if ($existingExpiresAt >= time()) {
-            return false;
-        }
-
-        delete_option(self::RUNNER_LEASE_OPTION);
-
-        return add_option(self::RUNNER_LEASE_OPTION, (string) $expiresAt, '', false);
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function releaseRunnerLease(): void
-    {
-        delete_option(self::RUNNER_LEASE_OPTION);
     }
 }

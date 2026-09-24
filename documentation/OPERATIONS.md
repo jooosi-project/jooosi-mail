@@ -22,7 +22,7 @@ Current admin screens include:
 
 - Dashboard for delivery mode, routing strategy, connection health, queue counts, mail counts, webhook counts, sending trends, recent attempts, recent webhooks, and failed messages
 - Connections for profile discovery, connection CRUD, enabled/default state, sender overrides, rate limits, circuit-breaker settings, webhook settings, webhook URL visibility, and masked secret state
-- Email Logs for message lifecycle rows, delivery-attempt detail, filtering, and test email sending
+- Email Logs for message lifecycle rows, delivery-attempt detail, filtering, manual resending, and test email sending
 - Queue Logs for queued, deferred, processing, stale, and failed work
 - Webhook Logs for normalized provider callback records
 - Settings for interception, sender policy, return-path policy, logging retention, delivery mode, routing strategy, rate limits, circuit breaker defaults, and queue retry policy
@@ -257,6 +257,8 @@ This gives operators a direct view into per-connection outcomes, provider messag
 ## Email Log Retention
 
 Email logging is enabled by default and terminal logs are kept forever by default.
+
+Use **Resend email** from any retained email log to submit a fresh copy through the current routing and delivery settings. The action is available for every lifecycle status and requires confirmation because resending a queued or processing entry can intentionally create a duplicate delivery. Jooosi Mail preserves the source log, creates a new lifecycle row, and removes stale scheduling and message identity headers from the new submission.
 
 Administrators can disable retained email logs or set a retention duration from the plugin settings screen. Jooosi Mail still keeps the internal mail-log row while a message is `pending`, `queued`, or `processing`, because async delivery reconstructs the message from that durable payload. When logging is disabled, terminal `sent` and `failed` mail logs and their delivery-attempt rows are deleted after delivery completes.
 

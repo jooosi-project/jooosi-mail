@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace JooosiMail\Tests\Integration\Cli;
 
+use JooosiMail\Cli\Application\ConnectionCommandApplicationService;
 use JooosiMail\Tests\Integration\Support\JooosiMailIntegrationTestCase;
 use RuntimeException;
 
@@ -127,6 +128,63 @@ final class ConnectionCommandTest extends JooosiMailIntegrationTestCase
         self::assertStringContainsString('Temporarily unavailable: 1', $status['stdout']);
         self::assertStringContainsString('CLI Primary Route', $status['stdout']);
         self::assertNotSame($primaryConnection->id, $this->connectionRepository()->findDefault()?->id);
+    }
+
+    /**
+     * @since 1.0.9
+     */
+    public function testStatusAllUsesRobustBooleanOptionParsing(): void
+    {
+        $activeConnection = $this->createNullConnection([
+            'name' => 'CLI Active Route',
+            'default' => true,
+        ]);
+        $disabledConnection = $this->createNullConnection([
+            'name' => 'CLI Disabled Route',
+            'default' => false,
+            'enabled' => false,
+        ]);
+
+        $withoutDisabled = $this->captureCli(function (): void {
+            $this->connectionCommand()->status([], ['all' => 'false']);
+        });
+
+        self::assertStringContainsString($activeConnection->name, $withoutDisabled['stdout']);
+        self::assertStringNotContainsString($disabledConnection->name, $withoutDisabled['stdout']);
+
+        $withDisabled = $this->captureCli(function (): void {
+            $this->connectionCommand()->status([], ['all' => 'true']);
+        });
+
+        self::assertStringContainsString($activeConnection->name, $withDisabled['stdout']);
+        self::assertStringContainsString($disabledConnection->name, $withDisabled['stdout']);
+        self::assertStringContainsString('disabled', strtolower($withDisabled['stdout']));
+    }
+
+    /**
+     * @since 1.0.9
+     */
+    public function testConnectionApplicationServiceCoordinatesOperationsWithoutCliOutput(): void
+    {
+        $service = $this->container()->get(ConnectionCommandApplicationService::class);
+        self::assertInstanceOf(ConnectionCommandApplicationService::class, $service);
+
+        $connection = $service->create([
+            'profile' => 'null',
+            'name' => 'CLI Application Connection',
+            'default' => true,
+        ]);
+
+        self::assertNotNull($connection->id);
+        self::assertSame($connection->id, $service->find($connection->id)?->id);
+        self::assertCount(1, $service->listConnections());
+        self::assertNotEmpty($service->listProfiles());
+        self::assertNotEmpty($service->getStatuses());
+
+        $updated = $service->setEnabled($connection->id, false);
+
+        self::assertFalse($updated->enabled);
+        self::assertSame([], $service->getStatuses());
     }
 
     /**

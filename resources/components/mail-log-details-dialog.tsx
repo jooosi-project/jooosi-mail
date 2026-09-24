@@ -2,7 +2,9 @@
 
 import * as React from "react";
 
-import { buildAdminHashHref } from "@/admin/routes";
+import "@twinkleplop/theme-github";
+
+import { MailLogConnectionHoverCard } from "@/components/mail-log-connection-hover-card";
 import type { MailLogTableRow } from "@/components/mail-log-table-types";
 import { formatAddressList } from "@/components/mail-log-table-types";
 import { Badge } from "@/components/reui/badge";
@@ -12,14 +14,16 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatAdminDateTime, titleCase } from "@/lib/admin-format";
-import { highlightCode } from "@/lib/admin-shiki";
 import { getLogStatusVariant } from "@/lib/admin-log-helpers";
-import DatabaseIcon from "~icons/tabler/database";
+import { highlightHtmlCode } from "@/lib/admin-twinkleplop";
+import { cn } from "@/lib/utils";
+import RefreshIcon from "~icons/tabler/refresh";
 
 type MailLogDetailsDialogProps = {
   log: MailLogTableRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onResend: (log: MailLogTableRow) => void;
 };
 
 function useHighlightedHtml(code: string | null) {
@@ -33,7 +37,7 @@ function useHighlightedHtml(code: string | null) {
       return;
     }
 
-    void highlightCode(code, "html")
+    void highlightHtmlCode(code)
       .then((html) => {
         if (active) {
           setHighlightedCode(html);
@@ -79,10 +83,27 @@ function buildHtmlPreviewDocument(html: string): string {
 </html>`;
 }
 
-function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
+function MetaRow({
+  label,
+  value,
+  className,
+  labelClassName,
+}: {
+  label: string;
+  value: React.ReactNode;
+  className?: string;
+  labelClassName?: string;
+}) {
   return (
-    <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 text-sm">
-      <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</dt>
+    <div
+      className={cn(
+        "grid grid-cols-[88px_minmax(0,1fr)] gap-3 text-sm",
+        className,
+      )}
+    >
+      <dt className={cn("text-[11px] uppercase tracking-wide text-muted-foreground", labelClassName)}>
+        {label}
+      </dt>
       <dd className="min-w-0 leading-5 break-words">{value}</dd>
     </div>
   );
@@ -224,30 +245,25 @@ function MiscValueWithTooltip({ log }: { log: MailLogTableRow }) {
 }
 
 function ConnectionValue({ log }: { log: MailLogTableRow }) {
-  const openConnection = React.useCallback(() => {
-    if (typeof window === "undefined" || log.finalConnectionId === null) {
-      return;
-    }
-
-    window.location.hash = buildAdminHashHref("/connections", {
-      id: log.finalConnectionId,
-    }).slice(1);
-  }, [log.finalConnectionId]);
+  if (log.finalConnectionId === null || log.connectionName === null) {
+    return null;
+  }
 
   return (
-    <Button
-      variant="secondary"
-      size="xs"
-      disabled={log.finalConnectionId === null}
-      onClick={openConnection}
-    >
-      <DatabaseIcon data-icon="inline-start" />
-      {log.connectionLabel}
-    </Button>
+    <MailLogConnectionHoverCard
+      connectionId={log.finalConnectionId}
+      connectionName={log.connectionName}
+      profileKey={log.connectionProfileKey ?? ""}
+    />
   );
 }
 
-export function MailLogDetailsDialog({ log, open, onOpenChange }: MailLogDetailsDialogProps) {
+export function MailLogDetailsDialog({
+  log,
+  open,
+  onOpenChange,
+  onResend,
+}: MailLogDetailsDialogProps) {
   const highlightedHtml = useHighlightedHtml(log?.htmlBody ?? null);
 
   return (
@@ -274,6 +290,22 @@ export function MailLogDetailsDialog({ log, open, onOpenChange }: MailLogDetails
                 >
                   {titleCase(log.status)}
                 </BadgeWithTooltip>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Resend email"
+                        onClick={() => onResend(log)}
+                      />
+                    }
+                  >
+                    <RefreshIcon />
+                  </TooltipTrigger>
+                  <TooltipContent>Resend email</TooltipContent>
+                </Tooltip>
               </div>
             </DialogHeader>
 
@@ -285,7 +317,12 @@ export function MailLogDetailsDialog({ log, open, onOpenChange }: MailLogDetails
                       <h3 className="text-sm font-semibold">Details</h3>
                     </div>
                     <dl className="flex flex-col gap-3">
-                      <MetaRow label="Connection" value={<ConnectionValue log={log} />} />
+                      <MetaRow
+                        label="Connection"
+                        value={<ConnectionValue log={log} />}
+                        className="items-start"
+                        labelClassName="self-center"
+                      />
                       <MetaRow label="Date" value={<DateValueWithTooltip log={log} />} />
                       <MetaRow label="Misc" value={<MiscValueWithTooltip log={log} />} />
                     </dl>
@@ -323,7 +360,7 @@ export function MailLogDetailsDialog({ log, open, onOpenChange }: MailLogDetails
 
                     <TabsContent value="text" className="mt-0">
                       {log.textBody ? (
-                        <div className="min-h-[280px] rounded-md border bg-muted/20 px-4 py-4 text-sm whitespace-pre-wrap break-words">
+                        <div className="max-h-[min(36vh,22rem)] overflow-y-auto overscroll-contain rounded-md border bg-muted/20 px-4 py-4 text-sm whitespace-pre-wrap break-words">
                           {log.textBody}
                         </div>
                       ) : (
@@ -352,7 +389,7 @@ export function MailLogDetailsDialog({ log, open, onOpenChange }: MailLogDetails
                       <TabsContent value="html-raw" className="mt-0">
                         {highlightedHtml ? (
                           <div
-                            className="shiki-wrapper overflow-x-auto rounded-md border bg-muted/10 [&_pre]:m-0 [&_pre]:inline-block [&_pre]:min-w-full [&_pre]:align-top [&_pre]:px-4 [&_pre]:py-4"
+                            className="twinkleplop-wrapper overflow-x-auto rounded-md border bg-muted/10 [&_pre]:m-0 [&_pre]:inline-block [&_pre]:min-w-full [&_pre]:align-top [&_pre]:bg-transparent [&_pre]:px-4 [&_pre]:py-4"
                             dangerouslySetInnerHTML={{ __html: highlightedHtml }}
                           />
                         ) : (

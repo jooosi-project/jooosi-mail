@@ -29,10 +29,20 @@ final class ContainerCacheTest extends WP_UnitTestCase
     private ?string $rootDir = null;
 
     /**
+     * @since 1.0.8
+     */
+    private ?string $relocatedRootDir = null;
+
+    /**
      * @since 0.1.0
      */
     public function tear_down(): void
     {
+        if ($this->relocatedRootDir !== null) {
+            $this->removeDirectory($this->relocatedRootDir);
+            $this->relocatedRootDir = null;
+        }
+
         if ($this->rootDir !== null) {
             $this->removeDirectory($this->rootDir);
             $this->rootDir = null;
@@ -90,6 +100,127 @@ final class ContainerCacheTest extends WP_UnitTestCase
         self::assertTrue($inspection['usable']);
         self::assertSame([], $inspection['reasons']);
         self::assertTrue($inspection['debug']);
+    }
+
+    /**
+     * Copied cache files must not reuse paths or a PHP class from the original installation.
+     *
+     * @since 1.0.8
+     */
+    public function testRelocatedCacheIsRebuiltWithDistinctPathsInTheSameProcess(): void
+    {
+        $originalCache = $this->createCache();
+        $originalPaths = Paths::fromPluginFile($this->rootDir . '/jooosi-mail.php');
+        $originalCache->dump($this->createPathsContainer($originalPaths));
+        $originalContainer = $originalCache->load();
+
+        $this->relocatedRootDir = $this->rootDir . '-relocated';
+        $relocatedPaths = Paths::fromPluginFile($this->relocatedRootDir . '/jooosi-mail.php');
+        $this->createDirectory($relocatedPaths->srcDir);
+        $this->createDirectory($relocatedPaths->cacheDir);
+
+        foreach (['composer.json', 'jooosi-mail.php', 'src/Tracked.php', 'var/cache/container.php', 'var/cache/container.meta.php'] as $file) {
+            self::assertTrue(copy($originalPaths->rootDir . '/' . $file, $relocatedPaths->rootDir . '/' . $file));
+        }
+
+        $relocatedCache = new ContainerCache($relocatedPaths, new Environment(false, 'production'));
+        $inspection = $relocatedCache->inspect();
+
+        self::assertFalse($inspection['usable']);
+        self::assertSame($inspection['cached_source_hash'], $inspection['current_source_hash']);
+        self::assertContains('context_hash_mismatch', $inspection['reasons']);
+        self::assertContains('container_class_mismatch', $inspection['reasons']);
+
+        try {
+            $relocatedCache->load();
+            self::fail('Expected direct loading of a relocated cache to fail.');
+        } catch (RuntimeException $exception) {
+            self::assertStringContainsString('different runtime paths or environment', $exception->getMessage());
+        }
+
+        $relocatedCache->dump($this->createPathsContainer($relocatedPaths));
+        $relocatedContainer = $relocatedCache->load();
+
+        self::assertTrue($relocatedCache->isUsable());
+        self::assertSame($originalPaths->rootDir, $originalContainer->get(Paths::class)->rootDir);
+        self::assertSame($relocatedPaths->rootDir, $relocatedContainer->get(Paths::class)->rootDir);
+        self::assertNotSame(get_class($originalContainer), get_class($relocatedContainer));
+        self::assertSame(get_class($relocatedContainer), get_class($relocatedCache->load()));
+    }
+
+    /**
+     * @since 1.0.8
+     */
+    public function testCacheIdentityIncludesPluginEntrypointAndEnvironment(): void
+    {
+        $cache = $this->createCache();
+        $paths = Paths::fromPluginFile($this->rootDir . '/jooosi-mail.php');
+        $cache->dump($this->createPathsContainer($paths));
+        $inspection = $cache->inspect();
+
+        $variants = [
+            new ContainerCache(Paths::fromPluginFile($this->rootDir . '/alternate.php'), new Environment(false, 'production')),
+            new ContainerCache($paths, new Environment(false, 'staging')),
+            new ContainerCache($paths, new Environment(true, 'production')),
+        ];
+
+        foreach ($variants as $variant) {
+            $variantInspection = $variant->inspect();
+
+            self::assertFalse($variantInspection['usable']);
+            self::assertSame($inspection['current_source_hash'], $variantInspection['current_source_hash']);
+            self::assertContains('context_hash_mismatch', $variantInspection['reasons']);
+            self::assertNotSame($inspection['expected_container_class'], $variantInspection['expected_container_class']);
+        }
+    }
+
+    /**
+     * Existing installations rebuild metadata created before context validation was added.
+     *
+     * @since 1.0.8
+     */
+    public function testCacheWithoutContextMetadataIsInvalidated(): void
+    {
+        $cache = $this->createCache();
+        $paths = Paths::fromPluginFile($this->rootDir . '/jooosi-mail.php');
+        $builder = $this->createPathsContainer($paths);
+        $cache->dump($builder);
+        $metadataPath = $paths->cacheDir . '/container.meta.php';
+        $metadata = require $metadataPath;
+        unset($metadata['context_hash']);
+        $this->writeFile($metadataPath, sprintf("<?php\nreturn %s;\n", var_export($metadata, true)));
+
+        self::assertFalse($cache->isUsable());
+        self::assertContains('context_hash_mismatch', $cache->inspect()['reasons']);
+
+        $cache->dump($builder);
+
+        self::assertTrue($cache->isUsable());
+        self::assertSame($paths->rootDir, $cache->load()->get(Paths::class)->rootDir);
+    }
+
+    /**
+     * @since 1.0.9
+     */
+    public function testInspectRejectsMetadataThatCannotBeLoaded(): void
+    {
+        $cache = $this->createCache();
+        $builder = $this->createPathsContainer(Paths::fromPluginFile($this->rootDir . '/jooosi-mail.php'));
+        $cache->dump($builder);
+        $metadataPath = $this->rootDir . '/var/cache/container.meta.php';
+        $this->writeFile($metadataPath, "<?php throw new RuntimeException('invalid metadata');\n");
+
+        $inspection = $cache->inspect();
+
+        self::assertFalse($inspection['usable']);
+        self::assertSame(['invalid_metadata_file'], $inspection['reasons']);
+
+        try {
+            $cache->load();
+            self::fail('Expected invalid metadata to prevent loading the cache.');
+        } catch (RuntimeException $exception) {
+            self::assertSame('The Jooosi Mail container metadata file does not exist or is invalid.', $exception->getMessage());
+        }
     }
 
     /**
@@ -190,6 +321,23 @@ final class ContainerCacheTest extends WP_UnitTestCase
             ),
             new Environment(debug: $debug, name: $debug ? 'development' : 'production'),
         );
+    }
+
+    /**
+     * Register the same path factory used by the runtime container.
+     *
+     * @since 1.0.8
+     */
+    private function createPathsContainer(Paths $paths): ContainerBuilder
+    {
+        $builder = new ContainerBuilder();
+        $builder->register(Paths::class, Paths::class)
+            ->setPublic(true)
+            ->setFactory([Paths::class, 'fromPluginFile'])
+            ->addArgument($paths->pluginFile);
+        $builder->compile();
+
+        return $builder;
     }
 
     /**

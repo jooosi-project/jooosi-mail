@@ -7,12 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- Prevented concurrent requests from racing while rebuilding and publishing the compiled container cache.
+### Added
+- Save the chart and table filters state in the browser and restore it on page reload.
+- Queue logs show attempt history, workers, retries, and errors.
+- Resend emails from their logs without changing the original record.
 
-### Changed
-- Fresh compiled container caches are now reused in debug mode and invalidated by their source signature.
-- Tested with WordPress 7.1.
+### Fixed
+- Queue processing and retries are more reliable, with clearer failure details.
 
 ## [1.0.8] - 2026-08-11
 

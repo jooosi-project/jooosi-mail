@@ -425,13 +425,13 @@ export default function SettingsPage() {
         <TabsContent value="delivery" className="flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>Mail flow</CardTitle>
+              <CardTitle>Mail delivery</CardTitle>
               <CardDescription>
-                Control interception and routing defaults for every outgoing WordPress message.
+                Choose how outgoing email is sent from WordPress.
               </CardDescription>
               <CardAction>
                 <Badge variant={draft.interceptEnabled ? "default" : "outline"}>
-                  {draft.interceptEnabled ? "Live" : "Bypassed"}
+                  {draft.interceptEnabled ? "Active" : "Off"}
                 </Badge>
               </CardAction>
             </CardHeader>
@@ -439,11 +439,11 @@ export default function SettingsPage() {
               <Field orientation="horizontal" className="gap-4 rounded-xl border bg-muted/30 p-4">
                 <FieldContent className="gap-1">
                   <FieldLabel htmlFor="mail-intercept-enabled">
-                    Enable wp_mail interception
+                    Send email through Jooosi Mail
                   </FieldLabel>
                   <FieldDescription>
-                    When enabled, Jooosi Mail takes over delivery instead of letting WordPress send
-                    mail directly.
+                    When enabled, Jooosi Mail sends outgoing email. When disabled, WordPress sends
+                    it directly.
                   </FieldDescription>
                 </FieldContent>
                 <Switch

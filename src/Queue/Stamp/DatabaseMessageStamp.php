@@ -19,6 +19,7 @@ final class DatabaseMessageStamp implements StampInterface
         public readonly int $maxAttempts,
         public readonly string $queueName,
         public readonly string $claimedBy,
+        public readonly string $workerId,
     ) {
     }
 }

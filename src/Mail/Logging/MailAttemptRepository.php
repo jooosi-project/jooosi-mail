@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace JooosiMail\Mail\Logging;
 
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection as DbalConnection;
 use JooosiMail\Discovery\Attribute\Service;
 use JooosiMail\Infrastructure\Database\TableNameResolver;
@@ -150,31 +149,25 @@ final class MailAttemptRepository
             return [];
         }
 
-        $rows = $this->connection->createQueryBuilder()
-            ->select('connection_id', 'status')
-            ->from($this->tableNameResolver->resolve('mail_attempts'))
-            ->where('connection_id IN (:connection_ids)')
-            ->orderBy('id', 'DESC')
-            ->setMaxResults(max($sampleSize * count($connectionIds), 50))
-            ->setParameter('connection_ids', array_values($connectionIds), ArrayParameterType::INTEGER)
-            ->fetchAllAssociative();
-
+        $sampleSize = max(1, $sampleSize);
         $attemptsByConnectionId = [];
 
-        foreach ($rows as $row) {
-            $connectionId = (int) ($row['connection_id'] ?? 0);
-
+        foreach (array_values(array_unique($connectionIds)) as $connectionId) {
             if ($connectionId <= 0) {
                 continue;
             }
 
-            $attemptsByConnectionId[$connectionId] ??= [];
-
-            if (count($attemptsByConnectionId[$connectionId]) >= $sampleSize) {
-                continue;
-            }
-
-            $attemptsByConnectionId[$connectionId][] = (string) ($row['status'] ?? 'failed');
+            $attemptsByConnectionId[$connectionId] = array_map(
+                static fn (array $row): string => (string) ($row['status'] ?? 'failed'),
+                $this->connection->createQueryBuilder()
+                    ->select('status')
+                    ->from($this->tableNameResolver->resolve('mail_attempts'))
+                    ->where('connection_id = :connection_id')
+                    ->orderBy('id', 'DESC')
+                    ->setMaxResults($sampleSize)
+                    ->setParameter('connection_id', $connectionId)
+                    ->fetchAllAssociative(),
+            );
         }
 
         $scores = [];

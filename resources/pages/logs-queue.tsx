@@ -73,26 +73,31 @@ export default function QueueLogsPage() {
         </Button>
       </div>
 
-      <Frame className="mx-4 grid grid-cols-4 lg:mx-6" spacing="sm">
+      <Frame className="mx-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 lg:mx-6" spacing="sm">
         <MetricCard
           label="Ready now"
           value={formatAdminNumber(data.summary.queue.pendingReady)}
-          description="Messages available for immediate processing."
+          description="Available for immediate processing."
         />
         <MetricCard
           label="Deferred"
           value={formatAdminNumber(data.summary.queue.pendingDeferred)}
-          description="Messages delayed by retry backoff or future availability."
+          description="Waiting for a retry or scheduled send time."
         />
         <MetricCard
           label="Processing"
           value={formatAdminNumber(data.summary.queue.processing)}
-          description={`Includes ${formatAdminNumber(data.summary.queue.staleProcessing)} stale claims.`}
+          description={`Includes ${formatAdminNumber(data.summary.queue.staleProcessing)} stale worker claims.`}
         />
         <MetricCard
           label="Failed"
           value={formatAdminNumber(data.summary.queue.failed)}
-          description="Messages that need retries or manual intervention."
+          description="Needs another retry or manual intervention."
+        />
+        <MetricCard
+          label="Completed"
+          value={formatAdminNumber(data.summary.queue.completed)}
+          description="Successfully processed by the queue."
         />
       </Frame>
 

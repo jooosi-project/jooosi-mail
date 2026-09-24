@@ -120,6 +120,7 @@ export type AdminMailLog = {
   status: string
   finalConnectionId: number | null
   connectionName: string | null
+  connectionProfileKey: string | null
   transportMessageId: string | null
   lastError: string | null
   toAddresses: string[]
@@ -171,6 +172,13 @@ export type AdminMailLogDetailData = {
   item: AdminMailLog | null
 }
 
+export type AdminResendMailResponse = {
+  submitted: boolean
+  originalMailLogId: number
+  mailLogId: number
+  message: string
+}
+
 export type AdminSendTestEmailPayload = {
   to: string
   subject: string
@@ -186,6 +194,7 @@ export type AdminWebhookLog = {
   id: number
   connectionId: number | null
   connectionName: string | null
+  connectionProfileKey: string | null
   mailLogId: number | null
   eventType: string
   transportMessageId: string | null
@@ -243,9 +252,22 @@ export type AdminQueueMessage = {
   lastError: string | null
   availableAt: string | null
   claimedAt: string | null
+  workerId: string | null
   processedAt: string | null
   createdAt: string | null
   updatedAt: string | null
+  attemptHistory?: AdminQueueAttempt[]
+}
+
+export type AdminQueueAttempt = {
+  sequenceNumber: number
+  attemptNumber: number
+  outcome: string
+  workerId: string | null
+  errorMessage: string | null
+  retryDelaySeconds: number | null
+  startedAt: string
+  finishedAt: string | null
 }
 
 export type AdminDashboardSendingStat = {
@@ -299,6 +321,7 @@ export type AdminDashboardData = {
     queueProcessing: number
     queueStaleProcessing: number
     queueFailed: number
+    queueCompleted: number
     mailPending: number
     mailQueued: number
     mailProcessing: number
@@ -339,6 +362,7 @@ export type AdminLogsData = {
       processing: number
       staleProcessing: number
       failed: number
+      completed: number
     }
     webhookEvents: number
     failedMessages: number
@@ -501,7 +525,7 @@ function resolveErrorMessage(payload: unknown): string {
   return "The request could not be completed."
 }
 
-export async function getDashboard(query: AdminDashboardQuery = {}): Promise<AdminDashboardData> {
+export async function getDashboard(query: AdminDashboardQuery = {}, signal?: AbortSignal): Promise<AdminDashboardData> {
   const searchParams = new URLSearchParams()
 
   if (query.fromDate) {
@@ -514,7 +538,7 @@ export async function getDashboard(query: AdminDashboardQuery = {}): Promise<Adm
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : ""
 
-  return adminFetch<AdminDashboardData>(`dashboard${suffix}`)
+  return adminFetch<AdminDashboardData>(`dashboard${suffix}`, { signal })
 }
 
 export async function getConnections(): Promise<AdminConnectionListData> {
@@ -561,7 +585,7 @@ export async function getLogs(): Promise<AdminLogsData> {
   return adminFetch<AdminLogsData>("logs")
 }
 
-export async function getMailLogs(query: AdminMailLogQuery = {}): Promise<AdminMailLogPageData> {
+export async function getMailLogs(query: AdminMailLogQuery = {}, signal?: AbortSignal): Promise<AdminMailLogPageData> {
   const searchParams = new URLSearchParams()
 
   if (query.search && query.search.trim() !== "") {
@@ -606,11 +630,17 @@ export async function getMailLogs(query: AdminMailLogQuery = {}): Promise<AdminM
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : ""
 
-  return adminFetch<AdminMailLogPageData>(`logs/mail${suffix}`)
+  return adminFetch<AdminMailLogPageData>(`logs/mail${suffix}`, { signal })
 }
 
 export async function getMailLog(mailLogId: number): Promise<AdminMailLogDetailData> {
   return adminFetch<AdminMailLogDetailData>(`logs/mail/${mailLogId}`)
+}
+
+export async function resendMailLog(mailLogId: number): Promise<AdminResendMailResponse> {
+  return adminFetch<AdminResendMailResponse>(`logs/mail/${mailLogId}/resend`, {
+    method: "POST",
+  })
 }
 
 export async function sendTestEmail(payload: AdminSendTestEmailPayload): Promise<AdminSendTestEmailResponse> {
@@ -620,7 +650,7 @@ export async function sendTestEmail(payload: AdminSendTestEmailPayload): Promise
   })
 }
 
-export async function getWebhookLogs(query: AdminWebhookLogQuery = {}): Promise<AdminWebhookLogPageData> {
+export async function getWebhookLogs(query: AdminWebhookLogQuery = {}, signal?: AbortSignal): Promise<AdminWebhookLogPageData> {
   const searchParams = new URLSearchParams()
 
   if (query.search && query.search.trim() !== "") {
@@ -665,10 +695,10 @@ export async function getWebhookLogs(query: AdminWebhookLogQuery = {}): Promise<
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : ""
 
-  return adminFetch<AdminWebhookLogPageData>(`logs/webhooks${suffix}`)
+  return adminFetch<AdminWebhookLogPageData>(`logs/webhooks${suffix}`, { signal })
 }
 
-export async function getQueueLogs(query: AdminQueueLogQuery = {}): Promise<AdminQueueLogPageData> {
+export async function getQueueLogs(query: AdminQueueLogQuery = {}, signal?: AbortSignal): Promise<AdminQueueLogPageData> {
   const searchParams = new URLSearchParams()
 
   if (query.search && query.search.trim() !== "") {
@@ -707,7 +737,7 @@ export async function getQueueLogs(query: AdminQueueLogQuery = {}): Promise<Admi
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : ""
 
-  return adminFetch<AdminQueueLogPageData>(`logs/queue${suffix}`)
+  return adminFetch<AdminQueueLogPageData>(`logs/queue${suffix}`, { signal })
 }
 
 export async function getSettings(): Promise<AdminSettingsData> {

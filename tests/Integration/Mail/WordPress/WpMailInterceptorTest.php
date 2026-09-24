@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace JooosiMail\Tests\Integration\Mail\WordPress;
 
-use JooosiMail\Mail\Delivery\DeliveryService;
 use JooosiMail\Infrastructure\Event\EventPublisherInterface;
+use JooosiMail\Mail\Delivery\DeliveryService;
 use JooosiMail\Mail\Logging\MailLifecycleLogger;
 use JooosiMail\Mail\Routing\RoutingPolicyResolver;
+use JooosiMail\Mail\Submission\MailSubmissionService;
 use JooosiMail\Mail\WordPress\WpMailInterceptor;
 use JooosiMail\Mail\WordPress\WpMailPayloadNormalizer;
 use JooosiMail\Queue\Transport\DatabaseTransport;
@@ -25,6 +26,47 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class WpMailInterceptorTest extends JooosiMailIntegrationTestCase
 {
+    /**
+     * @dataProvider preemptedDeliveryProvider
+     *
+     * @since 0.1.0
+     */
+    public function testEarlierPreemptionSkipsDelivery(string $mode, bool $preempt): void
+    {
+        $this->createNullConnection();
+        $this->optionStore()->set('settings.delivery.mode', $mode);
+        $preemptMail = static fn (): bool => $preempt;
+
+        add_filter('pre_wp_mail', $preemptMail, 10);
+
+        try {
+            $result = wp_mail('recipient@example.test', 'Already handled subject', 'Body');
+        } finally {
+            remove_filter('pre_wp_mail', $preemptMail, 10);
+        }
+
+        self::assertSame($preempt, $result);
+        self::assertSame(0, $this->countRows('mail_logs'));
+        self::assertSame(0, $this->countRows('mail_attempts'));
+        self::assertSame(0, $this->countRows('queue_messages'));
+        self::assertCount(0, $this->actionSchedulerWakeups());
+    }
+
+    /**
+     * @return array<string, array{string, bool}>
+     *
+     * @since 0.1.0
+     */
+    public static function preemptedDeliveryProvider(): array
+    {
+        return [
+            'sync already sent' => ['sync', true],
+            'sync vetoed' => ['sync', false],
+            'async already sent' => ['async', true],
+            'async vetoed' => ['async', false],
+        ];
+    }
+
     /**
      * @since 0.1.0
      */
@@ -96,6 +138,107 @@ final class WpMailInterceptorTest extends JooosiMailIntegrationTestCase
     }
 
     /**
+     * @since 1.0.8
+     */
+    public function testAsyncQueueNotificationFollowsCommitAndWakeupAndPreservesScheduling(): void
+    {
+        $this->createNullConnection();
+        $this->optionStore()->set('settings.delivery.mode', 'async');
+        $scheduledAt = time() + 300;
+        $interceptor = $this->container()->get(WpMailInterceptor::class);
+        $notifications = [];
+        $queueListener = function (int $mailLogId, string $queueName) use (&$notifications, $interceptor): void {
+            $notifications[] = [
+                'mail_log_id' => $mailLogId,
+                'queue_name' => $queueName,
+                'transaction_active' => $this->db()->isTransactionActive(),
+                'queue_message' => $this->latestRow('queue_messages'),
+                'wakeups' => $this->actionSchedulerWakeups(),
+                'nested_result' => $interceptor->intercept(null, [
+                    'to' => 'recipient@example.test',
+                    'subject' => 'Nested interception',
+                    'message' => 'Body',
+                ]),
+            ];
+        };
+
+        add_action('a!jooosi-mail/mail:queued', $queueListener, 10, 2);
+
+        try {
+            $result = $interceptor->intercept(null, [
+                'to' => 'recipient@example.test',
+                'subject' => 'Scheduled subject',
+                'message' => 'Scheduled body',
+                'headers' => [
+                    'X-Priority: high',
+                    'X-Schedule-Time: ' . gmdate('c', $scheduledAt),
+                ],
+            ]);
+        } finally {
+            remove_action('a!jooosi-mail/mail:queued', $queueListener, 10);
+        }
+
+        $mailLog = $this->latestRow('mail_logs');
+
+        self::assertTrue($result);
+        self::assertIsArray($mailLog);
+        self::assertCount(1, $notifications);
+        self::assertSame((int) $mailLog['id'], $notifications[0]['mail_log_id']);
+        self::assertSame(DatabaseTransport::NAME, $notifications[0]['queue_name']);
+        self::assertFalse($notifications[0]['transaction_active']);
+        self::assertCount(1, $notifications[0]['wakeups']);
+        self::assertNull($notifications[0]['nested_result']);
+        self::assertSame(1, $this->countRows('mail_logs'));
+        self::assertSame(1, $this->countRows('queue_messages'));
+
+        $queueMessage = $notifications[0]['queue_message'];
+
+        self::assertIsArray($queueMessage);
+        self::assertSame(1, (int) $queueMessage['priority']);
+        self::assertGreaterThanOrEqual($scheduledAt, strtotime($queueMessage['available_at'] . ' UTC'));
+        self::assertLessThanOrEqual($scheduledAt + 5, strtotime($queueMessage['available_at'] . ' UTC'));
+    }
+
+    /**
+     * @since 1.0.9
+     */
+    public function testThrowingQueuedSubscriberCannotRejectCommittedMail(): void
+    {
+        $this->createNullConnection();
+        $this->optionStore()->set('settings.delivery.mode', 'async');
+        $this->optionStore()->set('settings.delivery.strategy', 'single');
+        $subscriber = static function (): void {
+            throw new RuntimeException('Simulated queued subscriber failure.');
+        };
+        $notificationFailures = [];
+        $failureListener = static function (RuntimeException $throwable, int $mailLogId, string $queueName) use (&$notificationFailures): void {
+            $notificationFailures[] = [$throwable->getMessage(), $mailLogId, $queueName];
+        };
+
+        add_action('a!jooosi-mail/mail:queued', $subscriber, 10, 2);
+        add_action('a!jooosi-mail/mail:queued.notification-failed', $failureListener, 10, 3);
+
+        try {
+            $result = wp_mail('recipient@example.test', 'Committed subject', 'Committed body');
+        } finally {
+            remove_action('a!jooosi-mail/mail:queued', $subscriber, 10);
+            remove_action('a!jooosi-mail/mail:queued.notification-failed', $failureListener, 10);
+        }
+
+        $mailLog = $this->latestRow('mail_logs');
+        $queueMessage = $this->latestRow('queue_messages');
+
+        self::assertTrue($result);
+        self::assertIsArray($mailLog);
+        self::assertSame('queued', $mailLog['status']);
+        self::assertIsArray($queueMessage);
+        self::assertSame('pending', $queueMessage['status']);
+        self::assertSame([
+            ['Simulated queued subscriber failure.', (int) $mailLog['id'], DatabaseTransport::NAME],
+        ], $notificationFailures);
+    }
+
+    /**
      * @since 0.1.0
      */
     public function testWpMailAsyncCoalescesWakeupsAcrossBurstEnqueues(): void
@@ -122,41 +265,77 @@ final class WpMailInterceptorTest extends JooosiMailIntegrationTestCase
     /**
      * @since 0.1.0
      */
-    public function testAsyncDispatchFailureRollsBackTheMailLog(): void
+    public function testAsyncDispatchFailureRollsBackMailAndQueueRowsAndAllowsTheNextSubmission(): void
     {
         $this->createNullConnection();
         $this->optionStore()->set('settings.delivery.mode', 'async');
         $this->optionStore()->set('settings.delivery.strategy', 'single');
 
-        $failingBus = new class implements MessageBusInterface {
+        $failingBus = new class($this->container()->get(MessageBusInterface::class)) implements MessageBusInterface {
+            /**
+             * @since 1.0.8
+             */
+            private bool $failNextDispatch = true;
+
+            /**
+             * @since 1.0.8
+             */
+            public function __construct(private readonly MessageBusInterface $messageBus)
+            {
+            }
+
+            /**
+             * @since 1.0.8
+             */
             public function dispatch(object $message, array $stamps = []): Envelope
             {
-                throw new RuntimeException('Simulated queue dispatch failure.');
+                $envelope = $this->messageBus->dispatch($message, $stamps);
+
+                if ($this->failNextDispatch) {
+                    $this->failNextDispatch = false;
+
+                    throw new RuntimeException('Simulated failure after queue persistence.');
+                }
+
+                return $envelope;
             }
         };
 
-        $interceptor = new WpMailInterceptor(
-            $this->container()->get(WpMailPayloadNormalizer::class),
+        $submissionService = new MailSubmissionService(
             $this->container()->get(RoutingPolicyResolver::class),
             $this->container()->get(MailLifecycleLogger::class),
             $this->container()->get(DeliveryService::class),
             $failingBus,
             $this->container()->get(TriggerCoordinator::class),
-            $this->optionStore(),
             $this->db(),
             $this->container()->get(EventPublisherInterface::class),
         );
+        $interceptor = new WpMailInterceptor(
+            $this->container()->get(WpMailPayloadNormalizer::class),
+            $submissionService,
+            $this->optionStore(),
+            $this->container()->get(EventPublisherInterface::class),
+        );
 
-        $result = $interceptor->intercept(null, [
+        $args = [
             'to' => 'recipient@example.test',
             'subject' => 'Rollback subject',
             'message' => 'Rollback body',
             'headers' => '',
             'attachments' => [],
-        ]);
+        ];
+
+        $result = $interceptor->intercept(null, $args);
 
         self::assertFalse($result);
         self::assertSame(0, $this->countRows('mail_logs'));
         self::assertSame(0, $this->countRows('queue_messages'));
+        self::assertCount(0, $this->actionSchedulerWakeups());
+        self::assertFalse($this->db()->isTransactionActive());
+
+        self::assertTrue($interceptor->intercept(null, $args));
+        self::assertSame(1, $this->countRows('mail_logs'));
+        self::assertSame(1, $this->countRows('queue_messages'));
+        self::assertCount(1, $this->actionSchedulerWakeups());
     }
 }

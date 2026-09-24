@@ -7,7 +7,8 @@ namespace JooosiMail\Queue\Retry;
 use JooosiMail\Discovery\Attribute\Service;
 use JooosiMail\Queue\Stamp\DatabaseMessageStamp;
 use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
+use Symfony\Component\Messenger\Exception\UnrecoverableExceptionInterface;
 use Throwable;
 
 /**
@@ -28,17 +29,19 @@ final class RetryDecider
      */
     public function shouldRetry(Envelope $envelope, Throwable $throwable): bool
     {
-        if ($throwable instanceof UnrecoverableMessageHandlingException) {
-            return false;
-        }
-
         $stamp = $envelope->last(DatabaseMessageStamp::class);
 
         if (! $stamp instanceof DatabaseMessageStamp) {
             return false;
         }
 
-        return $this->retryPolicy->shouldRetry($stamp->attemptCount, $stamp->maxAttempts);
+        foreach ($this->unwrapFailures($throwable) as $failure) {
+            if (! $failure instanceof UnrecoverableExceptionInterface) {
+                return $this->retryPolicy->shouldRetry($stamp->attemptCount, $stamp->maxAttempts);
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -46,12 +49,16 @@ final class RetryDecider
      */
     public function getDelaySeconds(Envelope $envelope, ?Throwable $throwable = null): int
     {
-        if ($throwable instanceof RetryDelayAwareExceptionInterface) {
-            $retryAfterSeconds = $throwable->getRetryAfterSeconds();
+        $retryAfterSeconds = 0;
 
-            if ($retryAfterSeconds !== null && $retryAfterSeconds > 0) {
-                return $retryAfterSeconds;
+        foreach ($throwable === null ? [] : $this->unwrapFailures($throwable) as $failure) {
+            if ($failure instanceof RetryDelayAwareExceptionInterface) {
+                $retryAfterSeconds = max($retryAfterSeconds, $failure->getRetryAfterSeconds() ?? 0);
             }
+        }
+
+        if ($retryAfterSeconds > 0) {
+            return $retryAfterSeconds;
         }
 
         $stamp = $envelope->last(DatabaseMessageStamp::class);
@@ -61,5 +68,25 @@ final class RetryDecider
         }
 
         return $this->retryPolicy->getDelaySeconds($stamp->attemptCount);
+    }
+
+    /**
+     * @return list<Throwable>
+     *
+     * @since 0.1.0
+     */
+    private function unwrapFailures(Throwable $throwable): array
+    {
+        if (! $throwable instanceof HandlerFailedException) {
+            return [$throwable];
+        }
+
+        $failures = [];
+
+        foreach ($throwable->getWrappedExceptions() as $failure) {
+            array_push($failures, ...$this->unwrapFailures($failure));
+        }
+
+        return $failures;
     }
 }

@@ -1,4 +1,5 @@
 import type { AdminMailLog } from "@/lib/admin-api"
+import { parseAdminDateTime } from "@/lib/admin-format"
 
 export type MailLogDateRangeFilter = {
   from?: string
@@ -59,9 +60,7 @@ function parseDateBoundary(value: string | undefined, endOfDay: boolean): number
   }
 
   const suffix = endOfDay ? "T23:59:59.999" : "T00:00:00.000"
-  const parsedValue = new Date(`${value}${suffix}`)
-
-  return Number.isNaN(parsedValue.getTime()) ? null : parsedValue.getTime()
+  return parseAdminDateTime(`${value}${suffix}`)?.getTime() ?? null
 }
 
 export function isWithinMailLogDateRange(
@@ -76,9 +75,9 @@ export function isWithinMailLogDateRange(
     return false
   }
 
-  const rowDate = new Date(row.dateTime)
+  const rowDate = parseAdminDateTime(row.dateTime)
 
-  if (Number.isNaN(rowDate.getTime())) {
+  if (rowDate === null) {
     return false
   }
 

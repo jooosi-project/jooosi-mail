@@ -21,7 +21,7 @@ final class DatabaseConnectionFactory
      */
     public function create(): Connection
     {
-        [$host, $port, $socket] = $this->parseHost();
+        [$host, $port, $socket] = $this->parseHost(DB_HOST);
 
         return DriverManager::getConnection([
             'dbname' => DB_NAME,
@@ -40,22 +40,20 @@ final class DatabaseConnectionFactory
      *
      * @since 0.1.0
      */
-    private function parseHost(): array
+    private function parseHost(string $host): array
     {
-        $host = DB_HOST;
-        $port = null;
-        $socket = null;
+        global $wpdb;
 
-        if (str_contains($host, ':')) {
-            $parts = explode(':', $host, 2);
-            $host = $parts[0];
-            $suffix = $parts[1] ?? '';
+        $parsedHost = $wpdb->parse_db_host($host);
 
-            if ($suffix !== '' && is_numeric($suffix)) {
-                $port = (int) $suffix;
-            } elseif ($suffix !== '') {
-                $socket = $suffix;
-            }
+        if ($parsedHost === false) {
+            return [$host, null, null];
+        }
+
+        [$host, $port, $socket, $isIpv6] = $parsedHost;
+
+        if ($isIpv6 && extension_loaded('mysqlnd')) {
+            $host = '[' . $host . ']';
         }
 
         return [$host, $port, $socket];

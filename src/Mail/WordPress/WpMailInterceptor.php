@@ -4,22 +4,11 @@ declare(strict_types=1);
 
 namespace JooosiMail\Mail\WordPress;
 
-use Doctrine\DBAL\Connection as DbalConnection;
 use JooosiMail\Discovery\Attribute\Hook;
 use JooosiMail\Discovery\Attribute\Service;
 use JooosiMail\Infrastructure\Event\EventPublisherInterface;
 use JooosiMail\Infrastructure\WordPress\OptionStore;
-use JooosiMail\Mail\Delivery\DeliveryService;
-use JooosiMail\Mail\Logging\MailLifecycleLogger;
-use JooosiMail\Mail\Routing\DeliveryMode;
-use JooosiMail\Mail\Routing\RoutingPolicyResolver;
-use JooosiMail\Queue\Message\SendEmailMessage;
-use JooosiMail\Queue\Stamp\QueuePriorityStamp;
-use JooosiMail\Queue\Transport\DatabaseTransport;
-use JooosiMail\Queue\Trigger\TriggerCoordinator;
-use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Messenger\Stamp\DelayStamp;
-use Symfony\Component\Messenger\Stamp\TransportNamesStamp;
+use JooosiMail\Mail\Submission\MailSubmissionService;
 use Throwable;
 
 /**
@@ -34,13 +23,8 @@ final class WpMailInterceptor
 
     public function __construct(
         private readonly WpMailPayloadNormalizer $payloadNormalizer,
-        private readonly RoutingPolicyResolver $routingPolicyResolver,
-        private readonly MailLifecycleLogger $mailLifecycleLogger,
-        private readonly DeliveryService $deliveryService,
-        private readonly MessageBusInterface $messageBus,
-        private readonly TriggerCoordinator $triggerCoordinator,
+        private readonly MailSubmissionService $mailSubmissionService,
         private readonly OptionStore $optionStore,
-        private readonly DbalConnection $connection,
         private readonly EventPublisherInterface $eventPublisher,
     ) {
     }
@@ -55,7 +39,7 @@ final class WpMailInterceptor
     #[Hook(name: 'pre_wp_mail', kind: 'filter', priority: 9999, acceptedArgs: 2)]
     public function intercept(?bool $preempt, array $args): ?bool
     {
-        if ($this->intercepting || ! $this->isEnabled()) {
+        if ($preempt !== null || $this->intercepting || ! $this->isEnabled()) {
             return $preempt;
         }
 
@@ -63,45 +47,14 @@ final class WpMailInterceptor
 
         try {
             $mailRequest = $this->payloadNormalizer->normalize($args);
-            $deliveryPlan = $this->routingPolicyResolver->resolve($mailRequest);
 
-            if ($deliveryPlan->mode === DeliveryMode::Sync) {
-                $mailLogId = $this->mailLifecycleLogger->create($mailRequest, $deliveryPlan);
-                $result = $this->deliveryService->deliver($mailLogId);
+            $submissionResult = $this->mailSubmissionService->submitWithResult($mailRequest);
 
-                return $result->successful;
+            if ($mailRequest->source === 'admin_test_email') {
+                $this->eventPublisher->doAction('a!jooosi-mail/mail:test.submitted', $submissionResult);
             }
 
-            $stamps = [
-                new TransportNamesStamp([DatabaseTransport::NAME]),
-                new QueuePriorityStamp($deliveryPlan->priority),
-            ];
-
-            if ($deliveryPlan->delaySeconds > 0) {
-                $stamps[] = new DelayStamp($deliveryPlan->delaySeconds * 1000);
-            }
-
-            $this->connection->beginTransaction();
-
-            try {
-                $mailLogId = $this->mailLifecycleLogger->create($mailRequest, $deliveryPlan);
-                $this->messageBus->dispatch(new SendEmailMessage($mailLogId), $stamps);
-                $this->connection->commit();
-            } catch (Throwable $throwable) {
-                $this->connection->rollBack();
-
-                throw $throwable;
-            }
-
-            try {
-                $this->triggerCoordinator->trigger();
-            } catch (Throwable $throwable) {
-                $this->eventPublisher->doAction('a!jooosi-mail/queue:trigger.failed', $throwable, $mailLogId);
-            }
-
-            $this->eventPublisher->doAction('a!jooosi-mail/mail:queued', $mailLogId, DatabaseTransport::NAME);
-
-            return true;
+            return $submissionResult->accepted;
         } catch (Throwable $throwable) {
             $this->eventPublisher->doAction('a!jooosi-mail/mail:intercept.failed', $throwable, $args);
 

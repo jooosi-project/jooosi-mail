@@ -167,6 +167,32 @@ final class WebhookControllerTest extends JooosiMailIntegrationTestCase
     /**
      * @since 0.1.0
      */
+    public function testRepeatedWebhookEventsRemainNonDeduplicating(): void
+    {
+        $connection = $this->saveConnection(new Connection(
+            id: null,
+            profileKey: 'sendgrid',
+            name: 'Repeated SendGrid webhook connection',
+            enabled: true,
+            webhookEnabled: true,
+        ));
+        $payload = [[
+            'event' => 'delivered',
+            'email' => 'recipient@example.com',
+            'sg_message_id' => 'repeated-provider-1',
+            'sg_event_id' => 'repeated-event-1',
+            'timestamp' => 1700000000,
+        ]];
+
+        $this->dispatchWebhookRequest($connection->id, $payload);
+        $this->dispatchWebhookRequest($connection->id, $payload);
+
+        self::assertSame(2, $this->countRows('webhook_events'));
+    }
+
+    /**
+     * @since 0.1.0
+     */
     public function testPostmarkWebhookUsesAllowlistedIps(): void
     {
         $connection = $this->saveConnection(new Connection(

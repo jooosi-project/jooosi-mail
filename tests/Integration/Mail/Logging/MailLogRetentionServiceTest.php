@@ -109,6 +109,72 @@ final class MailLogRetentionServiceTest extends JooosiMailIntegrationTestCase
     }
 
     /**
+     * @since 1.0.9
+     */
+    public function testRetentionPrunesOldTerminalQueueHistoryButKeepsPendingHistory(): void
+    {
+        $this->optionStore()->set(MailLogRetentionPolicy::RETENTION_DAYS_PATH, 1);
+        $now = gmdate('Y-m-d H:i:s');
+        $oldDate = gmdate('Y-m-d H:i:s', time() - (3 * 86400));
+
+        $this->db()->insert($this->tableNameResolver()->resolve('queue_messages'), [
+            'body' => '{}',
+            'headers_json' => '{}',
+            'queue_name' => 'async',
+            'status' => 'completed',
+            'priority' => 10,
+            'available_at' => $oldDate,
+            'attempt_count' => 1,
+            'max_attempts' => 3,
+            'created_at' => $oldDate,
+            'updated_at' => $oldDate,
+            'processed_at' => $oldDate,
+        ]);
+        $completedQueueMessageId = (int) $this->db()->lastInsertId();
+        $this->db()->insert($this->tableNameResolver()->resolve('queue_messages'), [
+            'body' => '{}',
+            'headers_json' => '{}',
+            'queue_name' => 'async',
+            'status' => 'pending',
+            'priority' => 10,
+            'available_at' => $now,
+            'attempt_count' => 1,
+            'max_attempts' => 3,
+            'created_at' => $oldDate,
+            'updated_at' => $now,
+        ]);
+        $pendingQueueMessageId = (int) $this->db()->lastInsertId();
+
+        foreach ([
+            [$completedQueueMessageId, 'failed'],
+            [$pendingQueueMessageId, 'retrying'],
+        ] as [$queueMessageId, $outcome]) {
+            $this->db()->insert($this->tableNameResolver()->resolve('queue_message_attempts'), [
+                'queue_message_id' => $queueMessageId,
+                'attempt_number' => 1,
+                'claimed_by' => wp_generate_uuid4(),
+                'outcome' => $outcome,
+                'error_message' => 'Temporary connection failure.',
+                'started_at' => $oldDate,
+                'finished_at' => $oldDate,
+            ]);
+        }
+
+        $deleted = $this->retentionService()->pruneExpired();
+        $remainingQueueAttempts = $this->db()->fetchAllAssociative(sprintf(
+            'SELECT queue_message_id FROM %s ORDER BY id ASC',
+            $this->tableNameResolver()->resolve('queue_message_attempts'),
+        ));
+        $remainingQueueMessageIds = array_map(
+            static fn (array $attempt): int => (int) $attempt['queue_message_id'],
+            $remainingQueueAttempts,
+        );
+
+        self::assertSame(1, $deleted);
+        self::assertSame([$pendingQueueMessageId], $remainingQueueMessageIds);
+    }
+
+    /**
      * @since 0.1.0
      */
     private function retentionService(): MailLogRetentionService

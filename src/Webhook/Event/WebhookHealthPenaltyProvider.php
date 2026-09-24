@@ -32,6 +32,7 @@ final class WebhookHealthPenaltyProvider implements ConnectionHealthPenaltyProvi
 
     public function __construct(
         private readonly WebhookEventRepository $webhookEventRepository,
+        private readonly WebhookEventSeverityPolicy $severityPolicy,
     ) {
     }
 
@@ -54,26 +55,12 @@ final class WebhookHealthPenaltyProvider implements ConnectionHealthPenaltyProvi
             $penalty = 0;
 
             foreach ($eventsByConnection[$connectionId] ?? [] as $eventType) {
-                $penalty += $this->getPenaltyForEventType($eventType);
+                $penalty += $this->severityPolicy->penalty($eventType);
             }
 
             $penalties[$connectionId] = min(self::MAX_PENALTY, $penalty);
         }
 
         return $penalties;
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function getPenaltyForEventType(string $eventType): int
-    {
-        return match ($eventType) {
-            'provider_unavailable', 'outage', 'temporarily_unavailable', 'connection_error', 'api_error' => 20,
-            'complained', 'complaint', 'spam', 'spam_report', 'spam_complaint', 'abuse' => 15,
-            'bounce', 'bounced', 'hard_bounce', 'rejected', 'blocked', 'dropped', 'failed' => 10,
-            'soft_bounce', 'deferred', 'delayed', 'throttled', 'rate_limited' => 6,
-            default => 0,
-        };
     }
 }

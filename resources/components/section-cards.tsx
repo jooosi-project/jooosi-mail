@@ -4,7 +4,7 @@ import { Badge, type BadgeProps } from "@/components/reui/badge";
 import { Frame, FramePanel } from "@/components/reui/frame";
 import { IconTile } from "@/components/reui/icon-tile";
 import type { AdminDashboardData } from "@/lib/admin-api";
-import { formatAdminDateTime, formatAdminNumber, titleCase } from "@/lib/admin-format";
+import { formatAdminDateTime, formatAdminNumber } from "@/lib/admin-format";
 import Clock01Icon from "~icons/hugeicons/clock-01";
 import Database01Icon from "~icons/hugeicons/database-01";
 import Mail01Icon from "~icons/hugeicons/mail-01";
@@ -18,45 +18,62 @@ type DashboardMetric = {
   label: string;
   value: string;
   description: string;
-  badge: string;
-  badgeVariant: BadgeProps["variant"];
+  badge?: string;
+  badgeVariant?: BadgeProps["variant"];
   icon: ReactNode;
 };
+
+function getConnectionDescription(summary: AdminDashboardData["summary"]): string {
+  const activeConnections = `${formatAdminNumber(summary.activeConnections)} active`;
+
+  if (summary.nextAvailableAt) {
+    return `${activeConnections} · Next route opens ${formatAdminDateTime(summary.nextAvailableAt)}`;
+  }
+
+  return activeConnections;
+}
 
 export function SectionCards({ summary }: SectionCardsProps) {
   const metrics: DashboardMetric[] = [
     {
       label: "Messages",
       value: formatAdminNumber(summary.mailTotal),
-      description: `${formatAdminNumber(summary.mailFailed)} failed · ${formatAdminNumber(summary.mailQueued)} queued`,
-      badge: `${formatAdminNumber(summary.mailSent)} sent`,
-      badgeVariant: "success-light",
+      description: `${formatAdminNumber(summary.mailFailed)} failed · ${formatAdminNumber(summary.mailQueued)} queued · ${formatAdminNumber(summary.mailSent)} sent`,
       icon: <Mail01Icon />,
     },
     {
       label: "Connections",
       value: formatAdminNumber(summary.connectionsTotal),
-      description: summary.nextAvailableAt
-        ? `Next route opens ${formatAdminDateTime(summary.nextAvailableAt)}`
-        : `${formatAdminNumber(summary.availableConnections)} available now`,
-      badge: `${formatAdminNumber(summary.activeConnections)} active`,
-      badgeVariant: "info-light",
+      description: getConnectionDescription(summary),
       icon: <Database01Icon />,
     },
     {
-      label: "Ready queue",
-      value: formatAdminNumber(summary.queuePendingReady),
-      description: `${formatAdminNumber(summary.queueProcessing)} processing · ${formatAdminNumber(summary.queueFailed)} failed`,
-      badge: `${formatAdminNumber(summary.queuePendingDeferred)} deferred`,
-      badgeVariant: summary.queuePendingDeferred > 0 ? "warning-light" : "outline",
+      label: "Queue total",
+      value: formatAdminNumber(
+        summary.queuePendingReady +
+          summary.queuePendingDeferred +
+          summary.queueProcessing +
+          summary.queueFailed +
+          summary.queueCompleted,
+      ),
+      description: [
+        `${formatAdminNumber(summary.queuePendingReady)} ready`,
+        `${formatAdminNumber(summary.queuePendingDeferred)} deferred`,
+        `${formatAdminNumber(summary.queueProcessing)} processing`,
+        `${formatAdminNumber(summary.queueFailed)} failed`,
+        `${formatAdminNumber(summary.queueCompleted)} completed`,
+      ].join(" · "),
+      badge:
+        summary.queueStaleProcessing > 0
+          ? `${formatAdminNumber(summary.queueStaleProcessing)} stale ${summary.queueStaleProcessing === 1 ? "claim" : "claims"}`
+          : undefined,
+      badgeVariant: "warning-light",
       icon: <Clock01Icon />,
     },
     {
       label: "Webhook events",
       value: formatAdminNumber(summary.webhookEvents),
-      description: `${titleCase(summary.routingStrategy)} connection selection`,
-      badge: titleCase(summary.deliveryMode),
-      badgeVariant: "primary-light",
+      description: "Updates received from email providers.",
       icon: <WebhookIcon />,
     },
   ];
@@ -70,14 +87,16 @@ export function SectionCards({ summary }: SectionCardsProps) {
               <IconTile variant="frame" aria-hidden="true">
                 {metric.icon}
               </IconTile>
-              <Badge variant={metric.badgeVariant} radius="full">
-                {metric.badge}
-              </Badge>
+              {metric.badge ? (
+                <Badge variant={metric.badgeVariant} radius="full">
+                  {metric.badge}
+                </Badge>
+              ) : null}
             </div>
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-muted-foreground">{metric.label}</p>
               <p className="text-3xl font-semibold tracking-tight tabular-nums">{metric.value}</p>
-              <p className="line-clamp-1 text-xs text-muted-foreground">{metric.description}</p>
+              <p className="text-xs text-muted-foreground">{metric.description}</p>
             </div>
           </FramePanel>
         ))}

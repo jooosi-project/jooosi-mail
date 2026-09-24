@@ -20,6 +20,7 @@ const TOGGLEABLE_COLUMNS = {
   id: "ID",
   mailLogId: "Mail",
   status: "Status",
+  workerId: "Last worker",
   priority: "Priority",
   attempts: "Attempts",
   dateTime: "Date",

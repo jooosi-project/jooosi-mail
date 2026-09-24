@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace JooosiMail\Cli;
 
+use JooosiMail\Cli\Application\CliBooleanParser;
+use JooosiMail\Cli\Application\CliInputNormalizer;
+use JooosiMail\Cli\Application\ConnectionCommandApplicationService;
+use JooosiMail\Cli\Presentation\CliValuePresenter;
+use JooosiMail\Cli\Presentation\ConnectionCliPresenter;
 use JooosiMail\Discovery\Attribute\Command;
 use JooosiMail\Discovery\Attribute\Service;
-use JooosiMail\Mail\Connection\Connection;
 use JooosiMail\Mail\Connection\ConnectionConfigurationException;
 use JooosiMail\Mail\Connection\ConnectionManager;
 use JooosiMail\Mail\Connection\ConnectionRepository;
@@ -34,11 +38,27 @@ use function WP_CLI\Utils\format_items;
 #[Service]
 final class ConnectionCommand
 {
+    private readonly ConnectionCommandApplicationService $applicationService;
+
+    private readonly CliInputNormalizer $inputNormalizer;
+
+    private readonly ConnectionCliPresenter $presenter;
+
     public function __construct(
-        private readonly ConnectionManager $connectionManager,
-        private readonly ConnectionRepository $connectionRepository,
-        private readonly ConnectionStatusReporter $connectionStatusReporter,
+        ConnectionManager $connectionManager,
+        ConnectionRepository $connectionRepository,
+        ConnectionStatusReporter $connectionStatusReporter,
+        ?ConnectionCommandApplicationService $applicationService = null,
+        ?CliInputNormalizer $inputNormalizer = null,
+        ?ConnectionCliPresenter $presenter = null,
     ) {
+        $this->applicationService = $applicationService ?? new ConnectionCommandApplicationService(
+            $connectionManager,
+            $connectionRepository,
+            $connectionStatusReporter,
+        );
+        $this->inputNormalizer = $inputNormalizer ?? new CliInputNormalizer(new CliBooleanParser());
+        $this->presenter = $presenter ?? new ConnectionCliPresenter(new CliValuePresenter());
     }
 
     /**
@@ -142,7 +162,7 @@ final class ConnectionCommand
     public function create(array $args, array $assocArgs): void
     {
         try {
-            $connection = $this->connectionManager->create($assocArgs);
+            $connection = $this->applicationService->create($assocArgs);
 
             WP_CLI::success(sprintf('Created connection #%d (%s).', $connection->id, $connection->name));
         } catch (ConnectionConfigurationException $exception) {
@@ -192,14 +212,14 @@ final class ConnectionCommand
     public function update(array $args, array $assocArgs): void
     {
         $connectionId = $this->resolveConnectionId($args);
-        $existingConnection = $this->connectionRepository->find($connectionId);
+        $existingConnection = $this->applicationService->find($connectionId);
 
         if ($existingConnection === null) {
             WP_CLI::error(sprintf('Connection %d was not found.', $connectionId));
         }
 
         try {
-            $connection = $this->connectionManager->update($connectionId, $assocArgs);
+            $connection = $this->applicationService->update($connectionId, $assocArgs);
 
             WP_CLI::success(sprintf('Updated connection #%d (%s).', $connection->id, $connection->name));
         } catch (ConnectionConfigurationException $exception) {
@@ -236,7 +256,7 @@ final class ConnectionCommand
         $connectionId = $this->resolveConnectionId($args);
 
         try {
-            $connection = $this->connectionManager->setEnabled($connectionId, true);
+            $connection = $this->applicationService->setEnabled($connectionId, true);
 
             WP_CLI::success(sprintf('Enabled connection #%d (%s).', $connection->id, $connection->name));
         } catch (ConnectionConfigurationException $exception) {
@@ -273,7 +293,7 @@ final class ConnectionCommand
         $connectionId = $this->resolveConnectionId($args);
 
         try {
-            $connection = $this->connectionManager->setEnabled($connectionId, false);
+            $connection = $this->applicationService->setEnabled($connectionId, false);
 
             WP_CLI::success(sprintf('Disabled connection #%d (%s).', $connection->id, $connection->name));
         } catch (ConnectionConfigurationException $exception) {
@@ -316,7 +336,7 @@ final class ConnectionCommand
         WP_CLI::confirm(sprintf('Delete connection %d?', $connectionId), $assocArgs);
 
         try {
-            $this->connectionManager->delete($connectionId);
+            $this->applicationService->delete($connectionId);
 
             WP_CLI::success(sprintf('Deleted connection #%d.', $connectionId));
         } catch (ConnectionConfigurationException $exception) {
@@ -346,16 +366,10 @@ final class ConnectionCommand
     #[Command(description: 'List configured Jooosi Mail connections.')]
     public function list(array $args, array $assocArgs): void
     {
-        $items = array_map(static fn ($connection): array => [
-            'id' => (string) ($connection->id ?? '-'),
-            'name' => $connection->name,
-            'profile' => $connection->profileKey,
-            'enabled' => $connection->enabled ? 'yes' : 'no',
-            'default' => $connection->default ? 'yes' : 'no',
-            'priority' => (string) $connection->priority,
-            'weight' => (string) $connection->weight,
-            'webhooks' => $connection->webhookEnabled ? 'yes' : 'no',
-        ], $this->connectionRepository->findAll());
+        $items = array_map(
+            fn ($connection): array => $this->presenter->connection($connection),
+            $this->applicationService->listConnections(),
+        );
 
         if ($items === []) {
             WP_CLI::line('No connections configured.');
@@ -392,13 +406,10 @@ final class ConnectionCommand
     #[Command(description: 'List available Jooosi Mail connection profiles.')]
     public function profiles(array $args, array $assocArgs): void
     {
-        $items = array_map(static fn (array $profile): array => [
-            'key' => (string) $profile['key'],
-            'label' => (string) $profile['label'],
-            'schemes' => implode(',', $profile['schemes']),
-            'webhooks' => ! empty($profile['supports_webhooks']) ? 'yes' : 'no',
-            'fields' => implode(',', array_keys((array) $profile['configuration_fields'])),
-        ], $this->connectionManager->listProfiles());
+        $items = array_map(
+            fn (array $profile): array => $this->presenter->profile($profile),
+            $this->applicationService->listProfiles(),
+        );
 
         format_items('table', $items, ['key', 'label', 'schemes', 'webhooks', 'fields']);
     }
@@ -432,7 +443,7 @@ final class ConnectionCommand
         $connectionId = $this->resolveConnectionId($args);
 
         try {
-            $connection = $this->connectionManager->setDefault($connectionId);
+            $connection = $this->applicationService->setDefault($connectionId);
 
             WP_CLI::success(sprintf('Connection #%d (%s) is now the default.', $connection->id, $connection->name));
         } catch (ConnectionConfigurationException $exception) {
@@ -474,8 +485,8 @@ final class ConnectionCommand
     #[Command(description: 'Show Jooosi Mail connection routing status.')]
     public function status(array $args, array $assocArgs): void
     {
-        $includeDisabled = isset($assocArgs['all']) && (bool) $assocArgs['all'];
-        $statuses = $this->connectionStatusReporter->getStatuses($includeDisabled);
+        $includeDisabled = $this->inputNormalizer->booleanOption($assocArgs, 'all');
+        $statuses = $this->applicationService->getStatuses($includeDisabled);
 
         if ($statuses === []) {
             WP_CLI::line('No connections found.');
@@ -483,26 +494,10 @@ final class ConnectionCommand
             return;
         }
 
-        $items = array_map(function (array $status): array {
-            /** @var Connection $connection */
-            $connection = $status['connection'];
-            $availability = $status['availability'];
-            $rateLimit = $availability['rate_limit']['windows'] ?? [];
-
-            return [
-                'id' => (string) ($connection->id ?? '-'),
-                'name' => $connection->name,
-                'profile' => $connection->profileKey,
-                'enabled' => $connection->enabled ? 'yes' : 'no',
-                'default' => $connection->default ? 'yes' : 'no',
-                'health' => (string) ($status['health_score'] ?? 0),
-                'available' => ($availability['available'] ?? false) ? 'yes' : 'no',
-                'reasons' => $this->formatReasons($availability['unavailable_reasons'] ?? []),
-                'blacklisted_until' => $this->formatTimestamp($availability['blacklisted_until'] ?? null),
-                'next_available_at' => $this->formatTimestamp($availability['next_available_at'] ?? null),
-                'rate_limits' => $this->formatRateLimits(is_array($rateLimit) ? $rateLimit : []),
-            ];
-        }, $statuses);
+        $items = array_map(
+            fn (array $status): array => $this->presenter->status($status),
+            $statuses,
+        );
 
         format_items('table', $items, [
             'id',
@@ -518,13 +513,13 @@ final class ConnectionCommand
             'rate_limits',
         ]);
 
-        $summary = $this->connectionStatusReporter->summarizeActiveConnections();
+        $summary = $this->applicationService->summarizeActiveConnections();
         WP_CLI::line(sprintf('Active: %d', (int) ($summary['active_connections'] ?? 0)));
         WP_CLI::line(sprintf('Available: %d', (int) ($summary['available_connections'] ?? 0)));
         WP_CLI::line(sprintf('Temporarily unavailable: %d', (int) ($summary['temporarily_unavailable_connections'] ?? 0)));
 
         if (($summary['next_available_at'] ?? null) !== null) {
-            WP_CLI::line(sprintf('Next available at: %s', $this->formatTimestamp($summary['next_available_at'])));
+            WP_CLI::line(sprintf('Next available at: %s', $this->presenter->timestamp($summary['next_available_at'])));
         }
     }
 
@@ -535,57 +530,12 @@ final class ConnectionCommand
      */
     private function resolveConnectionId(array $args): int
     {
-        $connectionId = isset($args[0]) ? (int) $args[0] : 0;
+        $connectionId = $this->inputNormalizer->firstIntegerArgument($args);
 
         if ($connectionId <= 0) {
             WP_CLI::error('Provide the connection id as the first argument.');
         }
 
         return $connectionId;
-    }
-
-    /**
-     * @param list<string> $reasons
-     *
-     * @since 0.1.0
-     */
-    private function formatReasons(array $reasons): string
-    {
-        return $reasons === [] ? '-' : implode(', ', $reasons);
-    }
-
-    /**
-     * @param array<string, array<string, mixed>> $windows
-     *
-     * @since 0.1.0
-     */
-    private function formatRateLimits(array $windows): string
-    {
-        $parts = [];
-
-        foreach ($windows as $period => $window) {
-            $limit = (int) ($window['limit'] ?? 0);
-
-            if ($limit <= 0) {
-                continue;
-            }
-
-            $remaining = max(0, (int) ($window['remaining'] ?? 0));
-            $parts[] = sprintf('%s:%d/%d', $period, $remaining, $limit);
-        }
-
-        return $parts === [] ? '-' : implode(' ', $parts);
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function formatTimestamp(mixed $timestamp): string
-    {
-        if (! is_numeric($timestamp)) {
-            return '-';
-        }
-
-        return gmdate('Y-m-d H:i:s', (int) $timestamp);
     }
 }

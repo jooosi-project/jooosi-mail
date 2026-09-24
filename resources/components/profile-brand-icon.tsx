@@ -57,7 +57,7 @@ type ProfileBrandStyle = React.CSSProperties & {
 type ProfileBrandIconProps = {
   profileKey: string
   label: string
-  size?: "sm" | "default"
+  size?: "inline" | "sm" | "default"
   className?: string
 }
 
@@ -178,6 +178,29 @@ export function ProfileBrandIcon({
   const small = size === "sm"
   const iconAsset = PROFILE_BRAND_ICON_ASSETS[profileKey]
   const Icon = PROFILE_BRAND_ICONS[profileKey]
+
+  if (size === "inline") {
+    return (
+      <span
+        aria-hidden="true"
+        data-icon="inline-start"
+        style={getProfileBrandStyle(profileKey)}
+        className={cn(
+          "flex size-4 shrink-0 items-center justify-center text-xs [&_svg]:size-full",
+          iconAsset?.brandBackground && "rounded-sm bg-[var(--profile-brand)]",
+          className,
+        )}
+      >
+        {iconAsset ? (
+          <img src={iconAsset.src} alt="" className="size-full object-contain" />
+        ) : Icon ? (
+          <Icon />
+        ) : (
+          formatProfileMark(label)
+        )}
+      </span>
+    )
+  }
 
   return (
     <span

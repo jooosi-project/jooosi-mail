@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { useAdminLogQuery } from "@/hooks/use-admin-log-query";
+import { usePersistentState } from "@/hooks/use-persistent-state";
 import {
   useTable,
   type ColumnDef,
@@ -12,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { MailLogDetailsDialog } from "@/components/mail-log-details-dialog";
+import { MailLogConnectionHoverCard } from "@/components/mail-log-connection-hover-card";
 import { MailLogTablePagination } from "@/components/mail-log-table-pagination";
 import { MailLogTableToolbar } from "@/components/mail-log-table-toolbar";
 import {
@@ -21,8 +24,12 @@ import {
 } from "@/components/mail-log-table-types";
 import { MailLogTableViewOptions } from "@/components/mail-log-table-view-options";
 import { Alert, AlertDescription, AlertTitle } from "@/components/reui/alert";
-import type { AdminMailLogFilterOption, AdminMailLogQuery } from "@/lib/admin-api";
-import { getMailLog, getMailLogs } from "@/lib/admin-api";
+import {
+  getMailLog,
+  getMailLogs,
+  resendMailLog,
+  type AdminMailLogQuery,
+} from "@/lib/admin-api";
 import { buildAdminHashHref, parseAdminHashLocation } from "@/admin/routes";
 import { formatAdminDateTime, titleCase } from "@/lib/admin-format";
 import { getLogStatusVariant } from "@/lib/admin-log-helpers";
@@ -44,12 +51,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import AlertCircleIcon from "~icons/tabler/alert-circle";
@@ -57,9 +70,8 @@ import ArrowDown01Icon from "~icons/hugeicons/arrow-down-01";
 import ArrowUp01Icon from "~icons/hugeicons/arrow-up-01";
 import CircleCheckIcon from "~icons/tabler/circle-check";
 import ClockIcon from "~icons/tabler/clock";
-import DatabaseIcon from "~icons/tabler/database";
 import Loader2Icon from "~icons/tabler/loader-2";
-import MoreVerticalCircle01Icon from "~icons/hugeicons/more-vertical-circle-01";
+import RefreshIcon from "~icons/tabler/refresh";
 import UnfoldMoreIcon from "~icons/hugeicons/unfold-more";
 
 type MailLogSortId = "id" | "subject" | "status" | "dateTime" | "connection";
@@ -67,8 +79,6 @@ type MailLogSortId = "id" | "subject" | "status" | "dateTime" | "connection";
 type MailLogDataTableProps = {
   refreshToken?: number;
 };
-
-const LOG_TABLE_POLL_MS = 15_000;
 
 function getMailStatusIcon(status: string) {
   switch (status) {
@@ -206,6 +216,8 @@ function resolveSortBy(sorting: SortingState): MailLogSortId {
 
 export function MailLogDataTable({ refreshToken = 0 }: MailLogDataTableProps) {
   const [selectedLog, setSelectedLog] = React.useState<MailLogTableRow | null>(null);
+  const [resendCandidate, setResendCandidate] = React.useState<MailLogTableRow | null>(null);
+  const [resending, setResending] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [columnVisibility, setColumnVisibility] = React.useState<ColumnVisibilityState>({});
   const [sorting, setSorting] = React.useState<SortingState>([
@@ -218,18 +230,23 @@ export function MailLogDataTable({ refreshToken = 0 }: MailLogDataTableProps) {
     pageIndex: 0,
     pageSize: 25,
   });
-  const [searchValue, setSearchValue] = React.useState("");
+  const [searchValue, setSearchValue] = usePersistentState(
+    "jooosimail:table-filters:v1:mail-logs:search",
+    "",
+  );
   const deferredSearchValue = React.useDeferredValue(searchValue);
-  const [selectedStatuses, setSelectedStatuses] = React.useState<string[]>([]);
-  const [selectedConnectionIds, setSelectedConnectionIds] = React.useState<string[]>([]);
-  const [dateRange, setDateRange] = React.useState<MailLogDateRangeFilter | undefined>(undefined);
-  const [rows, setRows] = React.useState<MailLogTableRow[]>([]);
-  const [statusOptions, setStatusOptions] = React.useState<AdminMailLogFilterOption[]>([]);
-  const [connectionOptions, setConnectionOptions] = React.useState<AdminMailLogFilterOption[]>([]);
-  const [totalRows, setTotalRows] = React.useState(0);
-  const [pageCount, setPageCount] = React.useState(1);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const [selectedStatuses, setSelectedStatuses] = usePersistentState<string[]>(
+    "jooosimail:table-filters:v1:mail-logs:statuses",
+    [],
+  );
+  const [selectedConnectionIds, setSelectedConnectionIds] = usePersistentState<string[]>(
+    "jooosimail:table-filters:v1:mail-logs:connections",
+    [],
+  );
+  const [dateRange, setDateRange] = usePersistentState<MailLogDateRangeFilter | undefined>(
+    "jooosimail:table-filters:v1:mail-logs:date-range",
+    undefined,
+  );
   const targetedMailLogId = React.useSyncExternalStore(
     subscribeToHashChange,
     getMailLogIdFromHash,
@@ -238,16 +255,6 @@ export function MailLogDataTable({ refreshToken = 0 }: MailLogDataTableProps) {
 
   const sortBy = resolveSortBy(sorting);
   const sortDirection = sorting[0]?.desc ? "desc" : "asc";
-
-  const openConnection = React.useCallback((connectionId: number) => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.location.hash = buildAdminHashHref("/connections", {
-      id: connectionId,
-    }).slice(1);
-  }, []);
 
   React.useEffect(() => {
     setPagination((currentPagination) =>
@@ -294,77 +301,16 @@ export function MailLogDataTable({ refreshToken = 0 }: MailLogDataTableProps) {
     ],
   );
 
-  React.useEffect(() => {
-    let active = true;
-    let requestId = 0;
-
-    const loadMailLogs = (showLoading: boolean) => {
-      const currentRequestId = requestId + 1;
-
-      requestId = currentRequestId;
-
-      if (showLoading) {
-        setLoading(true);
-      }
-
-      setError(null);
-
-      void getMailLogs(query)
-        .then((response) => {
-          if (!active || currentRequestId !== requestId) {
-            return;
-          }
-
-          setRows(normalizeMailLogRows(response.items));
-          setStatusOptions(response.filters.statuses);
-          setConnectionOptions(response.filters.connections);
-          setTotalRows(response.pagination.total);
-          setPageCount(response.pagination.totalPages);
-          setPagination((currentPagination) => {
-            const nextPageIndex = Math.max(0, response.pagination.page - 1);
-
-            if (
-              currentPagination.pageIndex === nextPageIndex &&
-              currentPagination.pageSize === response.pagination.perPage
-            ) {
-              return currentPagination;
-            }
-
-            return {
-              pageIndex: nextPageIndex,
-              pageSize: response.pagination.perPage,
-            };
-          });
-        })
-        .catch((caughtError) => {
-          if (!active || currentRequestId !== requestId) {
-            return;
-          }
-
-          setError(
-            caughtError instanceof Error
-              ? caughtError.message
-              : "The email logs could not be loaded.",
-          );
-        })
-        .finally(() => {
-          if (active && currentRequestId === requestId) {
-            setLoading(false);
-          }
-        });
-    };
-
-    loadMailLogs(true);
-
-    const intervalId = window.setInterval(() => {
-      loadMailLogs(false);
-    }, LOG_TABLE_POLL_MS);
-
-    return () => {
-      active = false;
-      window.clearInterval(intervalId);
-    };
-  }, [query, refreshToken]);
+  const { data, loading, error, refresh } = useAdminLogQuery(getMailLogs, query, {
+    refreshToken,
+    setPagination,
+    errorMessage: "The email logs could not be loaded.",
+  });
+  const rows = React.useMemo(() => data ? normalizeMailLogRows(data.items) : [], [data]);
+  const totalRows = data?.pagination.total ?? 0;
+  const pageCount = data?.pagination.totalPages ?? 1;
+  const statusOptions = data?.filters.statuses ?? [];
+  const connectionOptions = data?.filters.connections ?? [];
 
   const columns = React.useMemo<ColumnDef<DataGridFeatures, MailLogTableRow>[]>(
     () => [
@@ -459,35 +405,29 @@ export function MailLogDataTable({ refreshToken = 0 }: MailLogDataTableProps) {
       {
         accessorFn: (row) => row.connectionLabel,
         id: "connection",
-        minSize: 90,
-        size: 92,
+        minSize: 140,
+        size: 150,
         meta: { headerClassName: "px-2", cellClassName: "px-1" },
         header: ({ column }) => <SortableHeader column={column} title="Connection" />,
-        cell: ({ row }) => (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="px-2"
-            disabled={row.original.finalConnectionId === null}
-            onClick={() => {
-              if (row.original.finalConnectionId === null) {
-                return;
-              }
+        cell: ({ row }) => {
+          if (row.original.finalConnectionId === null || row.original.connectionName === null) {
+            return null;
+          }
 
-              openConnection(row.original.finalConnectionId);
-            }}
-          >
-            <DatabaseIcon data-icon="inline-start" />
-            {row.original.connectionLabel}
-          </Button>
-        ),
+          return (
+            <MailLogConnectionHoverCard
+              connectionId={row.original.finalConnectionId}
+              connectionName={row.original.connectionName}
+              profileKey={row.original.connectionProfileKey ?? ""}
+            />
+          );
+        },
       },
       {
         accessorKey: "status",
         id: "status",
-        minSize: 75,
-        size: 78,
+        minSize: 110,
+        size: 120,
         meta: { headerClassName: "px-1", cellClassName: "px-2" },
         header: ({ column }) => <SortableHeader column={column} title="Status" />,
         cell: ({ row }) => {
@@ -501,52 +441,8 @@ export function MailLogDataTable({ refreshToken = 0 }: MailLogDataTableProps) {
           );
         },
       },
-      {
-        id: "actions",
-        enableSorting: false,
-        enableHiding: false,
-        enableResizing: false,
-        size: 44,
-        cell: ({ row }) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="data-open:bg-muted"
-                />
-              }
-            >
-              <MoreVerticalCircle01Icon />
-              <span className="sr-only">Open mail log actions</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onClick={() => openMailLogDetails(row.original)}>
-                View details
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={!row.original.transportMessageId}
-                onClick={() => {
-                  const transportMessageId = row.original.transportMessageId;
-
-                  if (!transportMessageId) {
-                    return;
-                  }
-
-                  void navigator.clipboard.writeText(transportMessageId);
-                  toast.success("Transport message id copied.");
-                }}
-              >
-                Copy transport id
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ),
-      },
     ],
-    [openConnection],
+    [],
   );
 
   const table = useTable({
@@ -633,6 +529,32 @@ export function MailLogDataTable({ refreshToken = 0 }: MailLogDataTableProps) {
     };
   }, [rows, selectedLog?.id, targetedMailLogId]);
 
+  const handleResend = React.useCallback(async () => {
+    if (resendCandidate === null) {
+      return;
+    }
+
+    setResending(true);
+
+    try {
+      const response = await resendMailLog(resendCandidate.id);
+
+      toast.success(response.message, {
+        description: `Created email log #${response.mailLogId}.`,
+      });
+      setResendCandidate(null);
+      await refresh();
+    } catch (caughtError) {
+      toast.error(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "The email could not be submitted again.",
+      );
+    } finally {
+      setResending(false);
+    }
+  }, [refresh, resendCandidate]);
+
   return (
     <>
       <DataGrid
@@ -642,14 +564,14 @@ export function MailLogDataTable({ refreshToken = 0 }: MailLogDataTableProps) {
         emptyMessage="No email logs match the current search and filters."
         tableLayout={{ columnsResizable: true, headerBackground: true, rowBorder: true }}
       >
-        <Frame stacked spacing="sm">
+        <Frame className="min-w-0" stacked spacing="sm">
           <FrameHeader>
             <FrameTitle>Email logs</FrameTitle>
             <FrameDescription>
               Search, filter, and inspect recorded message lifecycles.
             </FrameDescription>
           </FrameHeader>
-          <FramePanel className="p-0! shadow-none!">
+          <FramePanel className="min-w-0 p-0! shadow-none!">
             <div className="p-3">
               <MailLogTableToolbar
                 searchValue={searchValue}
@@ -694,6 +616,7 @@ export function MailLogDataTable({ refreshToken = 0 }: MailLogDataTableProps) {
       <MailLogDetailsDialog
         log={selectedLog}
         open={selectedLog !== null}
+        onResend={setResendCandidate}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedLog(null);
@@ -701,6 +624,44 @@ export function MailLogDataTable({ refreshToken = 0 }: MailLogDataTableProps) {
           }
         }}
       />
+
+      <AlertDialog
+        open={resendCandidate !== null}
+        onOpenChange={(open) => {
+          if (!open && !resending) {
+            setResendCandidate(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              <RefreshIcon />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Resend this email?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {resendCandidate
+                ? `Send a new copy of “${resendCandidate.subject || "(No subject)"}” to ${resendCandidate.toSummary}. The original log #${resendCandidate.id} (${titleCase(resendCandidate.status)}) will remain unchanged.`
+                : "This creates a new email delivery and leaves the original log unchanged."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              type="button"
+              disabled={resending}
+              onClick={() => void handleResend()}
+            >
+              {resending ? (
+                <Spinner data-icon="inline-start" />
+              ) : (
+                <RefreshIcon data-icon="inline-start" />
+              )}
+              {resending ? "Resending..." : "Resend email"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

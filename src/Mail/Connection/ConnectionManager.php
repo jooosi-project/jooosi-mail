@@ -97,19 +97,7 @@ final class ConnectionManager
         $connection = $this->connectionRepository->find($connectionId)
             ?? throw new ConnectionConfigurationException(sprintf('Connection %d was not found.', $connectionId));
 
-        $updatedConnection = new Connection(
-            id: $connection->id,
-            profileKey: $connection->profileKey,
-            name: $connection->name,
-            dsn: $connection->dsn,
-            settings: $connection->settings,
-            secrets: $connection->secrets,
-            enabled: $connection->enabled,
-            default: true,
-            priority: $connection->priority,
-            weight: $connection->weight,
-            webhookEnabled: $connection->webhookEnabled,
-        );
+        $updatedConnection = $connection->with(['default' => true]);
 
         $this->persist($updatedConnection);
 
@@ -127,19 +115,10 @@ final class ConnectionManager
         $connection = $this->connectionRepository->find($connectionId)
             ?? throw new ConnectionConfigurationException(sprintf('Connection %d was not found.', $connectionId));
 
-        $updatedConnection = new Connection(
-            id: $connection->id,
-            profileKey: $connection->profileKey,
-            name: $connection->name,
-            dsn: $connection->dsn,
-            settings: $connection->settings,
-            secrets: $connection->secrets,
-            enabled: $enabled,
-            default: $enabled ? $connection->default : false,
-            priority: $connection->priority,
-            weight: $connection->weight,
-            webhookEnabled: $connection->webhookEnabled,
-        );
+        $updatedConnection = $connection->with([
+            'enabled' => $enabled,
+            'default' => $enabled ? $connection->default : false,
+        ]);
 
         $this->persist($updatedConnection);
 
@@ -207,19 +186,7 @@ final class ConnectionManager
         }
 
         $this->connectionRepository->clearDefault($nextDefault->id);
-        $this->connectionRepository->save(new Connection(
-            id: $nextDefault->id,
-            profileKey: $nextDefault->profileKey,
-            name: $nextDefault->name,
-            dsn: $nextDefault->dsn,
-            settings: $nextDefault->settings,
-            secrets: $nextDefault->secrets,
-            enabled: $nextDefault->enabled,
-            default: true,
-            priority: $nextDefault->priority,
-            weight: $nextDefault->weight,
-            webhookEnabled: $nextDefault->webhookEnabled,
-        ));
+        $this->connectionRepository->save($nextDefault->with(['default' => true]));
     }
 
     /**

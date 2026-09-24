@@ -7,13 +7,9 @@ namespace JooosiMail\Infrastructure\Container;
 use JooosiMail\Bootstrap\Environment;
 use JooosiMail\Bootstrap\Paths;
 use Psr\Container\ContainerInterface;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 use RuntimeException;
-use SplFileInfo;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Dumper\PhpDumper;
-use Throwable;
 
 /**
  * Loads and dumps the compiled Symfony container.
@@ -22,15 +18,22 @@ use Throwable;
  */
 final class ContainerCache
 {
-    /**
-     * @var resource|null
-     */
-    private mixed $buildLock = null;
+    private readonly ContainerCacheSignature $signature;
+
+    private readonly ContainerCacheArtifactStore $artifactStore;
+
+    private readonly ContainerCacheBuildLock $buildLock;
+
+    private readonly Environment $environment;
 
     public function __construct(
-        private readonly Paths $paths,
-        private readonly Environment $environment,
+        Paths $paths,
+        Environment $environment,
     ) {
+        $this->signature = new ContainerCacheSignature($paths, $environment);
+        $this->artifactStore = new ContainerCacheArtifactStore($paths);
+        $this->buildLock = new ContainerCacheBuildLock($this->artifactStore);
+        $this->environment = $environment;
     }
 
     /**
@@ -57,6 +60,8 @@ final class ContainerCache
      *     tracked_file_count: int,
      *     current_source_hash: string,
      *     cached_source_hash: ?string,
+     *     current_context_hash: string,
+     *     cached_context_hash: ?string,
      *     expected_container_class: string,
      *     cached_container_class: ?string
      * }
@@ -65,10 +70,10 @@ final class ContainerCache
      */
     public function inspect(): array
     {
-        $signature = $this->buildSignature();
-        $cacheFile = $this->getCacheFile();
-        $metadataFile = $this->getMetadataFile();
-        $metadata = $this->readMetadata();
+        $signature = $this->signature->build();
+        $cacheFile = $this->artifactStore->cacheFile();
+        $metadataFile = $this->artifactStore->metadataFile();
+        $metadata = $this->artifactStore->readMetadata();
         $reasons = [];
 
         if (! is_file($cacheFile)) {
@@ -94,13 +99,17 @@ final class ContainerCache
                 $reasons[] = 'source_hash_mismatch';
             }
 
+            if (($metadata['context_hash'] ?? null) !== $signature['context_hash']) {
+                $reasons[] = 'context_hash_mismatch';
+            }
+
             if (($metadata['container_class'] ?? null) !== $signature['container_class']) {
                 $reasons[] = 'container_class_mismatch';
             }
 
             $className = is_string($metadata['container_class'] ?? null) ? $metadata['container_class'] : null;
 
-            if (is_file($cacheFile) && $className !== null && $className !== '' && ! $this->cacheFileContainsClass($cacheFile, $className)) {
+            if (is_file($cacheFile) && $className !== null && $className !== '' && ! $this->artifactStore->containsClass($cacheFile, $className)) {
                 $reasons[] = 'cache_file_class_mismatch';
             }
         }
@@ -118,6 +127,8 @@ final class ContainerCache
             'tracked_file_count' => $signature['tracked_file_count'],
             'current_source_hash' => $signature['source_hash'],
             'cached_source_hash' => is_string($metadata['source_hash'] ?? null) ? $metadata['source_hash'] : null,
+            'current_context_hash' => $signature['context_hash'],
+            'cached_context_hash' => is_string($metadata['context_hash'] ?? null) ? $metadata['context_hash'] : null,
             'expected_container_class' => $signature['container_class'],
             'cached_container_class' => is_string($metadata['container_class'] ?? null) ? $metadata['container_class'] : null,
         ];
@@ -130,8 +141,8 @@ final class ContainerCache
      */
     public function load(): ContainerInterface
     {
-        $cacheFile = $this->getCacheFile();
-        $metadata = $this->readMetadata();
+        $cacheFile = $this->artifactStore->cacheFile();
+        $metadata = $this->artifactStore->readMetadata();
 
         if (! is_file($cacheFile)) {
             throw new RuntimeException('The Jooosi Mail container cache file does not exist.');
@@ -141,13 +152,17 @@ final class ContainerCache
             throw new RuntimeException('The Jooosi Mail container metadata file does not exist or is invalid.');
         }
 
+        if (($metadata['context_hash'] ?? null) !== $this->signature->contextHash()) {
+            throw new RuntimeException('The Jooosi Mail container cache was built for different runtime paths or environment.');
+        }
+
         $className = is_string($metadata['container_class'] ?? null) ? $metadata['container_class'] : null;
 
         if ($className === null || $className === '') {
             throw new RuntimeException('The Jooosi Mail container metadata is missing the container class name.');
         }
 
-        if (! $this->cacheFileContainsClass($cacheFile, $className)) {
+        if (! $this->artifactStore->containsClass($cacheFile, $className)) {
             // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
             throw new RuntimeException(sprintf('The Jooosi Mail container cache file does not contain the expected container class "%s".', $className));
         }
@@ -188,38 +203,7 @@ final class ContainerCache
      */
     public function withBuildLock(callable $callback): mixed
     {
-        if (is_resource($this->buildLock)) {
-            return $callback();
-        }
-
-        $this->ensureCacheDirectoryExists();
-        $lock = fopen($this->getBuildLockFile(), 'c');
-
-        if (! is_resource($lock)) {
-            throw new RuntimeException(sprintf('Unable to open the Jooosi Mail container cache build lock at "%s".', $this->getBuildLockFile()));
-        }
-
-        $locked = false;
-
-        try {
-            $locked = flock($lock, LOCK_EX);
-
-            if (! $locked) {
-                throw new RuntimeException(sprintf('Unable to acquire the Jooosi Mail container cache build lock at "%s".', $this->getBuildLockFile()));
-            }
-
-            $this->buildLock = $lock;
-
-            return $callback();
-        } finally {
-            $this->buildLock = null;
-
-            if ($locked) {
-                flock($lock, LOCK_UN);
-            }
-
-            fclose($lock);
-        }
+        return $this->buildLock->run($callback);
     }
 
     /**
@@ -228,8 +212,8 @@ final class ContainerCache
     public function clear(): void
     {
         $this->withBuildLock(function (): void {
-            $this->deleteFile($this->getCacheFile());
-            $this->deleteFile($this->getMetadataFile());
+            $this->artifactStore->deleteFile($this->artifactStore->cacheFile());
+            $this->artifactStore->deleteFile($this->artifactStore->metadataFile());
         });
     }
 
@@ -238,15 +222,15 @@ final class ContainerCache
      */
     private function dumpUnlocked(ContainerBuilder $builder): void
     {
-        $signature = $this->buildSignature();
+        $signature = $this->signature->build();
 
         $dumper = new PhpDumper($builder);
         $php = $dumper->dump([
             'class' => $signature['container_class'],
         ]);
 
-        $this->writePhpFile($this->getCacheFile(), $php);
-        $this->writePhpFile($this->getMetadataFile(), sprintf(
+        $this->artifactStore->writePhpFile($this->artifactStore->cacheFile(), $php);
+        $this->artifactStore->writePhpFile($this->artifactStore->metadataFile(), sprintf(
             "<?php\n\ndeclare(strict_types=1);\n\nreturn %s;\n",
             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- Intentional: generates a PHP cache file consumed via require.
             var_export([
@@ -254,240 +238,10 @@ final class ContainerCache
                 'environment' => $this->environment->name,
                 'debug' => $this->environment->debug,
                 'source_hash' => $signature['source_hash'],
+                'context_hash' => $signature['context_hash'],
                 'container_class' => $signature['container_class'],
                 'tracked_file_count' => $signature['tracked_file_count'],
             ], true),
         ));
-    }
-
-    private function getCacheFile(): string
-    {
-        return $this->paths->cacheDir . '/container.php';
-    }
-
-    private function getMetadataFile(): string
-    {
-        return $this->paths->cacheDir . '/container.meta.php';
-    }
-
-    private function getBuildLockFile(): string
-    {
-        return $this->paths->cacheDir . '/container.build.lock';
-    }
-
-    /**
-     * @return array{source_hash: string, container_class: string, tracked_file_count: int}
-     *
-     * @since 0.1.0
-     */
-    private function buildSignature(): array
-    {
-        $files = $this->collectTrackedFiles();
-        $context = hash_init('sha256');
-
-        foreach ($files as $file) {
-            hash_update($context, str_replace($this->paths->rootDir . '/', '', $file));
-            hash_update($context, "\0");
-
-            if (! is_readable($file)) {
-                // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-                throw new RuntimeException(sprintf('The Jooosi Mail container source file "%s" is not readable.', $file));
-            }
-
-            hash_update_file($context, $file);
-            hash_update($context, "\0");
-        }
-
-        $sourceHash = hash_final($context);
-
-        return [
-            'source_hash' => $sourceHash,
-            'container_class' => $this->buildContainerClass($sourceHash),
-            'tracked_file_count' => count($files),
-        ];
-    }
-
-    /**
-     * @return list<string>
-     *
-     * @since 0.1.0
-     */
-    private function collectTrackedFiles(): array
-    {
-        $files = [];
-
-        foreach (['src', 'composer.json', 'composer.lock', 'constant.php', 'jooosi-mail.php'] as $path) {
-            $absolutePath = $this->paths->rootDir . '/' . $path;
-
-            if (is_dir($absolutePath)) {
-                $files = [...$files, ...$this->collectPhpFiles($absolutePath)];
-
-                continue;
-            }
-
-            if (is_file($absolutePath)) {
-                $files[] = $absolutePath;
-            }
-        }
-
-        $files = array_values(array_unique($files));
-        sort($files);
-
-        return $files;
-    }
-
-    /**
-     * @return list<string>
-     *
-     * @since 0.1.0
-     */
-    private function collectPhpFiles(string $directory): array
-    {
-        $files = [];
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS));
-
-        /** @var SplFileInfo $file */
-        foreach ($iterator as $file) {
-            if (! $file->isFile() || strtolower($file->getExtension()) !== 'php') {
-                continue;
-            }
-
-            $files[] = $file->getPathname();
-        }
-
-        return $files;
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     *
-     * @since 0.1.0
-     */
-    private function readMetadata(): ?array
-    {
-        $metadataFile = $this->getMetadataFile();
-
-        if (! is_file($metadataFile)) {
-            return null;
-        }
-
-        try {
-            $metadata = require $metadataFile;
-        } catch (Throwable) {
-            return null;
-        }
-
-        return is_array($metadata) ? $metadata : null;
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function buildContainerClass(string $sourceHash): string
-    {
-        return 'JooosiMailCachedContainer_' . substr($sourceHash, 0, 12);
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function cacheFileContainsClass(string $cacheFile, string $className): bool
-    {
-        if (! is_readable($cacheFile)) {
-            return false;
-        }
-
-        $contents = file_get_contents($cacheFile);
-
-        if (! is_string($contents)) {
-            return false;
-        }
-
-        $className = ltrim($className, '\\');
-        $separatorPosition = strrpos($className, '\\');
-        $shortClassName = $separatorPosition === false ? $className : substr($className, $separatorPosition + 1);
-
-        return preg_match('/\\bclass\\s+' . preg_quote($shortClassName, '/') . '\\b/', $contents) === 1;
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function ensureCacheDirectoryExists(): void
-    {
-        if (! is_dir($this->paths->cacheDir)) {
-            wp_mkdir_p($this->paths->cacheDir);
-        }
-
-        if (! is_dir($this->paths->cacheDir)) {
-            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-            throw new RuntimeException(sprintf('The Jooosi Mail cache directory "%s" could not be created.', $this->paths->cacheDir));
-        }
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function writePhpFile(string $path, string $contents): void
-    {
-        $temporaryFile = tempnam($this->paths->cacheDir, 'jooosi-mail-');
-
-        if (! is_string($temporaryFile) || $temporaryFile === '') {
-            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-            throw new RuntimeException(sprintf('Unable to allocate a temporary file for "%s".', $path));
-        }
-
-        $bytesWritten = file_put_contents($temporaryFile, $contents, LOCK_EX);
-
-        if ($bytesWritten === false || $bytesWritten !== strlen($contents)) {
-            $this->deleteFile($temporaryFile);
-
-            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-            throw new RuntimeException(sprintf('Unable to write the Jooosi Mail cache file "%s".', $path));
-        }
-
-        $permissions = defined('FS_CHMOD_FILE') ? FS_CHMOD_FILE : 0644;
-
-        if (! chmod($temporaryFile, $permissions)) {
-            $this->deleteFile($temporaryFile);
-
-            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-            throw new RuntimeException(sprintf('Unable to set permissions on the Jooosi Mail cache file "%s".', $path));
-        }
-
-        if (! rename($temporaryFile, $path)) {
-            $this->deleteFile($temporaryFile);
-
-            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-            throw new RuntimeException(sprintf('Unable to move the Jooosi Mail cache file into place at "%s".', $path));
-        }
-
-        $this->invalidateOpcodeCache($path);
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function deleteFile(string $path): void
-    {
-        if (! is_file($path)) {
-            return;
-        }
-
-        $this->invalidateOpcodeCache($path);
-
-        wp_delete_file($path);
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function invalidateOpcodeCache(string $path): void
-    {
-        clearstatcache(true, $path);
-
-        if (function_exists('opcache_invalidate')) {
-            @opcache_invalidate($path, true);
-        }
     }
 }

@@ -623,14 +623,15 @@ function DataGridTableViewport({
     const node = viewportNodeRef.current;
     if (!node) return;
 
-    const fillWidth = Math.max(0, fillStateRef.current.containerWidth - table.getTotalSize());
+    const widthDelta = fillStateRef.current.containerWidth - table.getTotalSize();
+    const fillWidth = Math.max(0, widthDelta);
 
     if (fillStateRef.current.appliedFill !== fillWidth) {
       fillStateRef.current.appliedFill = fillWidth;
       node.style.setProperty("--data-grid-fill-size", `${fillWidth}px`);
     }
 
-    autoSize?.apply(fillWidth);
+    autoSize?.apply(widthDelta);
   }, [autoSize, table]);
 
   const handleViewportRef = useCallback(

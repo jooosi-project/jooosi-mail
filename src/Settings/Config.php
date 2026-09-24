@@ -64,28 +64,29 @@ final class Config
      */
     public function set(string $path, mixed $value): bool
     {
-        $segments = $this->normalizePath($path);
+        return $this->setMany([$path => $value]);
+    }
 
-        if ($segments === []) {
-            return $this->persist(is_array($value) ? $value : []);
-        }
-
+    /**
+     * Persists several paths through one option update.
+     *
+     * @param array<string, mixed> $values
+     *
+     * @since 1.0.9
+     */
+    public function setMany(array $values): bool
+    {
         $options = $this->load();
-        $cursor = &$options;
-        $lastIndex = count($segments) - 1;
 
-        foreach ($segments as $index => $segment) {
-            if ($index === $lastIndex) {
-                $cursor[$segment] = $value;
+        foreach ($values as $path => $value) {
+            $segments = $this->normalizePath($path);
 
-                return $this->persist($options);
+            if ($segments === []) {
+                $options = is_array($value) ? $value : [];
+                continue;
             }
 
-            if (! isset($cursor[$segment]) || ! is_array($cursor[$segment])) {
-                $cursor[$segment] = [];
-            }
-
-            $cursor = &$cursor[$segment];
+            $this->setPath($options, $segments, $value);
         }
 
         return $this->persist($options);
@@ -152,6 +153,32 @@ final class Config
         );
 
         return array_values($segments);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     * @param non-empty-list<string> $segments
+     *
+     * @since 1.0.9
+     */
+    private function setPath(array &$options, array $segments, mixed $value): void
+    {
+        $cursor = &$options;
+        $lastIndex = count($segments) - 1;
+
+        foreach ($segments as $index => $segment) {
+            if ($index === $lastIndex) {
+                $cursor[$segment] = $value;
+
+                return;
+            }
+
+            if (! isset($cursor[$segment]) || ! is_array($cursor[$segment])) {
+                $cursor[$segment] = [];
+            }
+
+            $cursor = &$cursor[$segment];
+        }
     }
 
     /**
