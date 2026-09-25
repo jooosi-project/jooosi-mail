@@ -5,7 +5,7 @@
 <h1 align="center">Jooosi Mail</h1>
 
 <p align="center">
-  <i>A modern WordPress mail delivery plugin with durable queues, provider failover, webhooks, and operational observability.</i>
+  <i>Route WordPress email through multiple providers with queued delivery, failover, webhooks, and detailed logs.</i>
 </p>
 
 <p align="center">
