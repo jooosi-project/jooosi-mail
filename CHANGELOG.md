@@ -9,8 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Save the chart and table filters state in the browser and restore it on page reload.
-- Queue logs show attempt history, workers, retries, and errors.
-- Resend emails from their logs without changing the original record.
+- Ability to resend emails from their logs without changing the original record.
 
 ### Fixed
 - Queue processing and retries are more reliable, with clearer failure details.
