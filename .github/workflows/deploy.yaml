@@ -1,9 +1,10 @@
-name: Deploy the plugin
+name: Deploy Free Jooosi Mail
 
 on:
   push:
     tags:
-      - "*"
+      - "v[0-9]*"
+      - "[0-9]*"
 
 permissions:
   contents: write
@@ -15,19 +16,33 @@ jobs:
   release:
     if: github.repository == 'jooosi-project/jooosi-mail'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v6
+      - uses: pnpm/setup@v2
         with:
-          node-version: 24
-          cache: pnpm
+          version: '^12.4.2'
+          runtime: node@26
+          cache: true
+          install: false
+
+      - name: Resolve Free release version
+        id: versions
+        shell: bash
+        run: |
+          free_version="${GITHUB_REF_NAME#v}"
+
+          if [[ ! "$free_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "The release tag must be a semantic version such as 1.0.8 or v1.0.8." >&2
+            exit 1
+          fi
+
+          echo "free=${free_version}" >> "$GITHUB_OUTPUT"
+          echo "FREE_VERSION=${free_version}" >> "$GITHUB_ENV"
 
       - name: Install JavaScript dependencies
         run: pnpm install --frozen-lockfile
@@ -41,90 +56,142 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Extract release notes
+      - name: Extract Free release notes
         id: changelog
         shell: bash
         run: |
-          version="${GITHUB_REF_NAME#v}"
           {
             echo "content<<EOF"
-            node deploy/extract-changelog.mjs "$version"
+            node deploy/extract-changelog.mjs "$FREE_VERSION"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
       - name: Update WordPress.org changelog
         run: node deploy/update-readme-changelog.mjs
 
-      - name: Install PHP dependencies
-        run: composer install --no-interaction --prefer-dist --ansi
-
       - name: Prepare production source
+        shell: bash
         run: |
           mkdir -p jooosi-mail-deploy
-          rsync -a --exclude jooosi-mail-deploy --exclude .git ./ jooosi-mail-deploy/
-          composer install --working-dir=jooosi-mail-deploy --no-dev --classmap-authoritative --no-interaction --prefer-dist --ansi
+          rsync -a \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='vendor' \
+            --exclude='jooosi-mail-deploy' \
+            --exclude='jooosi-mail-free-prefixed' \
+            --exclude='jooosi-mail-free-final' \
+            --exclude='jooosi-mail-free-zip' \
+            --exclude='dist-free-branch' \
+            ./ jooosi-mail-deploy/
 
-      - name: Scope production dependencies
-        run: bash deploy/deploy-scoped.sh jooosi-mail-deploy jooosi-mail-prefixed
+          composer validate \
+            --working-dir=jooosi-mail-deploy \
+            --no-check-publish
+
+          composer install \
+            --working-dir=jooosi-mail-deploy \
+            --no-dev \
+            --classmap-authoritative \
+            --no-interaction \
+            --prefer-dist \
+            --ansi
+
+      # When Pro is ready, give it a separate workflow triggered by pro-v* tags.
+      # Prepare licensed Pro source and metadata, then scope, filter, verify, and
+      # publish through its own dist-pro branch and GitHub asset. Keep WordPress.org
+      # publishing exclusive to Free, as in the separate-edition Jooosi Icon flow.
+
+      - name: Scope Free production dependencies
+        run: bash deploy/deploy-scoped.sh jooosi-mail-deploy jooosi-mail-free-prefixed
 
       - name: Apply distribution filter
+        shell: bash
         run: |
-          mkdir -p jooosi-mail-final
-          rsync -a --exclude='.*' --exclude-from=.distignore jooosi-mail-prefixed/ jooosi-mail-final/
-          rm -rf jooosi-mail-prefixed
-          mv jooosi-mail-final jooosi-mail-prefixed
+          mkdir -p jooosi-mail-free-final
+          rsync -a --exclude='.*' --exclude-from=.distignore jooosi-mail-free-prefixed/ jooosi-mail-free-final/
+          rm -rf jooosi-mail-free-prefixed
+          mv jooosi-mail-free-final jooosi-mail-free-prefixed
+
+      - name: Verify Free release artifact
+        shell: bash
+        run: |
+          release=jooosi-mail-free-prefixed
+
+          grep -Fq "* Version:             ${FREE_VERSION}" "$release/jooosi-mail.php"
+          grep -Fq "define('JOOOSI_MAIL_VERSION', '${FREE_VERSION}');" "$release/constant.php"
+          grep -Fq "Stable tag: ${FREE_VERSION}" "$release/readme.txt"
+          grep -Fq "\"version\": \"${FREE_VERSION}\"" "$release/composer.json"
+          test -f "$release/assets/dist/manifest.json"
+          test -f "$release/vendor/scoper-autoload.php"
+          test -f "$release/vendor/woocommerce/action-scheduler/action-scheduler.php"
+
+          if [[ -f "$release/assets/dist/vite-dev-server.json" ]]; then
+            echo "The release artifact contains the Vite development manifest." >&2
+            exit 1
+          fi
+
+          if grep -Fq 'JooosiMailDeps\dbDelta' "$release/vendor/scoper-autoload.php"; then
+            echo "The scoped autoloader contains a broken dbDelta() proxy." >&2
+            exit 1
+          fi
 
       - name: Create plugin archive
+        shell: bash
         run: |
-          mkdir -p jooosi-mail-zip/jooosi-mail
-          cp -a jooosi-mail-prefixed/* jooosi-mail-zip/jooosi-mail/
-          cd jooosi-mail-zip
-          zip -qr "../jooosi-mail-${GITHUB_REF_NAME}.zip" . -x "*.git*" "*.DS_Store*"
+          mkdir -p jooosi-mail-free-zip/jooosi-mail
+          cp -a jooosi-mail-free-prefixed/. jooosi-mail-free-zip/jooosi-mail/
+          cd jooosi-mail-free-zip
+          zip -qr "../jooosi-mail-${FREE_VERSION}-free.zip" . -x "*.git*" "*.DS_Store*"
 
-      - name: Upload plugin artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload Free plugin artifact
+        uses: actions/upload-artifact@v7
         with:
-          name: jooosi-mail-${{ github.ref_name }}
-          path: jooosi-mail-${{ github.ref_name }}.zip
+          name: jooosi-mail-${{ steps.versions.outputs.free }}-free
+          path: jooosi-mail-${{ steps.versions.outputs.free }}-free.zip
+          if-no-files-found: error
 
-      - name: Publish scoped build to dist branch
+      - name: Publish Free build to dist-free branch
         env:
           GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" dist-branch
-          cd dist-branch
-          git fetch origin dist || true
-          git checkout dist 2>/dev/null || git checkout --orphan dist
+          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" dist-free-branch
+          cd dist-free-branch
+          git fetch origin dist-free || true
+          git checkout dist-free 2>/dev/null || git checkout --orphan dist-free
           git rm -rf . 2>/dev/null || true
           git clean -fxd
-          cp -a ../jooosi-mail-prefixed/* .
+          cp -a ../jooosi-mail-free-prefixed/. .
           git add --all
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           if git diff --cached --quiet; then
-            echo "The dist branch already matches ${GITHUB_REF_NAME}."
+            echo "The dist-free branch already matches Free ${FREE_VERSION}."
           else
-            git commit -m "Build ${GITHUB_REF_NAME}"
-            git push origin dist
+            git commit -m "Build Free Jooosi Mail ${FREE_VERSION}"
+            git push origin dist-free
           fi
 
-      - name: Publish WordPress.org release
+      - name: Publish Free release to WordPress.org
         if: vars.WORDPRESS_ORG_DEPLOY == 'true'
         uses: 10up/action-wordpress-plugin-deploy@stable
         env:
-          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
-          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SVN_USERNAME: ${{ secrets.WORDPRESS_ORG_SVN_USERNAME || secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.WORDPRESS_ORG_SVN_PASSWORD || secrets.SVN_PASSWORD }}
           SLUG: jooosi-mail
-          BUILD_DIR: jooosi-mail-prefixed
-          VERSION: ${{ github.ref_name }}
+          BUILD_DIR: jooosi-mail-free-prefixed
+          VERSION: ${{ steps.versions.outputs.free }}
           ASSETS_DIR: .wordpress-org
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
-          name: ${{ github.ref_name }}
+          name: Free ${{ github.ref_name }}
           body: ${{ steps.changelog.outputs.content }}
-          files: jooosi-mail-${{ github.ref_name }}.zip
+          files: jooosi-mail-${{ steps.versions.outputs.free }}-free.zip
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

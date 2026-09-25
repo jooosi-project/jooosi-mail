@@ -39,7 +39,7 @@ pnpm wp-env:test:start
 pnpm test:php:docker
 ```
 
-Run frontend validation and WordPress-backed PHP integration tests before submitting changes. The current GitHub Actions configuration contains the tag-triggered deployment workflow; a pull-request validation workflow remains planned. Prepare a release with `pnpm run release -- <major.minor.patch>`, review the generated commit and tag, then push both to trigger the deployment workflow.
+Run frontend validation and WordPress-backed PHP integration tests before submitting changes. The current GitHub Actions configuration contains the tag-triggered deployment workflow; a pull-request validation workflow remains planned. Prepare a release with `pnpm run release -- <major.minor.patch>` (requires Composer), review the generated commit and tag, then push both to trigger the deployment workflow.
 
 ## Docker Test Workflow
 

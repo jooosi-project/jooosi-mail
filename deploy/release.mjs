@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { updateReadmeChangelog } from "./update-readme-changelog.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const version = process.argv[2];
@@ -17,10 +18,7 @@ if (status.trim()) {
   throw new Error("The working tree must be clean before preparing a release.");
 }
 
-function update(relativePath, replacements) {
-  const path = `${root}/${relativePath}`;
-  let content = readFileSync(path, "utf8");
-
+function replace(relativePath, content, replacements) {
   for (const [pattern, replacement] of replacements) {
     if (!pattern.test(content)) {
       throw new Error(`Could not find the version field in ${relativePath}.`);
@@ -29,24 +27,58 @@ function update(relativePath, replacements) {
     content = content.replace(pattern, replacement);
   }
 
-  writeFileSync(path, content, "utf8");
+  return content;
 }
 
-update("readme.txt", [[/Stable tag: \d+\.\d+\.\d+/, `Stable tag: ${version}`]]);
-update("constant.php", [[/define\('JOOOSI_MAIL_VERSION', '\d+\.\d+\.\d+'\);/, `define('JOOOSI_MAIL_VERSION', '${version}');`]]);
-update("jooosi-mail.php", [[/( \* Version:\s+)\d+\.\d+\.\d+/, `$1${version}`]]);
-update("composer.json", [[/("version": ")\d+\.\d+\.\d+("\s*,)/, `$1${version}$2`]]);
-update("package.json", [[/("version": ")\d+\.\d+\.\d+("\s*,)/, `$1${version}$2`]]);
-
+const readmePath = `${root}/readme.txt`;
 const changelogPath = `${root}/CHANGELOG.md`;
+const composerPath = `${root}/composer.json`;
+
+let readme = replace(
+  "readme.txt",
+  readFileSync(readmePath, "utf8"),
+  [[/Stable tag: \d+\.\d+\.\d+/, `Stable tag: ${version}`]],
+);
+const constant = replace(
+  "constant.php",
+  readFileSync(`${root}/constant.php`, "utf8"),
+  [[/define\('JOOOSI_MAIL_VERSION', '\d+\.\d+\.\d+'\);/, `define('JOOOSI_MAIL_VERSION', '${version}');`]],
+);
+const plugin = replace(
+  "jooosi-mail.php",
+  readFileSync(`${root}/jooosi-mail.php`, "utf8"),
+  [[/( \* Version:\s+)\d+\.\d+\.\d+/, `$1${version}`]],
+);
+const packageJson = replace(
+  "package.json",
+  readFileSync(`${root}/package.json`, "utf8"),
+  [[/("version": ")\d+\.\d+\.\d+("\s*,)/, `$1${version}$2`]],
+);
+
+const composer = JSON.parse(readFileSync(composerPath, "utf8"));
+const wordpressPlugin = composer.extra?.["wordpress-plugin"];
+
+if (!wordpressPlugin || typeof wordpressPlugin.version !== "string" || !/^\d+\.\d+\.\d+$/.test(wordpressPlugin.version)) {
+  throw new Error('Could not find a semantic version in composer.json at extra.wordpress-plugin.version.');
+}
+
+wordpressPlugin.version = version;
+const composerJson = `${JSON.stringify(composer, null, 4)}\n`;
+
 let changelog = readFileSync(changelogPath, "utf8");
 
 if (changelog.includes(`## [${version}]`)) {
   throw new Error(`CHANGELOG.md already contains ${version}.`);
 }
 
+const unreleasedHeading = /^## \[Unreleased\]$/m;
+
+if (!unreleasedHeading.test(changelog)) {
+  throw new Error("Could not find the Unreleased changelog section.");
+}
+
 const date = new Date().toISOString().slice(0, 10);
-changelog = changelog.replace("## [Unreleased]", `## [Unreleased]\n\n## [${version}] - ${date}`);
+changelog = changelog.replace(unreleasedHeading, `## [Unreleased]\n\n## [${version}] - ${date}`);
 
 const repositoryUrl = "https://github.com/jooosi-project/jooosi-mail";
 const comparisonLink = changelog.match(/^\[unreleased]: https:\/\/github\.com\/jooosi-project\/jooosi-mail\/compare\/(.+)\.\.\.HEAD$/m);
@@ -66,13 +98,23 @@ if (comparisonLink) {
   throw new Error("Could not find the Unreleased changelog link.");
 }
 
-writeFileSync(changelogPath, changelog, "utf8");
+readme = updateReadmeChangelog(readme, changelog);
 
-execFileSync("node", ["deploy/update-readme-changelog.mjs"], { cwd: root, stdio: "inherit" });
+const releaseFiles = new Map([
+  ["CHANGELOG.md", changelog],
+  ["composer.json", composerJson],
+  ["constant.php", constant],
+  ["jooosi-mail.php", plugin],
+  ["package.json", packageJson],
+  ["readme.txt", readme],
+]);
 
-const releaseFiles = ["CHANGELOG.md", "composer.json", "constant.php", "jooosi-mail.php", "package.json", "readme.txt"];
+for (const [relativePath, content] of releaseFiles) {
+  writeFileSync(`${root}/${relativePath}`, content, "utf8");
+}
 
-execFileSync("git", ["add", "--", ...releaseFiles], { cwd: root, stdio: "inherit" });
+execFileSync("composer", ["update", "--lock", "--no-install", "--no-interaction", "--ansi"], { cwd: root, stdio: "inherit" });
+execFileSync("git", ["add", "--", ...releaseFiles.keys(), "composer.lock"], { cwd: root, stdio: "inherit" });
 execFileSync("git", ["commit", "-m", `Prepare ${version}`], { cwd: root, stdio: "inherit" });
 execFileSync("git", ["tag", version], { cwd: root, stdio: "inherit" });
 

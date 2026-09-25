@@ -1,64 +1,95 @@
 #!/usr/bin/env bash
 
-# see https://stackoverflow.com/questions/66644233/how-to-propagate-colors-from-bash-script-to-github-action?noredirect=1#comment117811853_66644233
-export TERM=xterm-color
+set -euo pipefail
 
-set -e
-set -u
+deploy_directory=${1:-}
+result_directory=${2:-}
 
-note()
+if [[ ! "$deploy_directory" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]*$ || ! "$result_directory" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]*$ || "$deploy_directory" == "$result_directory" ]]; then
+    echo "Usage: deploy-scoped.sh <deploy-directory> <result-directory>" >&2
+    exit 1
+fi
+
+if [[ ! -d "$deploy_directory" ]]; then
+    echo "Release source directory does not exist: $deploy_directory" >&2
+    exit 1
+fi
+
+if [[ ! -f "$deploy_directory/deploy/scoper.inc.php" || ! -f "$deploy_directory/deploy/patch-scoper-autoload.php" ]]; then
+    echo "Release source is missing its PHP-Scoper configuration or autoloader patch." >&2
+    exit 1
+fi
+
+if [[ -d "$deploy_directory/tests" ]]; then
+    echo "Refusing to scope a release source that contains test function stubs: $deploy_directory/tests" >&2
+    exit 1
+fi
+
+rm -rf "$result_directory"
+rm -rf "$deploy_directory/deploy/php-scoper-wordpress-excludes-master"
+
+temporary_directory=$(mktemp -d "${TMPDIR:-/tmp}/jooosi-mail-scoper.XXXXXX")
+action_scheduler_directory="$deploy_directory/vendor/woocommerce/action-scheduler"
+action_scheduler_staged=false
+
+cleanup()
 {
-    MESSAGE=$1;
+    exit_code=$?
+    trap - EXIT
 
-    printf "\n";
-    echo "[NOTE] $MESSAGE";
-    printf "\n";
+    rm -rf "$deploy_directory/deploy/php-scoper-wordpress-excludes-master"
+
+    if [[ "$action_scheduler_staged" == true ]]; then
+        if [[ -d "$temporary_directory/action-scheduler" ]]; then
+            mkdir -p "$deploy_directory/vendor/woocommerce"
+            rm -rf "$action_scheduler_directory"
+            mv "$temporary_directory/action-scheduler" "$action_scheduler_directory"
+        elif [[ -d "$result_directory/vendor/woocommerce/action-scheduler" ]]; then
+            mkdir -p "$deploy_directory/vendor/woocommerce"
+            rm -rf "$action_scheduler_directory"
+            mv "$result_directory/vendor/woocommerce/action-scheduler" "$action_scheduler_directory"
+        fi
+    fi
+
+    rm -rf "$temporary_directory"
+    exit "$exit_code"
 }
 
-DEPLOY_DIRECTORY=$1
-RESULT_DIRECTORY=$2
-ACTION_SCHEDULER_DIRECTORY="$DEPLOY_DIRECTORY/vendor/woocommerce/action-scheduler"
-ACTION_SCHEDULER_STAGING_DIRECTORY=""
+trap cleanup EXIT
 
-note "Starts"
+curl --fail --location --silent --show-error \
+    https://github.com/snicco/php-scoper-wordpress-excludes/archive/refs/heads/master.zip \
+    --output "$temporary_directory/php-scoper-wordpress-excludes-master.zip"
+unzip -q "$temporary_directory/php-scoper-wordpress-excludes-master.zip" -d "$deploy_directory/deploy"
 
-note "Cleaning directories"
-rm -rf "$RESULT_DIRECTORY"
-
-note "Downloading whitelist of php-scoper"
-wget https://github.com/snicco/php-scoper-wordpress-excludes/archive/refs/heads/master.zip -O "php-scoper-wordpress-excludes-master.zip"
-
-note "Extracting whitelist of php-scoper"
-unzip "php-scoper-wordpress-excludes-master.zip" -d "$DEPLOY_DIRECTORY/deploy"
-rm -f "php-scoper-wordpress-excludes-master.zip"
-
-if [ -d "$ACTION_SCHEDULER_DIRECTORY" ]; then
-    note "Temporarily excluding Action Scheduler from scoping"
-    ACTION_SCHEDULER_STAGING_DIRECTORY=$(mktemp -d "${TMPDIR:-/tmp}/jooosi-mail-action-scheduler.XXXXXX")
-    mv "$ACTION_SCHEDULER_DIRECTORY" "$ACTION_SCHEDULER_STAGING_DIRECTORY/action-scheduler"
+if [[ -d "$action_scheduler_directory" ]]; then
+    mv "$action_scheduler_directory" "$temporary_directory/action-scheduler"
+    action_scheduler_staged=true
 fi
 
-note "Download php-scoper"
-wget https://github.com/humbug/php-scoper/releases/download/0.18.19/php-scoper.phar -N --no-verbose
+curl --fail --location --silent --show-error \
+    https://github.com/humbug/php-scoper/releases/download/0.18.19/php-scoper.phar \
+    --output "$temporary_directory/php-scoper.phar"
 
-note "Running scoper to $RESULT_DIRECTORY"
-php -d memory_limit=-1 php-scoper.phar add-prefix --output-dir "../$RESULT_DIRECTORY" --config "deploy/scoper.inc.php" --force --ansi --working-dir "$DEPLOY_DIRECTORY";
-rm -f "$RESULT_DIRECTORY/php-scoper.phar"
+php -d memory_limit=-1 "$temporary_directory/php-scoper.phar" add-prefix \
+    --output-dir "../$result_directory" \
+    --config deploy/scoper.inc.php \
+    --force \
+    --ansi \
+    --working-dir "$deploy_directory"
 
-if [ -n "$ACTION_SCHEDULER_STAGING_DIRECTORY" ]; then
-    note "Restoring unscoped Action Scheduler"
-    mkdir -p "$RESULT_DIRECTORY/vendor/woocommerce"
-    rm -rf "$RESULT_DIRECTORY/vendor/woocommerce/action-scheduler"
-    mv "$ACTION_SCHEDULER_STAGING_DIRECTORY/action-scheduler" "$RESULT_DIRECTORY/vendor/woocommerce/action-scheduler"
-    rmdir "$ACTION_SCHEDULER_STAGING_DIRECTORY"
+if [[ "$action_scheduler_staged" == true ]]; then
+    mkdir -p "$result_directory/vendor/woocommerce"
+    mv "$temporary_directory/action-scheduler" "$result_directory/vendor/woocommerce/action-scheduler"
 fi
 
-note "Dumping Composer Autoload"
-composer dump-autoload --working-dir "$RESULT_DIRECTORY" --ansi --no-dev --classmap-authoritative
+composer dump-autoload --working-dir "$result_directory" --ansi --no-dev --classmap-authoritative
+php deploy/patch-scoper-autoload.php "$result_directory/vendor/scoper-autoload.php"
 
-note "Isolating the scoped Composer file registry"
-php deploy/patch-scoper-autoload.php "$RESULT_DIRECTORY/vendor/scoper-autoload.php"
+if grep -Fq 'JooosiMailDeps\dbDelta' "$result_directory/vendor/scoper-autoload.php"; then
+    echo "The scoped autoloader contains a broken dbDelta() proxy." >&2
+    exit 1
+fi
 
-rm -rf "$DEPLOY_DIRECTORY"
-
-note "Finished"
+action_scheduler_staged=false
+rm -rf "$deploy_directory"

@@ -61,15 +61,23 @@ function formatEntries(entries) {
     .join("\n\n");
 }
 
-const readme = readFileSync(readmePath, "utf8");
-const marker = "== Changelog ==";
-const markerIndex = readme.indexOf(marker);
+export function updateReadmeChangelog(readme, changelogContent) {
+  const marker = "== Changelog ==";
+  const markerIndex = readme.indexOf(marker);
 
-if (markerIndex === -1) {
-  throw new Error('Could not find the "== Changelog ==" section in readme.txt.');
+  if (markerIndex === -1) {
+    throw new Error('Could not find the "== Changelog ==" section in readme.txt.');
+  }
+
+  const entries = formatEntries(parseEntries(changelogContent));
+  const changelog = `${marker}\n\n${entries}\n\n[See changelog for all versions.](https://github.com/jooosi-project/jooosi-mail/blob/main/CHANGELOG.md)\n`;
+
+  return readme.slice(0, markerIndex) + changelog;
 }
 
-const entries = formatEntries(parseEntries(readFileSync(changelogPath, "utf8")));
-const changelog = `${marker}\n\n${entries}\n\n[See changelog for all versions.](https://github.com/jooosi-project/jooosi-mail/blob/main/CHANGELOG.md)\n`;
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const readme = readFileSync(readmePath, "utf8");
+  const changelogContent = readFileSync(changelogPath, "utf8");
 
-writeFileSync(readmePath, readme.slice(0, markerIndex) + changelog, "utf8");
+  writeFileSync(readmePath, updateReadmeChangelog(readme, changelogContent), "utf8");
+}

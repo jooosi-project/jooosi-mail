@@ -4,6 +4,8 @@
 /.vscode
 /.agents
 /.wordpress-org
+/.env*
+/.pnpm-store
 /node_modules
 /vendor/bin
 /tests
@@ -11,6 +13,7 @@
 /documentation
 /resources
 /var/cache
+/assets/dist/vite-dev-server.json
 /.editorconfig
 /.gitattributes
 /.gitignore
@@ -38,6 +41,9 @@
 /AGENTS.md
 /skills-lock.json
 /.mcp.json
+/mise.toml
+/opencode.json
+/pnpm-workspace.yaml
 
 # Vendor development files
 /vendor/bin
@@ -48,6 +54,8 @@
 /vendor/*/*/tests
 /vendor/*/Tests
 /vendor/*/*/Tests
+/vendor/*/*/Test
+/vendor/*/*/src/Test
 /vendor/*/.git
 /vendor/*/*/.git
 /vendor/*/.github
