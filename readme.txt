@@ -1,4 +1,4 @@
-=== Jooosi Mail - Email delivery with routing, queues, and failover for WordPress ===
+=== Jooosi Mail - Email delivery with routing, queues, and failover, built for WordPress ===
 Contributors: suasgn, jooosi, suabahasa
 Donate link: https://ko-fi.com/Q5Q75XSF7
 Tags: email, smtp, mailer, transactional email, logs
@@ -9,7 +9,7 @@ Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Route WordPress email through multiple providers with queued delivery, failover, webhooks, and detailed logs.
+Email delivery with routing, queues, and failover, built for WordPress.
 
 == Description ==
 
