@@ -140,6 +140,16 @@ Yes. Jooosi Mail intercepts WordPress `wp_mail()` calls and routes them through 
 
 Yes. Jooosi Mail includes WP-CLI commands for operational tasks such as managing connections, migrations, queue processing, and diagnostics.
 
+== Screenshots ==
+
+1. Delivery dashboard and sending activity.
+2. Configured mail connections and health.
+3. Provider connection setup.
+4. Email delivery logs.
+5. Email message details.
+6. Queue status and retries.
+7. Mail delivery and routing settings.
+
 == Changelog ==
 
 = 1.0.8 - 2026-08-11 =
