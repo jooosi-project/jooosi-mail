@@ -4,7 +4,7 @@ Donate link: https://ko-fi.com/Q5Q75XSF7
 Tags: email, smtp, mailer, transactional email, logs
 Requires at least: 7.0
 Tested up to: 7.1
-Stable tag: 1.0.8
+Stable tag: 1.0.9
 Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -151,6 +151,25 @@ Yes. Jooosi Mail includes WP-CLI commands for operational tasks such as managing
 7. Mail delivery and routing settings.
 
 == Changelog ==
+
+= 1.0.9 - 2026-09-26 =
+
+**Added**
+
+* [MailKite](https://mailkite.dev) mail provider.
+* [PufferPost](https://pufferpost.com) mail provider.
+* [TurboSMTP](https://www.turbo-smtp.com) mail provider.
+* Ability to resend emails from their logs without changing the original record.
+
+**Changed**
+
+* Clarified transport-specific fields and disabled automatic credential reuse across schemes.
+
+**Fixed**
+
+* Save the chart and table filters state in the browser and restore it on page reload.
+* Updated Bird SMTP authentication and regional endpoints to match its current SMTP API.
+* Queue processing and retries are more reliable, with clearer failure details.
 
 = 1.0.8 - 2026-08-11 =
 

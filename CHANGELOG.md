@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-09-26
+
 ### Added
 - [MailKite](https://mailkite.dev) mail provider.
 - [PufferPost](https://pufferpost.com) mail provider.
@@ -67,7 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - 🐣 Initial release.
 
-[unreleased]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.8...HEAD
+[unreleased]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.9...HEAD
+[1.0.9]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.8...1.0.9
 [1.0.8]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.7...1.0.8
 [1.0.7]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.6...1.0.7
 [1.0.6]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.5...1.0.6
