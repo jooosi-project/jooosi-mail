@@ -47,7 +47,8 @@ final class MailPaceProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'mailpace+api', 'choices' => $this->getSupportedSchemes()],
-            'api_token' => ['label' => 'MailPace API token', 'type' => 'password', 'required' => true],
+            'api_token' => ['label' => 'MailPace API token', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'mailpace+api')], 'required_when' => [$this->conditionIn('scheme', 'mailpace+api')]],
+            'smtp_api_token' => ['label' => 'MailPace SMTP API token', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'mailpace+smtp')], 'required_when' => [$this->conditionIn('scheme', 'mailpace+smtp')]],
         ];
     }
 
@@ -58,7 +59,8 @@ final class MailPaceProfile extends AbstractMailProfile
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'mailpace+api';
 
         match ($scheme) {
-            'mailpace+api', 'mailpace+smtp' => $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['api_token']),
+            'mailpace+api' => $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['api_token']),
+            'mailpace+smtp' => $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['smtp_api_token']),
             default => null,
         };
     }
@@ -68,7 +70,8 @@ final class MailPaceProfile extends AbstractMailProfile
     {
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'mailpace+api';
-        $apiToken = is_string($defaults['api_token'] ?? null) ? trim((string) $defaults['api_token']) : null;
+        $tokenField = $scheme === 'mailpace+api' ? 'api_token' : 'smtp_api_token';
+        $apiToken = is_string($defaults[$tokenField] ?? null) ? trim((string) $defaults[$tokenField]) : null;
 
         if (! in_array($scheme, $this->getSupportedSchemes(), true) || $apiToken === null || $apiToken === '') {
             return null;

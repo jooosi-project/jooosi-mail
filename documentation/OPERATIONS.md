@@ -6,9 +6,11 @@ This guide covers how Jooosi Mail is configured and operated today. The project 
 
 Jooosi Mail is currently administered through both the WordPress admin UI and WP-CLI. The plugin intercepts `wp_mail()`, stores normalized mail records and delivery-attempt history according to the configured email log retention policy, then delivers synchronously or through its database-backed queue.
 
-The built-in profile catalog currently includes core transports (`smtp`, `sendmail`, `native`, `null`) plus provider profiles for `ahasend`, `azure`, `bird`, `brevo`, `cloudflare`, `elasticemail`, `emailit`, `gmail`, `infobip`, `mailersend`, `mailgun`, `mailjet`, `mailomat`, `mailpace`, `mailtrap`, `mandrill`, `microsoftgraph`, `pepipost`, `postal`, `postmark`, `resend`, `scaleway`, `sendgrid`, `sendlayer`, `sendpulse`, `ses`, `smtp2go`, `smtpcom`, `sparkpost`, `sweego`, `tosend`, `zeptomail`, and `zohomail`.
+The built-in profile catalog currently includes core transports (`smtp`, `sendmail`, `native`, `null`) plus provider profiles for `ahasend`, `azure`, `bird`, `brevo`, `cloudflare`, `elasticemail`, `emailit`, `gmail`, `infobip`, `mailersend`, `mailgun`, `mailjet`, `mailkite`, `mailomat`, `mailpace`, `mailtrap`, `mandrill`, `microsoftgraph`, `pepipost`, `pufferpost`, `postal`, `postmark`, `resend`, `scaleway`, `sendgrid`, `sendlayer`, `sendpulse`, `ses`, `smtp2go`, `smtpcom`, `sparkpost`, `sweego`, `tosend`, `turbosmtp`, `zeptomail`, and `zohomail`.
 
 Use `wp jooosi-mail connection:profiles` as the authoritative source for supported schemes, field names, and webhook support.
+
+MailKite supports API and SMTP delivery; use SMTP for inline CID attachments. PufferPost supports API delivery with inline message content and fans out multiple envelope recipients through its batch endpoint. A PufferPost batch can partially accept recipients before returning a failure, so retrying a failed batch may resend already accepted recipients. PufferPost-hosted templates require Symfony's `RemoteTemplateEmail`, which is not available in this project's Symfony 6.4 Mailer, so this integration sends the supplied subject and body inline. TurboSMTP supports API and SMTP delivery with global and EU endpoints configured by region.
 
 ## Admin UI
 

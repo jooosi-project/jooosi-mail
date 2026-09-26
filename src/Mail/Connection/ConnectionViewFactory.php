@@ -106,6 +106,10 @@ final class ConnectionViewFactory
                 'required' => (bool) ($field['required'] ?? false),
             ];
 
+            if (is_string($field['description'] ?? null) && trim($field['description']) !== '') {
+                $fieldView['description'] = trim($field['description']);
+            }
+
             $choices = $field['choices'] ?? null;
 
             if (is_array($choices) && $choices !== []) {

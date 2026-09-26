@@ -60,7 +60,7 @@ final class MailtrapProfile extends AbstractMailProfile
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'mailtrap+api', 'choices' => $this->getSupportedSchemes()],
             'token' => ['label' => 'Mailtrap token', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', ['mailtrap+api', 'mailtrap+sandbox'])], 'required_when' => [$this->conditionIn('scheme', ['mailtrap+api', 'mailtrap+sandbox'])]],
-            'password' => ['label' => 'Mailtrap SMTP password', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'mailtrap+smtp')], 'required_when' => [$this->conditionIn('scheme', 'mailtrap+smtp')]],
+            'password' => ['label' => 'Mailtrap SMTP API token', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'mailtrap+smtp')], 'required_when' => [$this->conditionIn('scheme', 'mailtrap+smtp')]],
             'inbox_id' => ['label' => 'Mailtrap sandbox inbox ID', 'type' => 'number', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'mailtrap+sandbox')], 'required_when' => [$this->conditionIn('scheme', 'mailtrap+sandbox')]],
         ];
     }

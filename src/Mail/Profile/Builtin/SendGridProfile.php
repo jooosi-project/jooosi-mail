@@ -48,7 +48,8 @@ final class SendGridProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'sendgrid+api', 'choices' => $this->getSupportedSchemes()],
-            'api_key' => ['label' => 'SendGrid API key', 'type' => 'password', 'required' => true],
+            'api_key' => ['label' => 'SendGrid API key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'sendgrid+api')], 'required_when' => [$this->conditionIn('scheme', 'sendgrid+api')]],
+            'smtp_api_key' => ['label' => 'SendGrid SMTP API key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'sendgrid+smtp')], 'required_when' => [$this->conditionIn('scheme', 'sendgrid+smtp')]],
             'region' => ['label' => 'SendGrid region', 'type' => 'text', 'required' => false],
         ];
     }
@@ -69,7 +70,7 @@ final class SendGridProfile extends AbstractMailProfile
             return null;
         }
 
-        $apiKey = $this->extractScalarString($defaults, 'api_key');
+        $apiKey = $this->extractScalarString($defaults, $scheme === 'sendgrid+api' ? 'api_key' : 'smtp_api_key');
 
         if ($apiKey === null || $apiKey === '') {
             return null;

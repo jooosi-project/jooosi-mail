@@ -54,7 +54,8 @@ final class SparkPostProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'sparkpost+api', 'choices' => $this->getSupportedSchemes()],
-            'api_key' => ['label' => 'SparkPost API key', 'type' => 'password', 'required' => true],
+            'api_key' => ['label' => 'SparkPost API key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'sparkpost+api')], 'required_when' => [$this->conditionIn('scheme', 'sparkpost+api')]],
+            'smtp_api_key' => ['label' => 'SparkPost SMTP API key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', ['sparkpost+smtp', 'sparkpost+smtps'])], 'required_when' => [$this->conditionIn('scheme', ['sparkpost+smtp', 'sparkpost+smtps'])]],
             'region' => ['label' => 'SparkPost region', 'type' => 'choice', 'required' => false, 'choices' => ['eu']],
         ];
     }
@@ -64,7 +65,7 @@ final class SparkPostProfile extends AbstractMailProfile
     {
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'sparkpost+api';
-        $apiKey = $this->extractScalarString($defaults, 'api_key');
+        $apiKey = $this->extractScalarString($defaults, $scheme === 'sparkpost+api' ? 'api_key' : 'smtp_api_key');
 
         if (! in_array($scheme, $this->getSupportedSchemes(), true) || $apiKey === null || $apiKey === '') {
             return null;

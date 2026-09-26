@@ -42,7 +42,8 @@ final class PostmarkProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'postmark+api', 'choices' => $this->getSupportedSchemes()],
-            'api_key' => ['label' => 'Postmark server token', 'type' => 'password', 'required' => true],
+            'api_key' => ['label' => 'Postmark server token', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'postmark+api')], 'required_when' => [$this->conditionIn('scheme', 'postmark+api')]],
+            'smtp_server_token' => ['label' => 'Postmark SMTP server token', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'postmark+smtp')], 'required_when' => [$this->conditionIn('scheme', 'postmark+smtp')]],
         ];
     }
 
@@ -68,7 +69,7 @@ final class PostmarkProfile extends AbstractMailProfile
             return null;
         }
 
-        $apiKey = $this->extractScalarString($defaults, 'api_key');
+        $apiKey = $this->extractScalarString($defaults, $scheme === 'postmark+api' ? 'api_key' : 'smtp_server_token');
 
         if ($apiKey === null || $apiKey === '') {
             return null;

@@ -47,7 +47,7 @@ final class EmailitProfile extends AbstractMailProfile
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'emailit+api', 'choices' => $this->getSupportedSchemes()],
             'api_key' => ['label' => 'Emailit API key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'emailit+api')], 'required_when' => [$this->conditionIn('scheme', 'emailit+api')]],
-            'smtp_credential' => ['label' => 'Emailit SMTP credential', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', ['emailit+smtp', 'emailit+smtps'])], 'required_when' => [$this->conditionIn('scheme', ['emailit+smtp', 'emailit+smtps'])]],
+            'smtp_credential' => ['label' => 'Emailit SMTP API key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', ['emailit+smtp', 'emailit+smtps'])], 'required_when' => [$this->conditionIn('scheme', ['emailit+smtp', 'emailit+smtps'])]],
         ];
     }
 

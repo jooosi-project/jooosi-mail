@@ -42,7 +42,8 @@ final class ResendProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'resend+api', 'choices' => $this->getSupportedSchemes()],
-            'api_key' => ['label' => 'Resend API key', 'type' => 'password', 'required' => true],
+            'api_key' => ['label' => 'Resend API key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'resend+api')], 'required_when' => [$this->conditionIn('scheme', 'resend+api')]],
+            'smtp_api_key' => ['label' => 'Resend SMTP API key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'resend+smtp')], 'required_when' => [$this->conditionIn('scheme', 'resend+smtp')]],
         ];
     }
 
@@ -68,7 +69,7 @@ final class ResendProfile extends AbstractMailProfile
             return null;
         }
 
-        $apiKey = $this->extractScalarString($defaults, 'api_key');
+        $apiKey = $this->extractScalarString($defaults, $scheme === 'resend+api' ? 'api_key' : 'smtp_api_key');
 
         if ($apiKey === null || $apiKey === '') {
             return null;

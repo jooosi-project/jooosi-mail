@@ -8,10 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Save the chart and table filters state in the browser and restore it on page reload.
+- [MailKite](https://mailkite.dev) mail provider.
+- [PufferPost](https://pufferpost.com) mail provider.
+- [TurboSMTP](https://www.turbo-smtp.com) mail provider.
 - Ability to resend emails from their logs without changing the original record.
 
+### Changed
+- Clarified transport-specific fields and disabled automatic credential reuse across schemes.
+
 ### Fixed
+- Save the chart and table filters state in the browser and restore it on page reload.
+- Updated Bird SMTP authentication and regional endpoints to match its current SMTP API.
 - Queue processing and retries are more reliable, with clearer failure details.
 
 ## [1.0.8] - 2026-08-11

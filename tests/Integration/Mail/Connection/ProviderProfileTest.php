@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace JooosiMail\Tests\Integration\Mail\Connection;
 
 use JooosiMail\Mail\Connection\Connection;
+use JooosiMail\Mail\Connection\ConnectionConfigurationException;
 use JooosiMail\Mail\Connection\ConnectionDsnResolver;
+use JooosiMail\Mail\Transport\Bridge\Bird\Transport\BirdSmtpTransport;
 use JooosiMail\Mail\Transport\TransportRegistry;
+use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
 use JooosiMail\Tests\Integration\Support\JooosiMailIntegrationTestCase;
 
 /**
@@ -27,6 +30,23 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             $profiles[(string) $profile['key']] = $profile;
         }
 
+        foreach ($profiles as $profile) {
+            if (isset($profile['configuration_fields']['scheme'])) {
+                self::assertArrayNotHasKey('description', $profile['configuration_fields']['scheme']);
+                self::assertSame($profile['schemes'], $profile['configuration_fields']['scheme']['choices']);
+            }
+
+            foreach ($profile['configuration_fields'] ?? [] as $field) {
+                foreach (['visible_when', 'required_when'] as $conditionKey) {
+                    foreach ($field[$conditionKey] ?? [] as $condition) {
+                        if (($condition['field'] ?? null) === 'scheme') {
+                            self::assertSame([], array_diff($condition['values'] ?? [], $profile['schemes']));
+                        }
+                    }
+                }
+            }
+        }
+
         self::assertSame(['sendgrid+api', 'sendgrid+smtp'], $profiles['sendgrid']['schemes']);
         self::assertSame('SendGrid', $profiles['sendgrid']['label']);
         self::assertSame('Send mail through SendGrid using the Symfony bridge API or SMTP transport.', $profiles['sendgrid']['description']);
@@ -35,6 +55,10 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
         self::assertTrue((bool) $profiles['ahasend']['supports_webhooks']);
         self::assertSame(['bird+api', 'bird+smtp', 'bird+smtps'], $profiles['bird']['schemes']);
         self::assertTrue((bool) $profiles['bird']['supports_webhooks']);
+        self::assertArrayNotHasKey('smtp_workspace_id', $profiles['bird']['configuration_fields']);
+        self::assertSame([
+            ['field' => 'scheme', 'operator' => 'in', 'values' => ['bird+api']],
+        ], $profiles['bird']['configuration_fields']['region']['visible_when']);
         self::assertSame(['brevo+api', 'brevo+smtp'], $profiles['brevo']['schemes']);
         self::assertTrue((bool) $profiles['brevo']['supports_webhooks']);
         self::assertSame(['cloudflare+api'], $profiles['cloudflare']['schemes']);
@@ -73,17 +97,35 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
         ], $profiles['mailtrap']['configuration_fields']['inbox_id']['required_when']);
         self::assertSame(['mailersend+api', 'mailersend+smtp'], $profiles['mailersend']['schemes']);
         self::assertTrue((bool) $profiles['mailersend']['supports_webhooks']);
+        self::assertSame(['mailkite+api', 'mailkite+smtp', 'mailkite+smtps'], $profiles['mailkite']['schemes']);
+        self::assertSame($profiles['mailkite']['schemes'], $profiles['mailkite']['configuration_fields']['scheme']['choices']);
+        self::assertSame([
+            ['field' => 'scheme', 'operator' => 'in', 'values' => ['mailkite+api']],
+        ], $profiles['mailkite']['configuration_fields']['api_key']['visible_when']);
+        self::assertSame([
+            ['field' => 'scheme', 'operator' => 'in', 'values' => ['mailkite+smtp', 'mailkite+smtps']],
+        ], $profiles['mailkite']['configuration_fields']['smtp_password']['required_when']);
+        self::assertSame(
+            'Enter this separately; the API key is not used automatically.',
+            $profiles['mailkite']['configuration_fields']['smtp_password']['description'],
+        );
         self::assertSame(['mailjet+api', 'mailjet+smtp'], $profiles['mailjet']['schemes']);
         self::assertTrue((bool) $profiles['mailjet']['supports_webhooks']);
-        self::assertTrue((bool) $profiles['mailjet']['configuration_fields']['access_key']['required']);
-        self::assertTrue((bool) $profiles['mailjet']['configuration_fields']['secret_key']['required']);
+        self::assertSame([
+            ['field' => 'scheme', 'operator' => 'in', 'values' => ['mailjet+api']],
+        ], $profiles['mailjet']['configuration_fields']['access_key']['required_when']);
+        self::assertSame([
+            ['field' => 'scheme', 'operator' => 'in', 'values' => ['mailjet+api']],
+        ], $profiles['mailjet']['configuration_fields']['secret_key']['required_when']);
         self::assertSame(['mailomat+api', 'mailomat+smtp'], $profiles['mailomat']['schemes']);
         self::assertTrue((bool) $profiles['mailomat']['supports_webhooks']);
         self::assertSame(['mandrill+api', 'mandrill+https', 'mandrill+smtp'], $profiles['mandrill']['schemes']);
         self::assertTrue((bool) $profiles['mandrill']['supports_webhooks']);
         self::assertSame(['mailpace+api', 'mailpace+smtp'], $profiles['mailpace']['schemes']);
         self::assertFalse((bool) $profiles['mailpace']['supports_webhooks']);
-        self::assertTrue((bool) $profiles['mailpace']['configuration_fields']['api_token']['required']);
+        self::assertSame([
+            ['field' => 'scheme', 'operator' => 'in', 'values' => ['mailpace+api']],
+        ], $profiles['mailpace']['configuration_fields']['api_token']['required_when']);
         self::assertSame(['microsoftgraph+api'], $profiles['microsoftgraph']['schemes']);
         self::assertFalse((bool) $profiles['microsoftgraph']['supports_webhooks']);
         self::assertSame([
@@ -97,6 +139,8 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
         self::assertFalse((bool) $profiles['postal']['supports_webhooks']);
         self::assertSame(['postmark+api', 'postmark+smtp'], $profiles['postmark']['schemes']);
         self::assertTrue((bool) $profiles['postmark']['supports_webhooks']);
+        self::assertSame(['pufferpost+api'], $profiles['pufferpost']['schemes']);
+        self::assertSame($profiles['pufferpost']['schemes'], $profiles['pufferpost']['configuration_fields']['scheme']['choices']);
         self::assertSame(['resend+api', 'resend+smtp'], $profiles['resend']['schemes']);
         self::assertSame('Resend', $profiles['resend']['label']);
         self::assertSame('Send mail through Resend using the Symfony bridge API or SMTP transport.', $profiles['resend']['description']);
@@ -122,8 +166,112 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
         self::assertTrue((bool) $profiles['sweego']['supports_webhooks']);
         self::assertSame(['tosend+api'], $profiles['tosend']['schemes']);
         self::assertTrue((bool) $profiles['tosend']['supports_webhooks']);
+        self::assertSame(['turbosmtp+api', 'turbosmtp+smtp'], $profiles['turbosmtp']['schemes']);
+        self::assertSame($profiles['turbosmtp']['schemes'], $profiles['turbosmtp']['configuration_fields']['scheme']['choices']);
+        self::assertSame([
+            ['field' => 'scheme', 'operator' => 'in', 'values' => ['turbosmtp+api']],
+        ], $profiles['turbosmtp']['configuration_fields']['consumer_key']['visible_when']);
+        self::assertSame([
+            ['field' => 'scheme', 'operator' => 'in', 'values' => ['turbosmtp+smtp']],
+        ], $profiles['turbosmtp']['configuration_fields']['smtp_username']['required_when']);
+        self::assertSame(
+            'Enter separately; API credentials are not used automatically.',
+            $profiles['turbosmtp']['configuration_fields']['smtp_password']['description'],
+        );
         self::assertSame(['zohomail+smtp', 'zohomail+smtps'], $profiles['zohomail']['schemes']);
         self::assertFalse((bool) $profiles['zohomail']['supports_webhooks']);
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public function testCredentialFieldsAreScopedToTheirTransportScheme(): void
+    {
+        $profiles = [];
+
+        foreach ($this->connectionManager()->listProfiles() as $profile) {
+            $profiles[(string) $profile['key']] = $profile['configuration_fields'];
+        }
+
+        foreach ([
+            'bird' => [
+                'access_key' => ['bird+api'],
+                'workspace_id' => ['bird+api'],
+                'smtp_access_key' => ['bird+smtp', 'bird+smtps'],
+            ],
+            'infobip' => [
+                'api_key' => ['infobip+api'],
+                'smtp_api_key' => ['infobip+smtp'],
+            ],
+            'mailjet' => [
+                'access_key' => ['mailjet+api'],
+                'secret_key' => ['mailjet+api'],
+                'smtp_access_key' => ['mailjet+smtp'],
+                'smtp_secret_key' => ['mailjet+smtp'],
+            ],
+            'mailpace' => [
+                'api_token' => ['mailpace+api'],
+                'smtp_api_token' => ['mailpace+smtp'],
+            ],
+            'postmark' => [
+                'api_key' => ['postmark+api'],
+                'smtp_server_token' => ['postmark+smtp'],
+            ],
+            'resend' => [
+                'api_key' => ['resend+api'],
+                'smtp_api_key' => ['resend+smtp'],
+            ],
+            'scaleway' => [
+                'project_id' => ['scaleway+api'],
+                'api_key' => ['scaleway+api'],
+                'smtp_project_id' => ['scaleway+smtp'],
+                'smtp_api_key' => ['scaleway+smtp'],
+            ],
+            'sendgrid' => [
+                'api_key' => ['sendgrid+api'],
+                'smtp_api_key' => ['sendgrid+smtp'],
+            ],
+            'sparkpost' => [
+                'api_key' => ['sparkpost+api'],
+                'smtp_api_key' => ['sparkpost+smtp', 'sparkpost+smtps'],
+            ],
+        ] as $profileKey => $fields) {
+            foreach ($fields as $fieldName => $schemes) {
+                $this->assertFieldConditionUsesSchemes($profiles[$profileKey], $fieldName, $schemes);
+            }
+        }
+
+        $this->assertFieldConditionUsesSchemes($profiles['ses'], 'session_token', ['ses+api', 'ses+https'], 'visible_when');
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public function testSmtpTransportRequiresItsDedicatedCredentialField(): void
+    {
+        $this->expectExceptionMessage('Configuration field "smtp_api_key" is required for profile "sendgrid" when using scheme "sendgrid+smtp".');
+
+        $this->connectionManager()->create([
+            'profile' => 'sendgrid',
+            'name' => 'SendGrid SMTP Without SMTP API Key',
+            'scheme' => 'sendgrid+smtp',
+            'api_key' => 'sendgrid-api-key',
+        ]);
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public function testBirdSmtpRequiresARegionCodedApiKey(): void
+    {
+        $this->expectExceptionMessage('Configuration field "smtp_access_key" must use a Bird key with the "bk_eu1_" or "bk_us1_" prefix for profile "bird" when using scheme "bird+smtp".');
+
+        $this->connectionManager()->create([
+            'profile' => 'bird',
+            'name' => 'Bird SMTP Without Region Coded Key',
+            'scheme' => 'bird+smtp',
+            'smtp_access_key' => 'bird-smtp-key',
+        ]);
     }
 
     /**
@@ -148,8 +296,104 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'profile' => 'sendgrid',
             'name' => 'SendGrid SMTP',
             'scheme' => 'sendgrid+smtp',
-            'api_key' => 'sendgrid-smtp-key',
+            'smtp_api_key' => 'sendgrid-smtp-key',
         ], 'sendgrid+smtp://sendgrid-smtp-key@default', 'Symfony\\Component\\Mailer\\Bridge\\Sendgrid\\Transport\\SendgridSmtpTransport');
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public function testMailKiteProfileBuildsEverySupportedTransportScheme(): void
+    {
+        foreach ([
+            ['mailkite+api', 'JooosiMail\\Mail\\Transport\\Bridge\\MailKite\\Transport\\MailKiteApiTransport'],
+            ['mailkite+smtp', 'JooosiMail\\Mail\\Transport\\Bridge\\MailKite\\Transport\\MailKiteSmtpTransport'],
+            ['mailkite+smtps', 'JooosiMail\\Mail\\Transport\\Bridge\\MailKite\\Transport\\MailKiteSmtpTransport'],
+        ] as [$scheme, $transportClass]) {
+            $isApi = $scheme === 'mailkite+api';
+            $credentials = $isApi
+                ? ['api_key' => 'mailkite-api-key']
+                : ['smtp_username' => 'mailkite-smtp-user', 'smtp_password' => 'mailkite-smtp-password'];
+            $dsn = $isApi
+                ? $scheme . '://mailkite-api-key@default'
+                : $scheme . '://mailkite-smtp-user:mailkite-smtp-password@default';
+
+            $this->assertResolvedTransport([
+                'profile' => 'mailkite',
+                'name' => 'MailKite ' . $scheme,
+                'scheme' => $scheme,
+            ] + $credentials, $dsn, $transportClass);
+        }
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public function testPufferPostProfileBuildsEverySupportedTransportScheme(): void
+    {
+        $this->assertResolvedTransport([
+            'profile' => 'pufferpost',
+            'name' => 'PufferPost API',
+            'scheme' => 'pufferpost+api',
+            'api_key' => 'pufferpost-api-key',
+        ], 'pufferpost+api://pufferpost-api-key@default', 'JooosiMail\\Mail\\Transport\\Bridge\\PufferPost\\Transport\\PufferPostApiTransport');
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public function testTurboSmtpProfileBuildsEverySupportedTransportScheme(): void
+    {
+        foreach ([
+            ['turbosmtp+api', 'JooosiMail\\Mail\\Transport\\Bridge\\TurboSmtp\\Transport\\TurboSmtpApiTransport'],
+            ['turbosmtp+smtp', 'JooosiMail\\Mail\\Transport\\Bridge\\TurboSmtp\\Transport\\TurboSmtpSmtpTransport'],
+        ] as [$scheme, $transportClass]) {
+        $isApi = $scheme === 'turbosmtp+api';
+            $credentials = $isApi
+                ? ['consumer_key' => 'turbo-consumer-key', 'consumer_secret' => 'turbo-consumer-secret']
+                : ['smtp_username' => 'turbo-smtp-user', 'smtp_password' => 'turbo-smtp-password'];
+            $dsn = $isApi
+                ? $scheme . '://turbo-consumer-key:turbo-consumer-secret@default'
+                : $scheme . '://turbo-smtp-user:turbo-smtp-password@default';
+
+            $this->assertResolvedTransport([
+                'profile' => 'turbosmtp',
+                'name' => 'TurboSMTP ' . $scheme,
+                'scheme' => $scheme,
+            ] + $credentials, $dsn, $transportClass);
+        }
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public function testMailKiteSmtpSchemeRequiresItsOwnCredentials(): void
+    {
+        $this->expectExceptionMessage('Configuration field "smtp_password" is required for profile "mailkite" when using scheme "mailkite+smtp".');
+
+        $this->connectionManager()->create([
+            'profile' => 'mailkite',
+            'name' => 'MailKite SMTP Without SMTP Password',
+            'scheme' => 'mailkite+smtp',
+            'api_key' => 'mailkite-api-key',
+        ]);
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public function testTurboSmtpSmtpSchemeRequiresItsOwnCredentials(): void
+    {
+        $this->expectExceptionMessage('Configuration field "smtp_password" is required for profile "turbosmtp" when using scheme "turbosmtp+smtp".');
+
+        $this->connectionManager()->create([
+            'profile' => 'turbosmtp',
+            'name' => 'TurboSMTP SMTP Without SMTP Password',
+            'scheme' => 'turbosmtp+smtp',
+            'consumer_key' => 'turbo-consumer-key',
+            'consumer_secret' => 'turbo-consumer-secret',
+            'smtp_username' => 'turbo-smtp-user',
+        ]);
     }
 
     /**
@@ -245,10 +489,35 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'profile' => 'bird',
             'name' => 'Bird SMTP',
             'scheme' => 'bird+smtp',
-            'access_key' => 'bird-smtp-key',
-            'workspace_id' => 'workspace-smtp',
-            'region' => 'eu',
-        ], 'bird+smtp://bird-smtp-key@default?workspace_id=workspace-smtp&region=eu', 'JooosiMail\\Mail\\Transport\\Bridge\\Bird\\Transport\\BirdSmtpTransport');
+            'smtp_access_key' => 'bk_eu1_bird-smtp-key',
+        ], 'bird+smtp://bk_eu1_bird-smtp-key@default', 'JooosiMail\\Mail\\Transport\\Bridge\\Bird\\Transport\\BirdSmtpTransport');
+
+        $this->assertResolvedTransport([
+            'profile' => 'bird',
+            'name' => 'Bird SMTPS',
+            'scheme' => 'bird+smtps',
+            'smtp_access_key' => 'bk_us1_bird-smtp-key',
+        ], 'bird+smtps://bk_us1_bird-smtp-key@default', 'JooosiMail\\Mail\\Transport\\Bridge\\Bird\\Transport\\BirdSmtpTransport');
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public function testBirdSmtpTransportUsesTheOfficialRegionAndAuthenticationFormat(): void
+    {
+        $euTransport = new BirdSmtpTransport('bk_eu1_test-key');
+        $usTransport = new BirdSmtpTransport('bk_us1_test-key', true);
+
+        self::assertSame('bird', $euTransport->getUsername());
+        self::assertSame('bk_eu1_test-key', $euTransport->getPassword());
+        self::assertInstanceOf(SocketStream::class, $euTransport->getStream());
+        self::assertSame('eu1.smtp.bird.com', $euTransport->getStream()->getHost());
+        self::assertSame(587, $euTransport->getStream()->getPort());
+        self::assertSame('bird', $usTransport->getUsername());
+        self::assertSame('bk_us1_test-key', $usTransport->getPassword());
+        self::assertInstanceOf(SocketStream::class, $usTransport->getStream());
+        self::assertSame('us1.smtp.bird.com', $usTransport->getStream()->getHost());
+        self::assertSame(465, $usTransport->getStream()->getPort());
     }
 
     /**
@@ -477,8 +746,8 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'profile' => 'mailjet',
             'name' => 'Mailjet SMTP',
             'scheme' => 'mailjet+smtp',
-            'access_key' => 'mailjet-smtp-access',
-            'secret_key' => 'mailjet-smtp-secret',
+            'smtp_access_key' => 'mailjet-smtp-access',
+            'smtp_secret_key' => 'mailjet-smtp-secret',
         ], 'mailjet+smtp://mailjet-smtp-access:mailjet-smtp-secret@default', 'Symfony\\Component\\Mailer\\Bridge\\Mailjet\\Transport\\MailjetSmtpTransport');
     }
 
@@ -574,7 +843,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'profile' => 'postmark',
             'name' => 'Postmark SMTP',
             'scheme' => 'postmark+smtp',
-            'api_key' => 'postmark-smtp-token',
+            'smtp_server_token' => 'postmark-smtp-token',
         ], 'postmark+smtp://postmark-smtp-token@default', 'Symfony\\Component\\Mailer\\Bridge\\Postmark\\Transport\\PostmarkSmtpTransport');
     }
 
@@ -609,7 +878,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'profile' => 'mailpace',
             'name' => 'MailPace SMTP',
             'scheme' => 'mailpace+smtp',
-            'api_token' => 'mailpace-smtp-token',
+            'smtp_api_token' => 'mailpace-smtp-token',
         ], 'mailpace+smtp://mailpace-smtp-token@default', 'Symfony\\Component\\Mailer\\Bridge\\MailPace\\Transport\\MailPaceSmtpTransport');
     }
 
@@ -630,7 +899,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'profile' => 'infobip',
             'name' => 'Infobip SMTP',
             'scheme' => 'infobip+smtp',
-            'api_key' => 'infobip-smtp-key',
+            'smtp_api_key' => 'infobip-smtp-key',
         ], 'infobip+smtp://infobip-smtp-key@default', 'Symfony\\Component\\Mailer\\Bridge\\Infobip\\Transport\\InfobipSmtpTransport');
     }
 
@@ -739,7 +1008,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'profile' => 'sparkpost',
             'name' => 'SparkPost SMTP',
             'scheme' => 'sparkpost+smtp',
-            'api_key' => 'sparkpost-smtp-key',
+            'smtp_api_key' => 'sparkpost-smtp-key',
             'region' => 'eu',
         ], 'sparkpost+smtp://sparkpost-smtp-key@default?region=eu', 'JooosiMail\\Mail\\Transport\\Bridge\\SparkPost\\Transport\\SparkPostSmtpTransport');
     }
@@ -765,7 +1034,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'profile' => 'resend',
             'name' => 'Resend SMTP',
             'scheme' => 'resend+smtp',
-            'api_key' => 'resend-smtp-key',
+            'smtp_api_key' => 'resend-smtp-key',
         ], 'resend+smtp://resend:resend-smtp-key@default', 'JooosiMail\\Mail\\Transport\\Bridge\\Resend\\Transport\\ResendSmtpTransport');
     }
 
@@ -787,8 +1056,8 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'profile' => 'scaleway',
             'name' => 'Scaleway SMTP',
             'scheme' => 'scaleway+smtp',
-            'project_id' => 'project-id-1',
-            'api_key' => 'scaleway-smtp-key',
+            'smtp_project_id' => 'smtp-project-id-1',
+            'smtp_api_key' => 'scaleway-smtp-key',
         ], 'scaleway+smtp://project-id-1:scaleway-smtp-key@default', 'Symfony\\Component\\Mailer\\Bridge\\Scaleway\\Transport\\ScalewaySmtpTransport');
     }
 
@@ -822,6 +1091,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'username' => 'ses-smtp-user',
             'password' => 'ses-smtp-pass',
             'region' => 'us-east-1',
+            'session_token' => 'ses-unused-smtp-session-token',
         ], 'ses+smtp://ses-smtp-user:ses-smtp-pass@default?region=us-east-1', 'Symfony\\Component\\Mailer\\Bridge\\Amazon\\Transport\\SesSmtpTransport');
     }
 
@@ -1277,6 +1547,45 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
     }
 
     /**
+     * @since 0.1.0
+     */
+    public function testNewProviderRejectsUnsupportedDsnOverrideScheme(): void
+    {
+        $this->expectExceptionMessage('Profile "mailkite" does not support DSN scheme "mailkite+https".');
+
+        $this->connectionManager()->create([
+            'profile' => 'mailkite',
+            'name' => 'Invalid MailKite Override',
+            'api_key' => 'mailkite-api-key',
+            'dsn' => 'mailkite+https://mailkite-api-key@default',
+        ]);
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public function testNewProviderProfilesRejectUnsuffixedTransportAliases(): void
+    {
+        foreach ([
+            ['mailkite', 'mailkite://user:password@default'],
+            ['pufferpost', 'pufferpost://api-key@default'],
+            ['turbosmtp', 'turbosmtp://user:password@default'],
+        ] as [$profile, $dsn]) {
+            try {
+                $this->connectionManager()->create([
+                    'profile' => $profile,
+                    'name' => 'Unsupported ' . $profile . ' scheme',
+                    'dsn' => $dsn,
+                ]);
+
+                self::fail(sprintf('Profile "%s" accepted an unsuffixed transport alias.', $profile));
+            } catch (ConnectionConfigurationException $exception) {
+                self::assertStringContainsString(sprintf('Profile "%s" does not support DSN scheme "%s".', $profile, $profile), $exception->getMessage());
+            }
+        }
+    }
+
+    /**
      * @param array<string, mixed> $input
      *
      * @since 0.1.0
@@ -1290,6 +1599,23 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
         self::assertSame($expectedTransportClass, $this->transportRegistry()->create($dsn)::class);
 
         return $connection;
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     * @param list<string>         $schemes
+     *
+     * @since 0.1.0
+     */
+    private function assertFieldConditionUsesSchemes(array $fields, string $fieldName, array $schemes, string $conditionKey = 'required_when'): void
+    {
+        $expected = [['field' => 'scheme', 'operator' => 'in', 'values' => $schemes]];
+
+        self::assertSame($expected, $fields[$fieldName]['visible_when'] ?? null);
+
+        if ($conditionKey === 'required_when') {
+            self::assertSame($expected, $fields[$fieldName]['required_when'] ?? null);
+        }
     }
 
     /**

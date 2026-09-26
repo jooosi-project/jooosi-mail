@@ -100,6 +100,7 @@ Jooosi Mail works with SMTP and many popular email providers. The table below sh
 | [MailerSend](https://www.mailersend.com) | `mailersend` | API, SMTP | ✅ |
 | [Mailgun](https://www.mailgun.com) | `mailgun` | API, HTTPS, SMTP | ✅ |
 | [Mailjet](https://www.mailjet.com) | `mailjet` | API, SMTP | ✅ |
+| [MailKite](https://mailkite.dev) | `mailkite` | API, SMTP, SMTPS |  |
 | [Mailomat](https://mailomat.swiss) | `mailomat` | API, SMTP | ✅ |
 | [MailPace](https://mailpace.com) | `mailpace` | API, SMTP |  |
 | [Mailtrap](https://mailtrap.io) | `mailtrap` | SMTP, API, Sandbox | ✅ |
@@ -108,6 +109,7 @@ Jooosi Mail works with SMTP and many popular email providers. The table below sh
 | Native PHP | `native` | Native PHP |  |
 | Null | `null` | Null |  |
 | [Pepipost](https://netcorecloud.com/email/) | `pepipost` | API, SMTP, SMTPS |  |
+| [PufferPost](https://pufferpost.com) | `pufferpost` | API |  |
 | [Postal](https://docs.postalserver.io) | `postal` | API |  |
 | [Postmark](https://postmarkapp.com) | `postmark` | API, SMTP | ✅ |
 | [Resend](https://resend.com) | `resend` | API, SMTP | ✅ |
@@ -123,6 +125,7 @@ Jooosi Mail works with SMTP and many popular email providers. The table below sh
 | [SparkPost](https://www.sparkpost.com) | `sparkpost` | API, SMTP, SMTPS | ✅ |
 | [Sweego](https://www.sweego.io) | `sweego` | API, SMTP | ✅ |
 | [toSend](https://tosend.com) | `tosend` | API | ✅ |
+| [TurboSMTP](https://www.turbo-smtp.com) | `turbosmtp` | API, SMTP |  |
 | [ZeptoMail](https://www.zoho.com/zeptomail/) | `zeptomail` | API, SMTP, SMTPS | ✅ |
 | [Zoho Mail](https://www.zoho.com/mail/) | `zohomail` | SMTP, SMTPS |  |
 

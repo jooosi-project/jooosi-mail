@@ -14,6 +14,7 @@ export type AdminConfigurationField = {
   label: string
   type: string
   required: boolean
+  description?: string
   secret: boolean
   configured?: boolean
   value?: string | number | null

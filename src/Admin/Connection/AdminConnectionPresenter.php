@@ -43,6 +43,7 @@ final class AdminConnectionPresenter
                     'label' => (string) ($field['label'] ?? $fieldName),
                     'type' => (string) ($field['type'] ?? 'text'),
                     'required' => (bool) ($field['required'] ?? false),
+                    'description' => is_string($field['description'] ?? null) ? trim($field['description']) : '',
                     'secret' => (($field['type'] ?? null) === 'password') || (($field['secret'] ?? false) === true),
                     'default' => $field['default'] ?? null,
                     'choices' => array_values(array_map('strval', is_array($field['choices'] ?? null) ? $field['choices'] : [])),

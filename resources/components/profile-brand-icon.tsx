@@ -5,17 +5,20 @@ import birdIconUrl from "@/icons/provider-icons/bird.svg"
 import emailitIconUrl from "@/icons/provider-icons/emailit.svg"
 import infobipIconUrl from "@/icons/provider-icons/infobip.svg"
 import mailerSendIconUrl from "@/icons/provider-icons/mailersend.svg"
+import mailKiteIconUrl from "@/icons/provider-icons/mailkite.svg"
 import mailomatIconUrl from "@/icons/provider-icons/mailomat.svg"
 import mailPaceIconUrl from "@/icons/provider-icons/mailpace.svg"
 import pepipostIconUrl from "@/icons/provider-icons/pepipost.svg"
 import postalIconUrl from "@/icons/provider-icons/postal.svg"
 import postmarkIconUrl from "@/icons/provider-icons/postmark.svg"
+import pufferPostIconUrl from "@/icons/provider-icons/pufferpost.svg"
 import sendLayerIconUrl from "@/icons/provider-icons/sendlayer.svg"
 import sendPulseIconUrl from "@/icons/provider-icons/sendpulse.svg"
 import smtp2goIconUrl from "@/icons/provider-icons/smtp2go.svg"
 import smtpComIconUrl from "@/icons/provider-icons/smtpcom.svg"
 import sweegoIconUrl from "@/icons/provider-icons/sweego.svg"
 import toSendIconUrl from "@/icons/provider-icons/tosend.svg"
+import turboSmtpIconUrl from "@/icons/provider-icons/turbosmtp.svg"
 import { cn } from "@/lib/utils"
 import MailjetIcon from "~icons/logos/mailjet-icon"
 import MandrillIcon from "~icons/logos/mandrill"
@@ -74,6 +77,7 @@ const PROFILE_BRAND_PALETTES: Record<string, ProfileBrandPalette> = {
   mailpace: { background: "#f38f0b", foreground: "#111827" },
   mailgun: { background: "#c21f32", foreground: "#ffffff" },
   mailersend: { background: "#4f46e5", foreground: "#ffffff" },
+  mailkite: { background: "#2156a5", foreground: "#ffffff" },
   mailjet: { background: "#9585f4", foreground: "#111827" },
   mailomat: { background: "#111827", foreground: "#ffffff" },
   mailtrap: { background: "#22c55e", foreground: "#052e16" },
@@ -82,6 +86,7 @@ const PROFILE_BRAND_PALETTES: Record<string, ProfileBrandPalette> = {
   pepipost: { background: "#fc5e02", foreground: "#111827" },
   postal: { background: "#ff9900", foreground: "#111827" },
   postmark: { background: "#ffde00", foreground: "#111827" },
+  pufferpost: { background: "#1f8a7a", foreground: "#ffffff" },
   resend: { background: "#111827", foreground: "#ffffff" },
   sendgrid: { background: "#1a82e2", foreground: "#ffffff" },
   sendlayer: { background: "#211fa6", foreground: "#ffffff" },
@@ -92,6 +97,7 @@ const PROFILE_BRAND_PALETTES: Record<string, ProfileBrandPalette> = {
   smtpcom: { background: "#0057b8", foreground: "#ffffff" },
   sweego: { background: "#111827", foreground: "#ffffff" },
   tosend: { background: "#4d2243", foreground: "#ffffff" },
+  turbosmtp: { background: "#0879b8", foreground: "#ffffff" },
   zohomail: { background: "#d9232e", foreground: "#ffffff" },
 }
 
@@ -101,17 +107,20 @@ const PROFILE_BRAND_ICON_ASSETS: Record<string, ProfileBrandIconAsset> = {
   emailit: { src: emailitIconUrl, className: "size-10" },
   infobip: { src: infobipIconUrl },
   mailersend: { src: mailerSendIconUrl },
+  mailkite: { src: mailKiteIconUrl },
   mailomat: { src: mailomatIconUrl, brandBackground: true },
   mailpace: { src: mailPaceIconUrl, className: "size-10" },
   pepipost: { src: pepipostIconUrl, className: "size-10" },
   postal: { src: postalIconUrl, className: "size-10" },
   postmark: { src: postmarkIconUrl },
+  pufferpost: { src: pufferPostIconUrl },
   sendlayer: { src: sendLayerIconUrl, className: "size-10" },
   sendpulse: { src: sendPulseIconUrl, className: "size-9" },
   smtp2go: { src: smtp2goIconUrl, className: "size-9", brandBackground: true },
   smtpcom: { src: smtpComIconUrl, className: "size-10" },
   sweego: { src: sweegoIconUrl, className: "size-11", brandBackground: true },
   tosend: { src: toSendIconUrl, className: "size-10" },
+  turbosmtp: { src: turboSmtpIconUrl },
 }
 
 const PROFILE_BRAND_ICON_CONTAINER_CLASSES: Record<string, string> = {

@@ -82,6 +82,7 @@ final class AdminConnectionPayloadFactory
                 'label' => (string) ($field['label'] ?? $fieldName),
                 'type' => (string) ($field['type'] ?? 'text'),
                 'required' => (bool) ($field['required'] ?? false),
+                'description' => (string) ($field['description'] ?? ''),
                 'secret' => (bool) ($field['secret'] ?? false),
                 'configured' => (bool) ($field['configured'] ?? false),
                 'value' => $field['value'] ?? null,

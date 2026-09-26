@@ -47,8 +47,10 @@ final class ScalewayProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'scaleway+api', 'choices' => $this->getSupportedSchemes()],
-            'project_id' => ['label' => 'Scaleway project ID', 'type' => 'text', 'required' => true],
-            'api_key' => ['label' => 'Scaleway API key', 'type' => 'password', 'required' => true],
+            'project_id' => ['label' => 'Scaleway API project ID', 'type' => 'text', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'scaleway+api')], 'required_when' => [$this->conditionIn('scheme', 'scaleway+api')]],
+            'api_key' => ['label' => 'Scaleway API key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'scaleway+api')], 'required_when' => [$this->conditionIn('scheme', 'scaleway+api')]],
+            'smtp_project_id' => ['label' => 'Scaleway SMTP username (project ID)', 'type' => 'text', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'scaleway+smtp')], 'required_when' => [$this->conditionIn('scheme', 'scaleway+smtp')]],
+            'smtp_api_key' => ['label' => 'Scaleway SMTP password (API key secret)', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'scaleway+smtp')], 'required_when' => [$this->conditionIn('scheme', 'scaleway+smtp')]],
             'region' => ['label' => 'Scaleway region', 'type' => 'text', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'scaleway+api')]],
         ];
     }
@@ -63,8 +65,9 @@ final class ScalewayProfile extends AbstractMailProfile
             return null;
         }
 
-        $projectId = $this->extractScalarString($defaults, 'project_id');
-        $apiKey = $this->extractScalarString($defaults, 'api_key');
+        $usesApi = $scheme === 'scaleway+api';
+        $projectId = $this->extractScalarString($defaults, $usesApi ? 'project_id' : 'smtp_project_id');
+        $apiKey = $this->extractScalarString($defaults, $usesApi ? 'api_key' : 'smtp_api_key');
 
         if ($projectId === null || $projectId === '' || $apiKey === null || $apiKey === '') {
             return null;

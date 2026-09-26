@@ -50,6 +50,42 @@ final class ConnectionControllerTest extends JooosiMailIntegrationTestCase
         self::assertArrayHasKey('connections', $listData);
         self::assertNotEmpty($listData['profiles']);
 
+        $mailKiteProfile = null;
+
+        foreach ($listData['profiles'] as $profile) {
+            if (($profile['key'] ?? '') === 'mailkite') {
+                $mailKiteProfile = $profile;
+                break;
+            }
+        }
+
+        self::assertIsArray($mailKiteProfile);
+
+        $mailKiteSchemeField = null;
+        $mailKiteSmtpPasswordField = null;
+
+        foreach ($mailKiteProfile['configurationFields'] as $field) {
+            if (($field['name'] ?? '') === 'scheme') {
+                $mailKiteSchemeField = $field;
+            }
+
+            if (($field['name'] ?? '') === 'smtp_password') {
+                $mailKiteSmtpPasswordField = $field;
+            }
+        }
+
+        self::assertIsArray($mailKiteSchemeField);
+        self::assertSame(['mailkite+api', 'mailkite+smtp', 'mailkite+smtps'], $mailKiteSchemeField['choices']);
+        self::assertArrayNotHasKey('description', $mailKiteSchemeField);
+        self::assertIsArray($mailKiteSmtpPasswordField);
+        self::assertSame([
+            ['field' => 'scheme', 'operator' => 'in', 'values' => ['mailkite+smtp', 'mailkite+smtps']],
+        ], $mailKiteSmtpPasswordField['requiredWhen']);
+        self::assertSame(
+            'Enter this separately; the API key is not used automatically.',
+            $mailKiteSmtpPasswordField['description'],
+        );
+
         $listItem = $this->findConnection($listData['connections'], $connection->id);
         self::assertSame('REST Null Connection', $listItem['name']);
         self::assertSame('null', $listItem['profile']['key']);

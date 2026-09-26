@@ -64,6 +64,38 @@ final class ConnectionViewFactoryTest extends JooosiMailIntegrationTestCase
     /**
      * @since 0.1.0
      */
+    public function testDetailPayloadIncludesTransportSchemeChoicesAndCredentialDescriptions(): void
+    {
+        $connection = $this->connectionManager()->create([
+            'profile' => 'mailkite',
+            'name' => 'MailKite Detail Connection',
+            'scheme' => 'mailkite+smtp',
+            'smtp_username' => 'mailkite-smtp-user',
+            'smtp_password' => 'mailkite-smtp-password',
+        ]);
+        $connectionViewFactory = $this->container()->get(ConnectionViewFactory::class);
+        $payload = $connectionViewFactory->createDetail($connection);
+
+        self::assertSame(
+            ['mailkite+api', 'mailkite+smtp', 'mailkite+smtps'],
+            $payload['configurationFields']['scheme']['choices'],
+        );
+        self::assertArrayNotHasKey('description', $payload['configurationFields']['scheme']);
+        self::assertSame([
+            ['field' => 'scheme', 'operator' => 'in', 'values' => ['mailkite+api']],
+        ], $payload['configurationFields']['api_key']['visibleWhen']);
+        self::assertSame([
+            ['field' => 'scheme', 'operator' => 'in', 'values' => ['mailkite+smtp', 'mailkite+smtps']],
+        ], $payload['configurationFields']['smtp_password']['requiredWhen']);
+        self::assertSame(
+            'Enter this separately; the API key is not used automatically.',
+            $payload['configurationFields']['smtp_password']['description'],
+        );
+    }
+
+    /**
+     * @since 0.1.0
+     */
     public function testDetailPayloadMarksAliasedSecretDefaultsAsConfigured(): void
     {
         $connection = $this->connectionManager()->create([

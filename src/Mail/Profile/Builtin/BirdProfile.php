@@ -7,6 +7,7 @@ namespace JooosiMail\Mail\Profile\Builtin;
 use JooosiMail\Discovery\Attribute\MailProfile;
 use JooosiMail\Discovery\Attribute\Service;
 use JooosiMail\Mail\Connection\Connection;
+use JooosiMail\Mail\Connection\ConnectionConfigurationException;
 use JooosiMail\Mail\Profile\AbstractMailProfile;
 use Override;
 
@@ -50,6 +51,34 @@ final class BirdProfile extends AbstractMailProfile
         return ['bird+api', 'bird+smtp', 'bird+smtps'];
     }
 
+    #[Override]
+    public function validateConfiguration(Connection $connection): void
+    {
+        $defaults = $this->getConfigurationDefaults($connection);
+        $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'bird+api';
+
+        if ($scheme === 'bird+api') {
+            $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['access_key', 'workspace_id']);
+
+            return;
+        }
+
+        if (! in_array($scheme, ['bird+smtp', 'bird+smtps'], true)) {
+            return;
+        }
+
+        $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['smtp_access_key']);
+
+        $accessKey = $this->extractScalarString($defaults, 'smtp_access_key');
+
+        if ($accessKey !== null && (str_starts_with($accessKey, 'bk_eu1_') || str_starts_with($accessKey, 'bk_us1_'))) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+        throw new ConnectionConfigurationException(sprintf('Configuration field "smtp_access_key" must use a Bird key with the "bk_eu1_" or "bk_us1_" prefix for profile "%s" when using scheme "%s".', $this->profileKey(), $scheme));
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -58,9 +87,10 @@ final class BirdProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'bird+api', 'choices' => $this->getSupportedSchemes()],
-            'access_key' => ['label' => 'Bird access key', 'type' => 'password', 'required' => true],
-            'workspace_id' => ['label' => 'Bird workspace ID', 'type' => 'text', 'required' => true],
-            'region' => ['label' => 'Bird region', 'type' => 'choice', 'required' => false, 'default' => 'eu', 'choices' => ['eu', 'us']],
+            'access_key' => ['label' => 'Bird API access key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'bird+api')], 'required_when' => [$this->conditionIn('scheme', 'bird+api')]],
+            'workspace_id' => ['label' => 'Bird API workspace ID', 'type' => 'text', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'bird+api')], 'required_when' => [$this->conditionIn('scheme', 'bird+api')]],
+            'smtp_access_key' => ['label' => 'Bird SMTP API key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', ['bird+smtp', 'bird+smtps'])], 'required_when' => [$this->conditionIn('scheme', ['bird+smtp', 'bird+smtps'])]],
+            'region' => ['label' => 'Bird API region', 'type' => 'choice', 'required' => false, 'default' => 'eu', 'choices' => ['eu', 'us'], 'visible_when' => [$this->conditionIn('scheme', 'bird+api')]],
         ];
     }
 
@@ -69,10 +99,20 @@ final class BirdProfile extends AbstractMailProfile
     {
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'bird+api';
-        $accessKey = $this->extractScalarString($defaults, 'access_key');
+        $usesApi = $scheme === 'bird+api';
+        $accessKey = $this->extractScalarString($defaults, $usesApi ? 'access_key' : 'smtp_access_key');
+
+        if (! in_array($scheme, $this->getSupportedSchemes(), true) || $accessKey === null || $accessKey === '') {
+            return null;
+        }
+
+        if (! $usesApi) {
+            return $scheme . '://' . rawurlencode($accessKey) . '@default';
+        }
+
         $workspaceId = $this->extractScalarString($defaults, 'workspace_id');
 
-        if (! in_array($scheme, $this->getSupportedSchemes(), true) || $accessKey === null || $accessKey === '' || $workspaceId === null || $workspaceId === '') {
+        if ($workspaceId === null || $workspaceId === '') {
             return null;
         }
 

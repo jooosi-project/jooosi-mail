@@ -52,7 +52,7 @@ final class SesProfile extends AbstractMailProfile
             'username' => ['label' => 'Amazon SES SMTP username', 'type' => 'text', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'ses+smtp')], 'required_when' => [$this->conditionIn('scheme', 'ses+smtp')]],
             'password' => ['label' => 'Amazon SES SMTP password', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'ses+smtp')], 'required_when' => [$this->conditionIn('scheme', 'ses+smtp')]],
             'region' => ['label' => 'Amazon SES region', 'type' => 'text', 'required' => false],
-            'session_token' => ['label' => 'Amazon SES session token', 'type' => 'password', 'required' => false],
+            'session_token' => ['label' => 'Amazon SES session token', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', ['ses+api', 'ses+https'])]],
         ];
     }
 
@@ -95,9 +95,10 @@ final class SesProfile extends AbstractMailProfile
             return null;
         }
 
+        $usesApi = in_array($scheme, ['ses+api', 'ses+https'], true);
         $query = $this->buildQueryString([
             'region' => $this->extractScalarString($defaults, 'region'),
-            'session_token' => is_string($defaults['session_token'] ?? null) ? (string) $defaults['session_token'] : null,
+            'session_token' => $usesApi && is_string($defaults['session_token'] ?? null) ? (string) $defaults['session_token'] : null,
         ]);
         $dsn = $scheme . '://' . $authority;
 

@@ -47,7 +47,8 @@ final class InfobipProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'infobip+api', 'choices' => $this->getSupportedSchemes()],
-            'api_key' => ['label' => 'Infobip API key', 'type' => 'password', 'required' => true],
+            'api_key' => ['label' => 'Infobip API key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'infobip+api')], 'required_when' => [$this->conditionIn('scheme', 'infobip+api')]],
+            'smtp_api_key' => ['label' => 'Infobip SMTP API key', 'type' => 'password', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'infobip+smtp')], 'required_when' => [$this->conditionIn('scheme', 'infobip+smtp')]],
             'host' => ['label' => 'Infobip API host', 'type' => 'text', 'required' => false, 'visible_when' => [$this->conditionIn('scheme', 'infobip+api')], 'required_when' => [$this->conditionIn('scheme', 'infobip+api')]],
         ];
     }
@@ -58,9 +59,11 @@ final class InfobipProfile extends AbstractMailProfile
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'infobip+api';
 
-        if ($scheme === 'infobip+api') {
-            $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['api_key', 'host']);
-        }
+        match ($scheme) {
+            'infobip+api' => $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['api_key', 'host']),
+            'infobip+smtp' => $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['smtp_api_key']),
+            default => null,
+        };
     }
 
     #[Override]
@@ -68,7 +71,8 @@ final class InfobipProfile extends AbstractMailProfile
     {
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'infobip+api';
-        $apiKey = $this->extractScalarString($defaults, 'api_key');
+        $usesApi = $scheme === 'infobip+api';
+        $apiKey = $this->extractScalarString($defaults, $usesApi ? 'api_key' : 'smtp_api_key');
 
         if (! in_array($scheme, $this->getSupportedSchemes(), true) || $apiKey === null || $apiKey === '') {
             return null;

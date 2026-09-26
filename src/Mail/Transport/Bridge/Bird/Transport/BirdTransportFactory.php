@@ -31,7 +31,8 @@ final class BirdTransportFactory extends AbstractTransportFactory
 
         return match ($scheme) {
             'bird+api' => (new BirdApiTransport($accessKey, $workspaceId, $region, $this->client, $this->dispatcher, $this->logger))->setHost($host)->setPort($port),
-            'bird+smtp', 'bird+smtps' => new BirdSmtpTransport($accessKey, $workspaceId, $region, $port, $this->dispatcher, $this->logger),
+            'bird+smtp' => new BirdSmtpTransport($accessKey, false, $port, $this->dispatcher, $this->logger),
+            'bird+smtps' => new BirdSmtpTransport($accessKey, true, $port, $this->dispatcher, $this->logger),
             // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
             default => 
                 throw new UnsupportedSchemeException($dsn, 'bird', $this->getSupportedSchemes()),

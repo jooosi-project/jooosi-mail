@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace JooosiMail\Mail\Transport\Bridge\Bird\Transport;
 
+use InvalidArgumentException;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use SensitiveParameter;
@@ -20,17 +21,20 @@ final class BirdSmtpTransport extends EsmtpTransport
 {
     public function __construct(
         #[SensitiveParameter] string $accessKey,
-        string $workspaceId,
-        ?string $region = null,
+        bool $implicitTls = false,
         ?int $port = null,
         ?EventDispatcherInterface $eventDispatcher = null,
         ?LoggerInterface $logger = null,
     ) {
-        $host = $region === 'us' ? 'smtp.email.us-west-2.api.bird.com' : 'smtp.email.eu-west-1.api.bird.com';
-        $port ??= 587;
+        $host = match (true) {
+            str_starts_with($accessKey, 'bk_eu1_') => 'eu1.smtp.bird.com',
+            str_starts_with($accessKey, 'bk_us1_') => 'us1.smtp.bird.com',
+            default => throw new InvalidArgumentException('Bird SMTP access keys must have a supported region prefix (bk_eu1_ or bk_us1_).'),
+        };
+        $port ??= $implicitTls ? 465 : 587;
 
-        parent::__construct($host, $port, false, $eventDispatcher, $logger);
-        $this->setUsername('SMTP_Injection:x-bird-workspace-id=' . $workspaceId);
-        $this->setPassword('AccessKey ' . $accessKey);
+        parent::__construct($host, $port, $implicitTls, $eventDispatcher, $logger);
+        $this->setUsername('bird');
+        $this->setPassword($accessKey);
     }
 }
