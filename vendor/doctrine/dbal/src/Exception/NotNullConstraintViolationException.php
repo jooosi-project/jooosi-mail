@@ -1,0 +1,11 @@
+<?php
+
+declare (strict_types=1);
+namespace JooosiMailDeps\Doctrine\DBAL\Exception;
+
+/**
+ * Exception for a NOT NULL constraint violation detected in the driver.
+ */
+class NotNullConstraintViolationException extends ConstraintViolationException
+{
+}

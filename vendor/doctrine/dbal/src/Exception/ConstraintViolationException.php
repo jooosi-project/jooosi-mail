@@ -1,0 +1,11 @@
+<?php
+
+declare (strict_types=1);
+namespace JooosiMailDeps\Doctrine\DBAL\Exception;
+
+/**
+ * Base class for all constraint violation related errors detected in the driver.
+ */
+class ConstraintViolationException extends ServerException
+{
+}

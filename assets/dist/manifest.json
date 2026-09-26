@@ -1,0 +1,37 @@
+{
+  "_twinkleplop.tokens-B5kG6npJ.js": {
+    "file": "assets/twinkleplop.tokens-B5kG6npJ.js",
+    "name": "twinkleplop.tokens"
+  },
+  "node_modules/.pnpm/@twinkleplop+html@0.1.4/node_modules/@twinkleplop/html/dist/index.js": {
+    "file": "assets/dist-i_K9oaI3.js",
+    "name": "dist",
+    "src": "node_modules/.pnpm/@twinkleplop+html@0.1.4/node_modules/@twinkleplop/html/dist/index.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_twinkleplop.tokens-B5kG6npJ.js"
+    ]
+  },
+  "node_modules/.pnpm/@twinkleplop+json@0.1.4/node_modules/@twinkleplop/json/dist/index.js": {
+    "file": "assets/dist-Rym0C2am.js",
+    "name": "dist",
+    "src": "node_modules/.pnpm/@twinkleplop+json@0.1.4/node_modules/@twinkleplop/json/dist/index.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_twinkleplop.tokens-B5kG6npJ.js"
+    ]
+  },
+  "resources/App.tsx": {
+    "file": "assets/app-FsuY_6WE.js",
+    "name": "app",
+    "src": "resources/App.tsx",
+    "isEntry": true,
+    "dynamicImports": [
+      "node_modules/.pnpm/@twinkleplop+html@0.1.4/node_modules/@twinkleplop/html/dist/index.js",
+      "node_modules/.pnpm/@twinkleplop+json@0.1.4/node_modules/@twinkleplop/json/dist/index.js"
+    ],
+    "css": [
+      "assets/app-C_24FODS.css"
+    ]
+  }
+}

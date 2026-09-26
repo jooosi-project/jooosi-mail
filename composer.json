@@ -1,0 +1,77 @@
+{
+    "name": "jooosi\/mail",
+    "description": "A modern, robust email sending solution for WordPress sites with advanced features including multiple provider support, queue-based processing, and comprehensive monitoring.",
+    "type": "wordpress-plugin",
+    "license": "GPL-3.0-or-later",
+    "require": {
+        "php": ">=8.1",
+        "doctrine\/dbal": "^4.0",
+        "nabasa\/vp-wp": "^0.3.0",
+        "symfony\/amazon-mailer": "^6.4",
+        "symfony\/brevo-mailer": "^6.4",
+        "symfony\/cache": "^6.4",
+        "symfony\/dependency-injection": "^6.4",
+        "symfony\/http-client": "^6.4",
+        "symfony\/infobip-mailer": "^6.4",
+        "symfony\/mail-pace-mailer": "^6.4",
+        "symfony\/mailchimp-mailer": "^6.4",
+        "symfony\/mailer": "^6.4",
+        "symfony\/mailer-send-mailer": "^6.4",
+        "symfony\/mailgun-mailer": "^6.4",
+        "symfony\/mailjet-mailer": "^6.4",
+        "symfony\/messenger": "^6.4",
+        "symfony\/mime": "^6.4",
+        "symfony\/postmark-mailer": "^6.4",
+        "symfony\/property-access": "^6.4",
+        "symfony\/scaleway-mailer": "^6.4",
+        "symfony\/sendgrid-mailer": "^6.4",
+        "symfony\/string": "^6.4",
+        "woocommerce\/action-scheduler": "^3.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "JooosiMail\\": "src\/"
+        }
+    },
+    "autoload-dev": {
+        "exclude-from-classmap": [
+            "\/tests\/Rector\/**\/Fixture\/"
+        ],
+        "psr-4": {
+            "JooosiMail\\Rector\\": "rector\/",
+            "JooosiMailDeps\\Symplify\\RuleDocGenerator\\": "vendor\/rector\/rector\/vendor\/symplify\/rule-doc-generator-contracts\/src\/",
+            "JooosiMail\\Tests\\": "tests\/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "platform": {
+            "php": "8.1.0"
+        },
+        "sort-packages": true
+    },
+    "extra": {
+        "wordpress-plugin": {
+            "name": "Jooosi Mail",
+            "version": "1.0.9",
+            "requires-wp": "7.0",
+            "tested-wp": "7.1",
+            "requires-php": "8.1"
+        }
+    },
+    "minimum-stability": "stable",
+    "require-dev": {
+        "php-stubs\/wordpress-stubs": "^7.0",
+        "php-stubs\/wordpress-tests-stubs": "^7.0",
+        "php-stubs\/wp-cli-stubs": "dev-master",
+        "phpunit\/phpunit": "^9.6",
+        "rector\/rector": "^2.5",
+        "wp-cli\/wp-cli-bundle": "^2.12",
+        "wp-phpunit\/wp-phpunit": "^7.0",
+        "yoast\/phpunit-polyfills": "^4.0"
+    },
+    "scripts": {
+        "test:rector": "vendor\/bin\/phpunit -c phpunit.rector.xml.dist",
+        "test:php": "vendor\/bin\/phpunit -c phpunit.xml.dist"
+    }
+}

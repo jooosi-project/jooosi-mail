@@ -1,0 +1,11 @@
+<?php
+
+declare (strict_types=1);
+namespace JooosiMailDeps\Doctrine\DBAL\Exception;
+
+/**
+ * Exception for an invalid specified field name in a statement detected in the driver.
+ */
+class InvalidFieldNameException extends ServerException
+{
+}
