@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Display queue attempt errors with readable quotes and addresses.
+
 ## [1.0.9] - 2026-09-26
 
 ### Added

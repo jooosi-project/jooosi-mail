@@ -44,7 +44,7 @@ final class QueueAttemptPresenter
                     ? (string) $attempt['worker_id']
                     : null,
                 'errorMessage' => isset($attempt['error_message']) && (string) $attempt['error_message'] !== ''
-                    ? (string) $attempt['error_message']
+                    ? wp_specialchars_decode((string) $attempt['error_message'], ENT_QUOTES)
                     : null,
                 'retryDelaySeconds' => isset($attempt['retry_delay_seconds'])
                     ? (int) $attempt['retry_delay_seconds']

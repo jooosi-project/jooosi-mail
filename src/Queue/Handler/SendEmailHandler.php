@@ -37,13 +37,13 @@ final class SendEmailHandler
             if ($result->temporaryFailure) {
                 // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
                 throw new RetryAfterException(
-                    esc_html($result->error) ?? 'Queued mail delivery is temporarily unavailable.',
+                    $result->error ?? 'Queued mail delivery is temporarily unavailable.',
                     $result->retryAfterSeconds,
                 );
             }
 
             // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-            throw new RuntimeException(esc_html($result->error) ?? 'Queued mail delivery failed.');
+            throw new RuntimeException($result->error ?? 'Queued mail delivery failed.');
         }
     }
 }
