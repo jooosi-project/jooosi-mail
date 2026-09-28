@@ -4,7 +4,7 @@ Donate link: https://ko-fi.com/Q5Q75XSF7
 Tags: email, smtp, mailer, transactional email, logs
 Requires at least: 7.0
 Tested up to: 7.1
-Stable tag: 1.0.9
+Stable tag: 1.0.10
 Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -30,7 +30,7 @@ Jooosi Mail works with SMTP and many popular email providers. Available sending 
 
 * [AhaSend](https://ahasend.com) - API, SMTP. Webhooks supported.
 * [Amazon SES](https://aws.amazon.com/ses/) - API, HTTPS, SMTP.
-* [Azure Communication Services](https://azure.microsoft.com/en-us/products/communication-services) - API.
+* [Azure](https://azure.microsoft.com/en-us/products/communication-services) - API (Azure Communication Services).
 * [Bird](https://bird.com) - API, SMTP, SMTPS. Webhooks supported.
 * [Brevo](https://www.brevo.com) - API, SMTP. Webhooks supported.
 * [Cloudflare Email Service](https://developers.cloudflare.com/email-service/) - API.
@@ -40,6 +40,7 @@ Jooosi Mail works with SMTP and many popular email providers. Available sending 
 * [Infobip](https://www.infobip.com) - API, SMTP.
 * [MailerSend](https://www.mailersend.com) - API, SMTP. Webhooks supported.
 * [Mailgun](https://www.mailgun.com) - API, HTTPS, SMTP. Webhooks supported.
+* [MailKite](https://mailkite.dev) - API, SMTP, SMTPS.
 * [Mailjet](https://www.mailjet.com) - API, SMTP. Webhooks supported.
 * [Mailomat](https://mailomat.swiss) - API, SMTP. Webhooks supported.
 * [MailPace](https://mailpace.com) - API, SMTP.
@@ -51,6 +52,7 @@ Jooosi Mail works with SMTP and many popular email providers. Available sending 
 * [Pepipost](https://netcorecloud.com/email/) - API, SMTP, SMTPS.
 * [Postal](https://docs.postalserver.io) - API.
 * [Postmark](https://postmarkapp.com) - API, SMTP. Webhooks supported.
+* [PufferPost](https://pufferpost.com) - API.
 * [Resend](https://resend.com) - API, SMTP. Webhooks supported.
 * [Scaleway](https://www.scaleway.com/en/transactional-email-tem/) - API, SMTP.
 * [SendGrid](https://sendgrid.com) - API, SMTP. Webhooks supported.
@@ -63,6 +65,7 @@ Jooosi Mail works with SMTP and many popular email providers. Available sending 
 * [SparkPost](https://www.sparkpost.com) - API, SMTP, SMTPS. Webhooks supported.
 * [Sweego](https://www.sweego.io) - API, SMTP. Webhooks supported.
 * [toSend](https://tosend.com) - API. Webhooks supported.
+* [TurboSMTP](https://www.turbo-smtp.com) - API, SMTP.
 * [ZeptoMail](https://www.zoho.com/zeptomail/) - API, SMTP, SMTPS. Webhooks supported.
 * [Zoho Mail](https://www.zoho.com/mail/) - SMTP, SMTPS.
 
@@ -97,6 +100,7 @@ Named third-party provider terms and privacy policies are available here:
 * Infobip: [Service Terms and Conditions](https://www.infobip.com/policies/service-terms-conditions), [Privacy Notice](https://www.infobip.com/policies/privacy-notice)
 * MailerSend: [Terms of Service](https://www.mailersend.com/legal), [Privacy Policy](https://www.mailersend.com/legal/privacy-policy)
 * Mailgun: [Terms of Service](https://www.mailgun.com/legal/terms/), [Privacy Policy](https://www.mailgun.com/legal/privacy-policy/)
+* MailKite: [Terms of Service](https://mailkite.dev/terms/), [Privacy Policy](https://mailkite.dev/privacy/)
 * Mailjet: [Terms of Service](https://www.mailjet.com/legal/terms/), [Privacy Policy](https://www.mailjet.com/legal/privacy-policy/)
 * Mailomat: [Terms](https://mailomat.swiss/nutzungsbedingungen), [Privacy Policy](https://mailomat.swiss/datenschutz)
 * MailPace: [Terms](https://mailpace.com/terms/), [Privacy Policy](https://mailpace.com/privacy/)
@@ -105,6 +109,7 @@ Named third-party provider terms and privacy policies are available here:
 * Microsoft Graph: [Microsoft APIs Terms of Use](https://learn.microsoft.com/en-us/legal/microsoft-apis/terms-of-use), [Microsoft Privacy Statement](https://privacy.microsoft.com/en-us/privacystatement)
 * Pepipost: [Netcore Cloud Terms and Conditions](https://netcorecloud.com/email/email-api/terms-and-conditions/), [Netcore Cloud Privacy Policy](https://netcorecloud.com/email/email-api/privacy-policy/)
 * Postmark: [Terms of Service](https://postmarkapp.com/terms-of-service), [Privacy Policy](https://www.activecampaign.com/legal/privacy-policy)
+* PufferPost: [Terms of Service](https://pufferpost.com/terms), [Privacy Policy](https://pufferpost.com/privacy)
 * Resend: [Terms of Service](https://resend.com/legal/terms-of-service), [Privacy Policy](https://resend.com/legal/privacy-policy)
 * Scaleway: [Terms and Contracts](https://www.scaleway.com/en/contracts/), [Privacy Policy](https://www.scaleway.com/en/privacy-policy/)
 * SendGrid: [Twilio Terms of Service](https://www.twilio.com/en-us/legal/tos), [Twilio Privacy Notice](https://www.twilio.com/en-us/legal/privacy)
@@ -115,6 +120,7 @@ Named third-party provider terms and privacy policies are available here:
 * SparkPost: [Bird Terms](https://bird.com/en-us/legal/terms), [Bird Privacy Statement](https://bird.com/en-us/legal/privacy)
 * Sweego: [General Terms and Conditions of Sale](https://www.sweego.io/general-terms-and-conditions-of-sale), [Privacy Policy](https://www.sweego.io/privacy-policy)
 * toSend: [Terms of Service](https://tosend.com/legal/terms-of-service/), [Privacy Policy](https://tosend.com/legal/privacy-policy/)
+* TurboSMTP: [Terms and Conditions](https://turbosmtp.com/terms-and-conditions/), [Privacy Policy](https://serversmtp.com/privacypolicy-eu-regulation-2016-79-gdpr/)
 * ZeptoMail: [Zoho Terms of Service](https://www.zoho.com/terms.html), [Zoho Privacy Policy](https://www.zoho.com/privacy.html)
 * Zoho Mail: [Zoho Terms of Service](https://www.zoho.com/terms.html), [Zoho Privacy Policy](https://www.zoho.com/privacy.html)
 
@@ -151,6 +157,12 @@ Yes. Jooosi Mail includes WP-CLI commands for operational tasks such as managing
 7. Mail delivery and routing settings.
 
 == Changelog ==
+
+= 1.0.10 - 2026-09-28 =
+
+**Fixed**
+
+* Display queue attempt errors with readable quotes and addresses.
 
 = 1.0.9 - 2026-09-26 =
 
