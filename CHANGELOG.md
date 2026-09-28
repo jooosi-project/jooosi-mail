@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-09-28
+
 ### Fixed
 - Display queue attempt errors with readable quotes and addresses.
 
@@ -72,7 +74,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - 🐣 Initial release.
 
-[unreleased]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.9...HEAD
+[unreleased]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.10...HEAD
+[1.0.10]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.9...1.0.10
 [1.0.9]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.8...1.0.9
 [1.0.8]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.7...1.0.8
 [1.0.7]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.6...1.0.7
