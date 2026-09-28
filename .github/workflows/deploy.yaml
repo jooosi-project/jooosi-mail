@@ -188,7 +188,7 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
-          name: Free ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           body: ${{ steps.changelog.outputs.content }}
           files: jooosi-mail-${{ steps.versions.outputs.free }}-free.zip
           draft: false
