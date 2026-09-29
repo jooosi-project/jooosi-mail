@@ -129,6 +129,8 @@ Operational visibility for dashboard metrics, recent delivery attempts, queue wo
 
 Jooosi Mail stores runtime state in plugin tables for durability and observability.
 
+`DatabaseConnectionFactory` selects DBAL's MySQL or SQLite driver from the WordPress database engine. For SQLite, it resolves the active database file through the SQLite PDO exposed by WordPress, then uses DBAL's native `pdo_sqlite` driver. Migration tables are built through DBAL's schema API, and routing-state writes use platform-specific upsert syntax.
+
 Connection records persist structured profile settings and secrets.
 
 Core records:

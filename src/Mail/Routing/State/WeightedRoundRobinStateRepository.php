@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace JooosiMail\Mail\Routing\State;
 
 use Doctrine\DBAL\Connection as DbalConnection;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use JooosiMail\Discovery\Attribute\Service;
 use JooosiMail\Infrastructure\Database\TableNameResolver;
 use RuntimeException;
@@ -47,8 +48,9 @@ final class WeightedRoundRobinStateRepository
 
             $row = $this->connection->fetchAssociative(
                 sprintf(
-                    'SELECT weights_json FROM %s WHERE scope_key = :scope_key LIMIT 1 FOR UPDATE',
+                    'SELECT weights_json FROM %s WHERE scope_key = :scope_key LIMIT 1%s',
                     $this->tableNameResolver->resolve('weighted_round_robin_states'),
+                    $this->lockClause(),
                 ),
                 ['scope_key' => self::GLOBAL_SCOPE],
             );
@@ -127,13 +129,17 @@ final class WeightedRoundRobinStateRepository
     private function ensureStateRowExists(): void
     {
         $now = gmdate('Y-m-d H:i:s');
+        $conflictClause = $this->connection->getDatabasePlatform() instanceof SQLitePlatform
+            ? 'ON CONFLICT (scope_key) DO NOTHING'
+            : 'ON DUPLICATE KEY UPDATE scope_key = scope_key';
 
         $this->connection->executeStatement(
             sprintf(
                 'INSERT INTO %s (scope_key, weights_json, created_at, updated_at)
                  VALUES (:scope_key, :weights_json, :created_at, :updated_at)
-                 ON DUPLICATE KEY UPDATE scope_key = scope_key',
+                 %s',
                 $this->tableNameResolver->resolve('weighted_round_robin_states'),
+                $conflictClause,
             ),
             [
                 'scope_key' => self::GLOBAL_SCOPE,
@@ -142,5 +148,19 @@ final class WeightedRoundRobinStateRepository
                 'updated_at' => $now,
             ],
         );
+    }
+
+    /**
+     * Return the row-lock suffix supported by the active platform.
+     *
+     * @since 0.1.0
+     */
+    private function lockClause(): string
+    {
+        if ($this->connection->getDatabasePlatform() instanceof SQLitePlatform) {
+            return '';
+        }
+
+        return ' FOR UPDATE';
     }
 }

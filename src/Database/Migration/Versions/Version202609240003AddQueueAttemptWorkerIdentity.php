@@ -28,7 +28,7 @@ final class Version202609240003AddQueueAttemptWorkerIdentity implements Migratio
     public function up(Connection $connection, TableNameResolver $tableNameResolver): void
     {
         $connection->executeStatement(sprintf(
-            'ALTER TABLE %s ADD COLUMN worker_id VARCHAR(190) DEFAULT NULL AFTER claimed_by',
+            'ALTER TABLE %s ADD COLUMN worker_id VARCHAR(190) DEFAULT NULL',
             $tableNameResolver->resolve('queue_message_attempts'),
         ));
     }

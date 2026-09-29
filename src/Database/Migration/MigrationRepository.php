@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace JooosiMail\Database\Migration;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
 use JooosiMail\Discovery\Attribute\Service;
 use JooosiMail\Infrastructure\Database\TableNameResolver;
 use RuntimeException;
@@ -103,19 +105,16 @@ final class MigrationRepository
      */
     private function ensureTableExists(): void
     {
-        $this->connection->executeStatement(sprintf(
-            'CREATE TABLE IF NOT EXISTS %s (
-                version VARCHAR(32) NOT NULL,
-                class_name VARCHAR(255) NOT NULL,
-                description TEXT NOT NULL,
-                executed_at DATETIME NOT NULL,
-                execution_time_ms INT UNSIGNED NOT NULL DEFAULT 0,
-                PRIMARY KEY (version),
-                KEY idx_executed_at (executed_at)
-            ) %s',
-            $this->tableName(),
-            $this->getCharsetCollation(),
-        ));
+        $table = new Table($this->tableName());
+        $table->addColumn('version', Types::STRING, ['length' => 32, 'notnull' => true]);
+        $table->addColumn('class_name', Types::STRING, ['length' => 255, 'notnull' => true]);
+        $table->addColumn('description', Types::TEXT, ['notnull' => true]);
+        $table->addColumn('executed_at', Types::DATETIME_MUTABLE, ['notnull' => true]);
+        $table->addColumn('execution_time_ms', Types::INTEGER, ['unsigned' => true, 'notnull' => true, 'default' => 0]);
+        $table->setPrimaryKey(['version']);
+        $table->addIndex(['executed_at'], 'idx_executed_at');
+
+        MigrationSchema::createTable($this->connection, $table);
     }
 
     /**
@@ -143,19 +142,5 @@ final class MigrationRepository
     private function timestamp(): string
     {
         return function_exists('wp_date') ? wp_date('Y-m-d H:i:s') : gmdate('Y-m-d H:i:s');
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    private function getCharsetCollation(): string
-    {
-        global $wpdb;
-
-        if (! isset($wpdb) || ! method_exists($wpdb, 'get_charset_collate')) {
-            throw new RuntimeException('The WordPress database charset information is unavailable.');
-        }
-
-        return $wpdb->get_charset_collate();
     }
 }
