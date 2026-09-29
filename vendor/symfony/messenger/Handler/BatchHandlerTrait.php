@@ -36,6 +36,9 @@ trait BatchHandlerTrait
             $ack = new Acknowledger(get_debug_type($this));
             $this->jobs[] = [$message, $ack];
             $this->flush(\true);
+            if ($error = $ack->getError()) {
+                throw $error;
+            }
             return $ack->getResult();
         }
         $this->jobs[] = [$message, $ack];

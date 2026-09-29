@@ -99,7 +99,7 @@ class HandleMessageMiddleware implements MiddlewareInterface
             }
             $this->logger?->info('No handler for message {class}', $context);
         }
-        if (\count($exceptions)) {
+        if ($exceptions) {
             throw new HandlerFailedException($envelope, $exceptions);
         }
         return $stack->next()->handle($envelope, $stack);

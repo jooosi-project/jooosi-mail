@@ -10,9 +10,9 @@
  */
 namespace JooosiMailDeps\Symfony\Component\HttpClient;
 
+use JooosiMailDeps\Symfony\Component\HttpClient\Internal\OutgoingRequest;
 use JooosiMailDeps\Symfony\Component\HttpClient\Response\MockResponse;
 use JooosiMailDeps\Symfony\Component\HttpClient\Response\ResponseStream;
-use JooosiMailDeps\Symfony\Component\HttpFoundation\Request;
 use JooosiMailDeps\Symfony\Component\HttpKernel\HttpCache\HttpCache;
 use JooosiMailDeps\Symfony\Component\HttpKernel\HttpCache\StoreInterface;
 use JooosiMailDeps\Symfony\Component\HttpKernel\HttpClientKernel;
@@ -64,7 +64,7 @@ class CachingHttpClient implements HttpClientInterface, ResetInterface
         if (!empty($options['body']) || !empty($options['extra']['no_cache']) || !\in_array($method, ['GET', 'HEAD', 'OPTIONS'])) {
             return $this->client->request($method, $url, $options);
         }
-        $request = Request::create($url, $method);
+        $request = OutgoingRequest::create($url, $method);
         $request->attributes->set('http_client_options', $options);
         foreach ($options['normalized_headers'] as $name => $values) {
             if ('cookie' !== $name) {

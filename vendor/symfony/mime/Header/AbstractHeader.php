@@ -11,6 +11,7 @@
 namespace JooosiMailDeps\Symfony\Component\Mime\Header;
 
 use JooosiMailDeps\Symfony\Component\Mime\Encoder\QpMimeHeaderEncoder;
+use JooosiMailDeps\Symfony\Component\Mime\Exception\RfcComplianceException;
 /**
  * An abstract base MIME Header.
  *
@@ -26,6 +27,9 @@ abstract class AbstractHeader implements HeaderInterface
     private string $charset = 'utf-8';
     public function __construct(string $name)
     {
+        if (!preg_match('/^[\x21-\x7E]++$/D', $name)) {
+            throw new RfcComplianceException(sprintf('The header name "%s" contains characters that are not allowed in a header name.', $name));
+        }
         $this->name = $name;
     }
     /**
@@ -140,7 +144,7 @@ abstract class AbstractHeader implements HeaderInterface
     }
     protected function tokenNeedsEncoding(string $token): bool
     {
-        return (bool) preg_match('~[\x00-\x08\x10-\x19\x7F-\xFF\r\n]~', $token);
+        return preg_match('~[\x00-\x08\x0A-\x1F\x7F-\xFF]~', $token);
     }
     /**
      * Splits a string into tokens in blocks of words which can be encoded quickly.

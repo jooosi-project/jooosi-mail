@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit619e72f442bc40d6805c0b74bffa26c8
+class ComposerStaticInitbd2cfb39ddfb60a99212966346f33c21
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
@@ -920,6 +920,7 @@ class ComposerStaticInit619e72f442bc40d6805c0b74bffa26c8
         'JooosiMailDeps\\Symfony\\Component\\Cache\\Traits\\Relay\\Relay22Trait' => __DIR__ . '/..' . '/symfony/cache/Traits/Relay/Relay22Trait.php',
         'JooosiMailDeps\\Symfony\\Component\\Cache\\Traits\\Relay\\Relay30Trait' => __DIR__ . '/..' . '/symfony/cache/Traits/Relay/Relay30Trait.php',
         'JooosiMailDeps\\Symfony\\Component\\Cache\\Traits\\Relay\\Relay40Trait' => __DIR__ . '/..' . '/symfony/cache/Traits/Relay/Relay40Trait.php',
+        'JooosiMailDeps\\Symfony\\Component\\Cache\\Traits\\Relay\\Relay50Trait' => __DIR__ . '/..' . '/symfony/cache/Traits/Relay/Relay50Trait.php',
         'JooosiMailDeps\\Symfony\\Component\\Cache\\Traits\\Relay\\SwapdbTrait' => __DIR__ . '/..' . '/symfony/cache/Traits/Relay/SwapdbTrait.php',
         'JooosiMailDeps\\Symfony\\Component\\Clock\\Clock' => __DIR__ . '/..' . '/symfony/clock/Clock.php',
         'JooosiMailDeps\\Symfony\\Component\\Clock\\ClockAwareTrait' => __DIR__ . '/..' . '/symfony/clock/ClockAwareTrait.php',
@@ -1167,6 +1168,7 @@ class ComposerStaticInit619e72f442bc40d6805c0b74bffa26c8
         'JooosiMailDeps\\Symfony\\Component\\HttpClient\\Internal\\HttplugWaitLoop' => __DIR__ . '/..' . '/symfony/http-client/Internal/HttplugWaitLoop.php',
         'JooosiMailDeps\\Symfony\\Component\\HttpClient\\Internal\\LegacyHttplugInterface' => __DIR__ . '/..' . '/symfony/http-client/Internal/LegacyHttplugInterface.php',
         'JooosiMailDeps\\Symfony\\Component\\HttpClient\\Internal\\NativeClientState' => __DIR__ . '/..' . '/symfony/http-client/Internal/NativeClientState.php',
+        'JooosiMailDeps\\Symfony\\Component\\HttpClient\\Internal\\OutgoingRequest' => __DIR__ . '/..' . '/symfony/http-client/Internal/OutgoingRequest.php',
         'JooosiMailDeps\\Symfony\\Component\\HttpClient\\Internal\\PushedResponse' => __DIR__ . '/..' . '/symfony/http-client/Internal/PushedResponse.php',
         'JooosiMailDeps\\Symfony\\Component\\HttpClient\\Messenger\\PingWebhookMessage' => __DIR__ . '/..' . '/symfony/http-client/Messenger/PingWebhookMessage.php',
         'JooosiMailDeps\\Symfony\\Component\\HttpClient\\Messenger\\PingWebhookMessageHandler' => __DIR__ . '/..' . '/symfony/http-client/Messenger/PingWebhookMessageHandler.php',
@@ -1683,6 +1685,7 @@ class ComposerStaticInit619e72f442bc40d6805c0b74bffa26c8
         'JooosiMail\\Database\\Migration\\MigrationRegistry' => __DIR__ . '/../..' . '/src/Database/Migration/MigrationRegistry.php',
         'JooosiMail\\Database\\Migration\\MigrationRepository' => __DIR__ . '/../..' . '/src/Database/Migration/MigrationRepository.php',
         'JooosiMail\\Database\\Migration\\MigrationRunner' => __DIR__ . '/../..' . '/src/Database/Migration/MigrationRunner.php',
+        'JooosiMail\\Database\\Migration\\MigrationSchema' => __DIR__ . '/../..' . '/src/Database/Migration/MigrationSchema.php',
         'JooosiMail\\Database\\Migration\\MigrationStubGenerator' => __DIR__ . '/../..' . '/src/Database/Migration/MigrationStubGenerator.php',
         'JooosiMail\\Database\\Migration\\Versions\\Version202603190001CreateCoreTables' => __DIR__ . '/../..' . '/src/Database/Migration/Versions/Version202603190001CreateCoreTables.php',
         'JooosiMail\\Database\\Migration\\Versions\\Version202603220001CreateRoutingStateTables' => __DIR__ . '/../..' . '/src/Database/Migration/Versions/Version202603220001CreateRoutingStateTables.php',
@@ -1969,9 +1972,9 @@ class ComposerStaticInit619e72f442bc40d6805c0b74bffa26c8
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit619e72f442bc40d6805c0b74bffa26c8::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit619e72f442bc40d6805c0b74bffa26c8::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit619e72f442bc40d6805c0b74bffa26c8::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitbd2cfb39ddfb60a99212966346f33c21::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitbd2cfb39ddfb60a99212966346f33c21::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInitbd2cfb39ddfb60a99212966346f33c21::$classMap;
 
         }, null, ClassLoader::class);
     }

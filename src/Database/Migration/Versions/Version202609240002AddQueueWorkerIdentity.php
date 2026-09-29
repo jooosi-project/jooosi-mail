@@ -23,7 +23,7 @@ final class Version202609240002AddQueueWorkerIdentity implements MigrationInterf
     }
     public function up(Connection $connection, TableNameResolver $tableNameResolver): void
     {
-        $connection->executeStatement(sprintf('ALTER TABLE %s ADD COLUMN claimed_worker_id VARCHAR(190) DEFAULT NULL AFTER claimed_by', $tableNameResolver->resolve('queue_messages')));
+        $connection->executeStatement(sprintf('ALTER TABLE %s ADD COLUMN claimed_worker_id VARCHAR(190) DEFAULT NULL', $tableNameResolver->resolve('queue_messages')));
     }
     public function down(Connection $connection, TableNameResolver $tableNameResolver): void
     {

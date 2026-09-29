@@ -198,8 +198,8 @@ class Container implements ContainerInterface, ResetInterface
             } elseif (isset($container->methodMap[$id])) {
                 return 4 === $invalidBehavior ? null : $container->{$container->methodMap[$id]}($container);
             }
-        } catch (\Exception $e) {
-            unset($container->services[$id]);
+        } catch (\Throwable $e) {
+            unset($container->services[$id], $container->privates[$id]);
             throw $e;
         } finally {
             unset($container->loading[$id]);

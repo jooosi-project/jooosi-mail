@@ -59,7 +59,7 @@ final class LockRegistry
             self::$files = self::$lockedFiles = [];
         }
         $key = self::$files ? abs(crc32($item->getKey())) % \count(self::$files) : -1;
-        if ($key < 0 || self::$lockedFiles || !$lock = self::open($key)) {
+        if ($key < 0 || self::$lockedFiles || !$lock = self::open($file = self::$files[$key])) {
             return $callback($item, $save);
         }
         self::$signalingException ??= unserialize("O:9:\"Exception\":1:{s:16:\"\x00Exception\x00trace\";a:0:{}}", ['allowed_classes' => [\Exception::class]]);
@@ -70,7 +70,7 @@ final class LockRegistry
                 $locked = flock($lock, \LOCK_EX | \LOCK_NB, $wouldBlock);
                 if ($locked || !$wouldBlock) {
                     $logger?->info(\sprintf('Lock %s, now computing item "{key}"', $locked ? 'acquired' : 'not supported'), ['key' => $item->getKey()]);
-                    self::$lockedFiles[$key] = \true;
+                    self::$lockedFiles[$file] = \true;
                     $value = $callback($item, $save);
                     if ($save) {
                         if ($setMetadata) {
@@ -84,6 +84,15 @@ final class LockRegistry
                 // if we failed the race, retry locking in blocking mode to wait for the winner
                 $logger?->info('Item "{key}" is locked, waiting for it to be released', ['key' => $item->getKey()]);
                 $deadline = microtime(\true) + 30.0;
+                // max_execution_time counts wall time on Windows, on Apple Silicon and on ZTS builds with zend-max-execution-timers
+                // (e.g. FrankenPHP): stop waiting 1s before that limit, to leave time for evicting the slot and computing the value.
+                // A limit that is already past means the timer counts CPU time or was restarted by set_time_limit(): ignore it then.
+                if (0 < $limit = (int) \ini_get('max_execution_time')) {
+                    $end = ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(\true)) + $limit;
+                    if (microtime(\true) < $end) {
+                        $deadline = min($deadline, $end - 1.0);
+                    }
+                }
                 $acquired = \false;
                 do {
                     if ($acquired = flock($lock, \LOCK_SH | \LOCK_NB)) {
@@ -93,8 +102,11 @@ final class LockRegistry
                 } while (microtime(\true) < $deadline);
                 if (!$acquired) {
                     $logger?->warning('Lock on item "{key}" timed out, evicting slot', ['key' => $item->getKey()]);
-                    unset(self::$files[$key]);
-                    self::setFiles(self::$files);
+                    // don't close the handle: a parent call to compute() might still use it
+                    if (\false !== $key = array_search($file, self::$files, \true)) {
+                        unset(self::$files[$key]);
+                        self::$files = array_values(self::$files);
+                    }
                     $lock = null;
                     return self::compute($callback, $item, $save, $pool, $setMetadata, $logger, $beta);
                 }
@@ -106,7 +118,7 @@ final class LockRegistry
                 if ($lock) {
                     flock($lock, \LOCK_UN);
                 }
-                unset(self::$lockedFiles[$key]);
+                unset(self::$lockedFiles[$file]);
             }
             try {
                 $value = $pool->get($item->getKey(), self::$signalingCallback, 0);
@@ -125,17 +137,17 @@ final class LockRegistry
     /**
      * @return resource|false
      */
-    private static function open(int $key)
+    private static function open(string $file)
     {
-        if (null !== $h = self::$openedFiles[$key] ?? null) {
+        if (null !== $h = self::$openedFiles[$file] ?? null) {
             return $h;
         }
         set_error_handler(static fn() => null);
         try {
-            $h = fopen(self::$files[$key], 'r+');
+            $h = fopen($file, 'r+');
         } finally {
             restore_error_handler();
         }
-        return self::$openedFiles[$key] = $h ?: @fopen(self::$files[$key], 'r');
+        return self::$openedFiles[$file] = $h ?: @fopen($file, 'r');
     }
 }

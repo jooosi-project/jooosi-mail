@@ -58,7 +58,7 @@ class RawMessage
         }
         if (\is_resource($this->message)) {
             rewind($this->message);
-            while ($line = fgets($this->message)) {
+            while (\false !== $line = fgets($this->message)) {
                 yield $line;
             }
             return;

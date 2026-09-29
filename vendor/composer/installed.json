@@ -293,30 +293,28 @@
         },
         {
             "name": "doctrine\/lexer",
-            "version": "3.0.1",
-            "version_normalized": "3.0.1.0",
+            "version": "3.0.2",
+            "version_normalized": "3.0.2.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/doctrine\/lexer.git",
-                "reference": "31ad66abc0fc9e1a1f2d9bc6a42668d2fbbcd6dd"
+                "reference": "e96fe45e92a54233726014a7cc7340abf29bb14c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/doctrine\/lexer\/zipball\/31ad66abc0fc9e1a1f2d9bc6a42668d2fbbcd6dd",
-                "reference": "31ad66abc0fc9e1a1f2d9bc6a42668d2fbbcd6dd",
+                "url": "https:\/\/api.github.com\/repos\/doctrine\/lexer\/zipball\/e96fe45e92a54233726014a7cc7340abf29bb14c",
+                "reference": "e96fe45e92a54233726014a7cc7340abf29bb14c",
                 "shasum": ""
             },
             "require": {
                 "php": "^8.1"
             },
             "require-dev": {
-                "doctrine\/coding-standard": "^12",
-                "phpstan\/phpstan": "^1.10",
-                "phpunit\/phpunit": "^10.5",
-                "psalm\/plugin-phpunit": "^0.18.3",
-                "vimeo\/psalm": "^5.21"
+                "doctrine\/coding-standard": "^14",
+                "phpstan\/phpstan": "^2",
+                "phpunit\/phpunit": "^10.5.58 || ^12.5.4"
             },
-            "time": "2024-02-05T11:56:58+00:00",
+            "time": "2026-06-14T20:44:06+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -353,7 +351,7 @@
             ],
             "support": {
                 "issues": "https:\/\/github.com\/doctrine\/lexer\/issues",
-                "source": "https:\/\/github.com\/doctrine\/lexer\/tree\/3.0.1"
+                "source": "https:\/\/github.com\/doctrine\/lexer\/tree\/3.0.2"
             },
             "funding": [
                 {
@@ -751,17 +749,17 @@
         },
         {
             "name": "symfony\/amazon-mailer",
-            "version": "v6.4.43",
-            "version_normalized": "6.4.43.0",
+            "version": "v6.4.44",
+            "version_normalized": "6.4.44.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/amazon-mailer.git",
-                "reference": "632fcd4e686e723769073094141313257c70c00a"
+                "reference": "8087c929d0423572fa28e074a79f06cc11f00e02"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/amazon-mailer\/zipball\/632fcd4e686e723769073094141313257c70c00a",
-                "reference": "632fcd4e686e723769073094141313257c70c00a",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/amazon-mailer\/zipball\/8087c929d0423572fa28e074a79f06cc11f00e02",
+                "reference": "8087c929d0423572fa28e074a79f06cc11f00e02",
                 "shasum": ""
             },
             "require": {
@@ -772,7 +770,7 @@
             "require-dev": {
                 "symfony\/http-client": "^5.4|^6.0|^7.0"
             },
-            "time": "2026-07-27T19:43:14+00:00",
+            "time": "2026-08-20T19:16:56+00:00",
             "type": "symfony-mailer-bridge",
             "installation-source": "dist",
             "autoload": {
@@ -800,7 +798,7 @@
             "description": "Symfony Amazon Mailer Bridge",
             "homepage": "https:\/\/symfony.com",
             "support": {
-                "source": "https:\/\/github.com\/symfony\/amazon-mailer\/tree\/v6.4.43"
+                "source": "https:\/\/github.com\/symfony\/amazon-mailer\/tree\/v6.4.44"
             },
             "funding": [
                 {
@@ -900,17 +898,17 @@
         },
         {
             "name": "symfony\/cache",
-            "version": "v6.4.43",
-            "version_normalized": "6.4.43.0",
+            "version": "v6.4.46",
+            "version_normalized": "6.4.46.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/cache.git",
-                "reference": "8f0b5de5d9f5131aa99fdab78d7802efef9322dc"
+                "reference": "b001ef092224de1358462ceabfbdf4d4c2d4c9d2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/cache\/zipball\/8f0b5de5d9f5131aa99fdab78d7802efef9322dc",
-                "reference": "8f0b5de5d9f5131aa99fdab78d7802efef9322dc",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/cache\/zipball\/b001ef092224de1358462ceabfbdf4d4c2d4c9d2",
+                "reference": "b001ef092224de1358462ceabfbdf4d4c2d4c9d2",
                 "shasum": ""
             },
             "require": {
@@ -933,7 +931,7 @@
                 "symfony\/cache-implementation": "1.1|2.0|3.0"
             },
             "require-dev": {
-                "cache\/integration-tests": "dev-master",
+                "cache\/integration-tests": "^0.18",
                 "doctrine\/dbal": "^2.13.1|^3|^4",
                 "predis\/predis": "^1.1|^2.0",
                 "psr\/simple-cache": "^1.0|^2.0|^3.0",
@@ -944,7 +942,7 @@
                 "symfony\/messenger": "^5.4|^6.0|^7.0",
                 "symfony\/var-dumper": "^5.4|^6.0|^7.0"
             },
-            "time": "2026-07-28T21:33:22+00:00",
+            "time": "2026-09-08T06:25:25+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -979,7 +977,7 @@
                 "psr6"
             ],
             "support": {
-                "source": "https:\/\/github.com\/symfony\/cache\/tree\/v6.4.43"
+                "source": "https:\/\/github.com\/symfony\/cache\/tree\/v6.4.46"
             },
             "funding": [
                 {
@@ -1167,17 +1165,17 @@
         },
         {
             "name": "symfony\/dependency-injection",
-            "version": "v6.4.43",
-            "version_normalized": "6.4.43.0",
+            "version": "v6.4.44",
+            "version_normalized": "6.4.44.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/dependency-injection.git",
-                "reference": "f11815fd2f5f80ce94bf527b5ecfd4bd0b1cc905"
+                "reference": "675b2dfaf70bdca37d13816582023e3bac5fc2d1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/dependency-injection\/zipball\/f11815fd2f5f80ce94bf527b5ecfd4bd0b1cc905",
-                "reference": "f11815fd2f5f80ce94bf527b5ecfd4bd0b1cc905",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/dependency-injection\/zipball\/675b2dfaf70bdca37d13816582023e3bac5fc2d1",
+                "reference": "675b2dfaf70bdca37d13816582023e3bac5fc2d1",
                 "shasum": ""
             },
             "require": {
@@ -1203,7 +1201,7 @@
                 "symfony\/expression-language": "^5.4|^6.0|^7.0",
                 "symfony\/yaml": "^5.4|^6.0|^7.0"
             },
-            "time": "2026-07-20T15:13:12+00:00",
+            "time": "2026-08-21T15:20:39+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -1231,7 +1229,7 @@
             "description": "Allows you to standardize and centralize the way objects are constructed in your application",
             "homepage": "https:\/\/symfony.com",
             "support": {
-                "source": "https:\/\/github.com\/symfony\/dependency-injection\/tree\/v6.4.43"
+                "source": "https:\/\/github.com\/symfony\/dependency-injection\/tree\/v6.4.44"
             },
             "funding": [
                 {
@@ -1329,17 +1327,17 @@
         },
         {
             "name": "symfony\/event-dispatcher",
-            "version": "v6.4.43",
-            "version_normalized": "6.4.43.0",
+            "version": "v6.4.44",
+            "version_normalized": "6.4.44.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/event-dispatcher.git",
-                "reference": "ac405d324c10ebbbde6a6e58379bf81db10f1dbf"
+                "reference": "d7110a878e7e7cbd8aaebe9f55da8af885b8c0af"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/event-dispatcher\/zipball\/ac405d324c10ebbbde6a6e58379bf81db10f1dbf",
-                "reference": "ac405d324c10ebbbde6a6e58379bf81db10f1dbf",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/event-dispatcher\/zipball\/d7110a878e7e7cbd8aaebe9f55da8af885b8c0af",
+                "reference": "d7110a878e7e7cbd8aaebe9f55da8af885b8c0af",
                 "shasum": ""
             },
             "require": {
@@ -1364,7 +1362,7 @@
                 "symfony\/service-contracts": "^2.5|^3",
                 "symfony\/stopwatch": "^5.4|^6.0|^7.0"
             },
-            "time": "2026-07-21T14:00:19+00:00",
+            "time": "2026-08-21T14:01:40+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -1392,7 +1390,7 @@
             "description": "Provides tools that allow your application components to communicate with each other by dispatching events and listening to them",
             "homepage": "https:\/\/symfony.com",
             "support": {
-                "source": "https:\/\/github.com\/symfony\/event-dispatcher\/tree\/v6.4.43"
+                "source": "https:\/\/github.com\/symfony\/event-dispatcher\/tree\/v6.4.44"
             },
             "funding": [
                 {
@@ -1499,17 +1497,17 @@
         },
         {
             "name": "symfony\/http-client",
-            "version": "v6.4.43",
-            "version_normalized": "6.4.43.0",
+            "version": "v6.4.46",
+            "version_normalized": "6.4.46.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/http-client.git",
-                "reference": "38540911e9e3c3ca12e562dcce758d9bfcfa7cdd"
+                "reference": "2027434cec6519eee0bcff54efa42f7aa7e6e182"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/http-client\/zipball\/38540911e9e3c3ca12e562dcce758d9bfcfa7cdd",
-                "reference": "38540911e9e3c3ca12e562dcce758d9bfcfa7cdd",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/http-client\/zipball\/2027434cec6519eee0bcff54efa42f7aa7e6e182",
+                "reference": "2027434cec6519eee0bcff54efa42f7aa7e6e182",
                 "shasum": ""
             },
             "require": {
@@ -1545,7 +1543,7 @@
                 "symfony\/process": "^5.4|^6.0|^7.0",
                 "symfony\/stopwatch": "^5.4|^6.0|^7.0"
             },
-            "time": "2026-07-29T06:36:08+00:00",
+            "time": "2026-09-08T13:27:13+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -1576,7 +1574,7 @@
                 "http"
             ],
             "support": {
-                "source": "https:\/\/github.com\/symfony\/http-client\/tree\/v6.4.43"
+                "source": "https:\/\/github.com\/symfony\/http-client\/tree\/v6.4.46"
             },
             "funding": [
                 {
@@ -1600,23 +1598,23 @@
         },
         {
             "name": "symfony\/http-client-contracts",
-            "version": "v3.7.1",
-            "version_normalized": "3.7.1.0",
+            "version": "v3.7.3",
+            "version_normalized": "3.7.3.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/http-client-contracts.git",
-                "reference": "41fc42d276aeff21192465331ebbab7d83a743c0"
+                "reference": "35be0019e2c2c9fba80f9dc033290a5240f7b44f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/http-client-contracts\/zipball\/41fc42d276aeff21192465331ebbab7d83a743c0",
-                "reference": "41fc42d276aeff21192465331ebbab7d83a743c0",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/http-client-contracts\/zipball\/35be0019e2c2c9fba80f9dc033290a5240f7b44f",
+                "reference": "35be0019e2c2c9fba80f9dc033290a5240f7b44f",
                 "shasum": ""
             },
             "require": {
                 "php": ">=8.1"
             },
-            "time": "2026-06-05T06:23:12+00:00",
+            "time": "2026-08-04T08:41:16+00:00",
             "type": "library",
             "extra": {
                 "thanks": {
@@ -1661,7 +1659,7 @@
                 "standards"
             ],
             "support": {
-                "source": "https:\/\/github.com\/symfony\/http-client-contracts\/tree\/v3.7.1"
+                "source": "https:\/\/github.com\/symfony\/http-client-contracts\/tree\/v3.7.3"
             },
             "funding": [
                 {
@@ -1917,17 +1915,17 @@
         },
         {
             "name": "symfony\/mailer",
-            "version": "v6.4.43",
-            "version_normalized": "6.4.43.0",
+            "version": "v6.4.46",
+            "version_normalized": "6.4.46.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/mailer.git",
-                "reference": "2a380924b56e034076c4a658d40e140ba150e44c"
+                "reference": "21cc391f6f6a20b8765125cabee0c6195b5b8f10"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/mailer\/zipball\/2a380924b56e034076c4a658d40e140ba150e44c",
-                "reference": "2a380924b56e034076c4a658d40e140ba150e44c",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/mailer\/zipball\/21cc391f6f6a20b8765125cabee0c6195b5b8f10",
+                "reference": "21cc391f6f6a20b8765125cabee0c6195b5b8f10",
                 "shasum": ""
             },
             "require": {
@@ -1952,7 +1950,7 @@
                 "symfony\/messenger": "^6.2|^7.0",
                 "symfony\/twig-bridge": "^6.2|^7.0"
             },
-            "time": "2026-07-27T19:43:14+00:00",
+            "time": "2026-09-14T23:26:17+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -1980,7 +1978,7 @@
             "description": "Helps sending emails",
             "homepage": "https:\/\/symfony.com",
             "support": {
-                "source": "https:\/\/github.com\/symfony\/mailer\/tree\/v6.4.43"
+                "source": "https:\/\/github.com\/symfony\/mailer\/tree\/v6.4.46"
             },
             "funding": [
                 {
@@ -2080,17 +2078,17 @@
         },
         {
             "name": "symfony\/mailgun-mailer",
-            "version": "v6.4.42",
-            "version_normalized": "6.4.42.0",
+            "version": "v6.4.45",
+            "version_normalized": "6.4.45.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/mailgun-mailer.git",
-                "reference": "0d9ed2d72554f02a4a6ea462a640fef0bf71b5ac"
+                "reference": "4f64abd2160bd5bea2c5349d2076df147d5962d2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/mailgun-mailer\/zipball\/0d9ed2d72554f02a4a6ea462a640fef0bf71b5ac",
-                "reference": "0d9ed2d72554f02a4a6ea462a640fef0bf71b5ac",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/mailgun-mailer\/zipball\/4f64abd2160bd5bea2c5349d2076df147d5962d2",
+                "reference": "4f64abd2160bd5bea2c5349d2076df147d5962d2",
                 "shasum": ""
             },
             "require": {
@@ -2104,7 +2102,7 @@
                 "symfony\/http-client": "^6.3|^7.0",
                 "symfony\/webhook": "^6.3|^7.0"
             },
-            "time": "2026-06-08T08:56:39+00:00",
+            "time": "2026-08-29T14:54:41+00:00",
             "type": "symfony-mailer-bridge",
             "installation-source": "dist",
             "autoload": {
@@ -2132,7 +2130,7 @@
             "description": "Symfony Mailgun Mailer Bridge",
             "homepage": "https:\/\/symfony.com",
             "support": {
-                "source": "https:\/\/github.com\/symfony\/mailgun-mailer\/tree\/v6.4.42"
+                "source": "https:\/\/github.com\/symfony\/mailgun-mailer\/tree\/v6.4.45"
             },
             "funding": [
                 {
@@ -2232,17 +2230,17 @@
         },
         {
             "name": "symfony\/messenger",
-            "version": "v6.4.43",
-            "version_normalized": "6.4.43.0",
+            "version": "v6.4.46",
+            "version_normalized": "6.4.46.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/messenger.git",
-                "reference": "a99c7d0787a95329c49eeec6a5f60968042f4e7d"
+                "reference": "6aa31b55986cbd00a0aa1f8d8507201fef9beaeb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/messenger\/zipball\/a99c7d0787a95329c49eeec6a5f60968042f4e7d",
-                "reference": "a99c7d0787a95329c49eeec6a5f60968042f4e7d",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/messenger\/zipball\/6aa31b55986cbd00a0aa1f8d8507201fef9beaeb",
+                "reference": "6aa31b55986cbd00a0aa1f8d8507201fef9beaeb",
                 "shasum": ""
             },
             "require": {
@@ -2274,7 +2272,7 @@
                 "symfony\/stopwatch": "^5.4|^6.0|^7.0",
                 "symfony\/validator": "^5.4|^6.0|^7.0"
             },
-            "time": "2026-07-21T14:40:31+00:00",
+            "time": "2026-09-13T07:04:28+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -2302,7 +2300,7 @@
             "description": "Helps applications send and receive messages to\/from other applications or via message queues",
             "homepage": "https:\/\/symfony.com",
             "support": {
-                "source": "https:\/\/github.com\/symfony\/messenger\/tree\/v6.4.43"
+                "source": "https:\/\/github.com\/symfony\/messenger\/tree\/v6.4.46"
             },
             "funding": [
                 {
@@ -2326,17 +2324,17 @@
         },
         {
             "name": "symfony\/mime",
-            "version": "v6.4.43",
-            "version_normalized": "6.4.43.0",
+            "version": "v6.4.46",
+            "version_normalized": "6.4.46.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/mime.git",
-                "reference": "38421e10911725aaa5e44e1b4606d7a37f652b37"
+                "reference": "e700a9819829e1395ae95b508c6355053b5644fe"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/mime\/zipball\/38421e10911725aaa5e44e1b4606d7a37f652b37",
-                "reference": "38421e10911725aaa5e44e1b4606d7a37f652b37",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/mime\/zipball\/e700a9819829e1395ae95b508c6355053b5644fe",
+                "reference": "e700a9819829e1395ae95b508c6355053b5644fe",
                 "shasum": ""
             },
             "require": {
@@ -2360,9 +2358,9 @@
                 "symfony\/process": "^5.4|^6.4|^7.0",
                 "symfony\/property-access": "^5.4|^6.0|^7.0",
                 "symfony\/property-info": "^5.4|^6.0|^7.0",
-                "symfony\/serializer": "^6.4.3|^7.0.3"
+                "symfony\/serializer": "^6.4.44|^7.4.17"
             },
-            "time": "2026-07-29T07:59:11+00:00",
+            "time": "2026-09-04T10:11:03+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -2394,7 +2392,7 @@
                 "mime-type"
             ],
             "support": {
-                "source": "https:\/\/github.com\/symfony\/mime\/tree\/v6.4.43"
+                "source": "https:\/\/github.com\/symfony\/mime\/tree\/v6.4.46"
             },
             "funding": [
                 {
@@ -2589,17 +2587,17 @@
         },
         {
             "name": "symfony\/polyfill-intl-idn",
-            "version": "v1.38.1",
-            "version_normalized": "1.38.1.0",
+            "version": "v1.42.0",
+            "version_normalized": "1.42.0.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/polyfill-intl-idn.git",
-                "reference": "dc21118016c039a66235cf93d96b435ffb282412"
+                "reference": "51b5ff5ba85452b31ec6f55490b08148612339d9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/polyfill-intl-idn\/zipball\/dc21118016c039a66235cf93d96b435ffb282412",
-                "reference": "dc21118016c039a66235cf93d96b435ffb282412",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/polyfill-intl-idn\/zipball\/51b5ff5ba85452b31ec6f55490b08148612339d9",
+                "reference": "51b5ff5ba85452b31ec6f55490b08148612339d9",
                 "shasum": ""
             },
             "require": {
@@ -2609,7 +2607,7 @@
             "suggest": {
                 "ext-intl": "For best performance"
             },
-            "time": "2026-05-25T15:22:23+00:00",
+            "time": "2026-08-24T10:51:20+00:00",
             "type": "library",
             "extra": {
                 "thanks": {
@@ -2655,7 +2653,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https:\/\/github.com\/symfony\/polyfill-intl-idn\/tree\/v1.38.1"
+                "source": "https:\/\/github.com\/symfony\/polyfill-intl-idn\/tree\/v1.42.0"
             },
             "funding": [
                 {
@@ -2679,17 +2677,17 @@
         },
         {
             "name": "symfony\/polyfill-intl-normalizer",
-            "version": "v1.38.0",
-            "version_normalized": "1.38.0.0",
+            "version": "v1.42.0",
+            "version_normalized": "1.42.0.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/polyfill-intl-normalizer.git",
-                "reference": "2d446c214bdbe5b71bde5011b060a05fece3ae6b"
+                "reference": "aa20edea75bd9c48cfecc8360922e5a6e5c44502"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/polyfill-intl-normalizer\/zipball\/2d446c214bdbe5b71bde5011b060a05fece3ae6b",
-                "reference": "2d446c214bdbe5b71bde5011b060a05fece3ae6b",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/polyfill-intl-normalizer\/zipball\/aa20edea75bd9c48cfecc8360922e5a6e5c44502",
+                "reference": "aa20edea75bd9c48cfecc8360922e5a6e5c44502",
                 "shasum": ""
             },
             "require": {
@@ -2698,7 +2696,7 @@
             "suggest": {
                 "ext-intl": "For best performance"
             },
-            "time": "2026-05-25T13:48:31+00:00",
+            "time": "2026-08-07T06:33:24+00:00",
             "type": "library",
             "extra": {
                 "thanks": {
@@ -2743,7 +2741,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https:\/\/github.com\/symfony\/polyfill-intl-normalizer\/tree\/v1.38.0"
+                "source": "https:\/\/github.com\/symfony\/polyfill-intl-normalizer\/tree\/v1.42.0"
             },
             "funding": [
                 {
@@ -2938,17 +2936,17 @@
         },
         {
             "name": "symfony\/postmark-mailer",
-            "version": "v6.4.41",
-            "version_normalized": "6.4.41.0",
+            "version": "v6.4.45",
+            "version_normalized": "6.4.45.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/postmark-mailer.git",
-                "reference": "7b9ef1c936bfcbb69330f56b2941bd1e8dd8e9a1"
+                "reference": "c786d8017455a413e8da63c241430e14977998db"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/postmark-mailer\/zipball\/7b9ef1c936bfcbb69330f56b2941bd1e8dd8e9a1",
-                "reference": "7b9ef1c936bfcbb69330f56b2941bd1e8dd8e9a1",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/postmark-mailer\/zipball\/c786d8017455a413e8da63c241430e14977998db",
+                "reference": "c786d8017455a413e8da63c241430e14977998db",
                 "shasum": ""
             },
             "require": {
@@ -2963,7 +2961,7 @@
                 "symfony\/http-client": "^6.3|^7.0",
                 "symfony\/webhook": "^6.3|^7.0"
             },
-            "time": "2026-05-23T08:07:35+00:00",
+            "time": "2026-08-27T18:29:08+00:00",
             "type": "symfony-mailer-bridge",
             "installation-source": "dist",
             "autoload": {
@@ -2991,7 +2989,7 @@
             "description": "Symfony Postmark Mailer Bridge",
             "homepage": "https:\/\/symfony.com",
             "support": {
-                "source": "https:\/\/github.com\/symfony\/postmark-mailer\/tree\/v6.4.41"
+                "source": "https:\/\/github.com\/symfony\/postmark-mailer\/tree\/v6.4.45"
             },
             "funding": [
                 {
@@ -3015,17 +3013,17 @@
         },
         {
             "name": "symfony\/property-access",
-            "version": "v6.4.32",
-            "version_normalized": "6.4.32.0",
+            "version": "v6.4.44",
+            "version_normalized": "6.4.44.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/property-access.git",
-                "reference": "6dfa655ac9e9860c05cabb287f34da86b18c237e"
+                "reference": "57793e8d1e3ede2d4a65604e8f213a3cfa8d1721"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/property-access\/zipball\/6dfa655ac9e9860c05cabb287f34da86b18c237e",
-                "reference": "6dfa655ac9e9860c05cabb287f34da86b18c237e",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/property-access\/zipball\/57793e8d1e3ede2d4a65604e8f213a3cfa8d1721",
+                "reference": "57793e8d1e3ede2d4a65604e8f213a3cfa8d1721",
                 "shasum": ""
             },
             "require": {
@@ -3036,7 +3034,7 @@
             "require-dev": {
                 "symfony\/cache": "^5.4|^6.0|^7.0"
             },
-            "time": "2026-01-05T08:25:17+00:00",
+            "time": "2026-07-30T11:04:25+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -3075,7 +3073,7 @@
                 "reflection"
             ],
             "support": {
-                "source": "https:\/\/github.com\/symfony\/property-access\/tree\/v6.4.32"
+                "source": "https:\/\/github.com\/symfony\/property-access\/tree\/v6.4.44"
             },
             "funding": [
                 {
@@ -3099,17 +3097,17 @@
         },
         {
             "name": "symfony\/property-info",
-            "version": "v6.4.43",
-            "version_normalized": "6.4.43.0",
+            "version": "v6.4.46",
+            "version_normalized": "6.4.46.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/property-info.git",
-                "reference": "ff32a0d7885f6f8997ee0aca499fd008852ad5bd"
+                "reference": "4789c9a2650f9285da6db0363ef40e5a21b42ce9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/property-info\/zipball\/ff32a0d7885f6f8997ee0aca499fd008852ad5bd",
-                "reference": "ff32a0d7885f6f8997ee0aca499fd008852ad5bd",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/property-info\/zipball\/4789c9a2650f9285da6db0363ef40e5a21b42ce9",
+                "reference": "4789c9a2650f9285da6db0363ef40e5a21b42ce9",
                 "shasum": ""
             },
             "require": {
@@ -3132,7 +3130,7 @@
                 "symfony\/dependency-injection": "^5.4|^6.0|^7.0",
                 "symfony\/serializer": "^5.4|^6.4|^7.0"
             },
-            "time": "2026-07-22T12:35:29+00:00",
+            "time": "2026-09-03T19:31:46+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -3168,7 +3166,7 @@
                 "validator"
             ],
             "support": {
-                "source": "https:\/\/github.com\/symfony\/property-info\/tree\/v6.4.43"
+                "source": "https:\/\/github.com\/symfony\/property-info\/tree\/v6.4.46"
             },
             "funding": [
                 {
@@ -3264,17 +3262,17 @@
         },
         {
             "name": "symfony\/sendgrid-mailer",
-            "version": "v6.4.24",
-            "version_normalized": "6.4.24.0",
+            "version": "v6.4.46",
+            "version_normalized": "6.4.46.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/sendgrid-mailer.git",
-                "reference": "67b75454afbf8268d223171fc728ee20a6616649"
+                "reference": "b187836de767d171dc837ff46bdbbe60e85040ee"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/sendgrid-mailer\/zipball\/67b75454afbf8268d223171fc728ee20a6616649",
-                "reference": "67b75454afbf8268d223171fc728ee20a6616649",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/sendgrid-mailer\/zipball\/b187836de767d171dc837ff46bdbbe60e85040ee",
+                "reference": "b187836de767d171dc837ff46bdbbe60e85040ee",
                 "shasum": ""
             },
             "require": {
@@ -3289,7 +3287,7 @@
                 "symfony\/http-client": "^5.4|^6.0|^7.0",
                 "symfony\/webhook": "^6.3|^7.0"
             },
-            "time": "2025-07-10T08:14:14+00:00",
+            "time": "2026-08-31T14:03:12+00:00",
             "type": "symfony-mailer-bridge",
             "installation-source": "dist",
             "autoload": {
@@ -3317,7 +3315,7 @@
             "description": "Symfony Sendgrid Mailer Bridge",
             "homepage": "https:\/\/symfony.com",
             "support": {
-                "source": "https:\/\/github.com\/symfony\/sendgrid-mailer\/tree\/v6.4.24"
+                "source": "https:\/\/github.com\/symfony\/sendgrid-mailer\/tree\/v6.4.46"
             },
             "funding": [
                 {
@@ -3341,17 +3339,17 @@
         },
         {
             "name": "symfony\/service-contracts",
-            "version": "v3.7.1",
-            "version_normalized": "3.7.1.0",
+            "version": "v3.7.3",
+            "version_normalized": "3.7.3.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/service-contracts.git",
-                "reference": "c0a284bab1ed8aa0417e3d69250ab437739563a0"
+                "reference": "15e6a07ec2a2c75ceb1b21dd98105ee8456d2257"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/service-contracts\/zipball\/c0a284bab1ed8aa0417e3d69250ab437739563a0",
-                "reference": "c0a284bab1ed8aa0417e3d69250ab437739563a0",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/service-contracts\/zipball\/15e6a07ec2a2c75ceb1b21dd98105ee8456d2257",
+                "reference": "15e6a07ec2a2c75ceb1b21dd98105ee8456d2257",
                 "shasum": ""
             },
             "require": {
@@ -3362,7 +3360,7 @@
             "conflict": {
                 "ext-psr": "<1.1|>=2"
             },
-            "time": "2026-06-16T09:55:08+00:00",
+            "time": "2026-07-27T15:39:01+00:00",
             "type": "library",
             "extra": {
                 "thanks": {
@@ -3407,7 +3405,7 @@
                 "standards"
             ],
             "support": {
-                "source": "https:\/\/github.com\/symfony\/service-contracts\/tree\/v3.7.1"
+                "source": "https:\/\/github.com\/symfony\/service-contracts\/tree\/v3.7.3"
             },
             "funding": [
                 {
@@ -3431,17 +3429,17 @@
         },
         {
             "name": "symfony\/string",
-            "version": "v6.4.43",
-            "version_normalized": "6.4.43.0",
+            "version": "v6.4.46",
+            "version_normalized": "6.4.46.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/string.git",
-                "reference": "2a8d515c3eaa5d33cf76d5fa277cdadd0a4e5b49"
+                "reference": "4513ab2b0ad2d7845a2f920e2f30b61633c9e606"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/string\/zipball\/2a8d515c3eaa5d33cf76d5fa277cdadd0a4e5b49",
-                "reference": "2a8d515c3eaa5d33cf76d5fa277cdadd0a4e5b49",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/string\/zipball\/4513ab2b0ad2d7845a2f920e2f30b61633c9e606",
+                "reference": "4513ab2b0ad2d7845a2f920e2f30b61633c9e606",
                 "shasum": ""
             },
             "require": {
@@ -3460,7 +3458,7 @@
                 "symfony\/translation-contracts": "^2.5|^3.0",
                 "symfony\/var-exporter": "^5.4|^6.0|^7.0"
             },
-            "time": "2026-07-28T07:28:15+00:00",
+            "time": "2026-09-11T09:03:57+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -3499,7 +3497,7 @@
                 "utf8"
             ],
             "support": {
-                "source": "https:\/\/github.com\/symfony\/string\/tree\/v6.4.43"
+                "source": "https:\/\/github.com\/symfony\/string\/tree\/v6.4.46"
             },
             "funding": [
                 {
@@ -3523,17 +3521,17 @@
         },
         {
             "name": "symfony\/var-exporter",
-            "version": "v6.4.42",
-            "version_normalized": "6.4.42.0",
+            "version": "v6.4.45",
+            "version_normalized": "6.4.45.0",
             "source": {
                 "type": "git",
                 "url": "https:\/\/github.com\/symfony\/var-exporter.git",
-                "reference": "15e670e0218bfe4efbc0556b8a12ad1304f4c7f4"
+                "reference": "a4e458999ee554a667cd19227f0b97a751bd61e6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https:\/\/api.github.com\/repos\/symfony\/var-exporter\/zipball\/15e670e0218bfe4efbc0556b8a12ad1304f4c7f4",
-                "reference": "15e670e0218bfe4efbc0556b8a12ad1304f4c7f4",
+                "url": "https:\/\/api.github.com\/repos\/symfony\/var-exporter\/zipball\/a4e458999ee554a667cd19227f0b97a751bd61e6",
+                "reference": "a4e458999ee554a667cd19227f0b97a751bd61e6",
                 "shasum": ""
             },
             "require": {
@@ -3545,7 +3543,7 @@
                 "symfony\/serializer": "^6.4|^7.0",
                 "symfony\/var-dumper": "^5.4|^6.0|^7.0"
             },
-            "time": "2026-06-27T08:12:01+00:00",
+            "time": "2026-08-23T09:39:49+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -3583,7 +3581,7 @@
                 "serialize"
             ],
             "support": {
-                "source": "https:\/\/github.com\/symfony\/var-exporter\/tree\/v6.4.42"
+                "source": "https:\/\/github.com\/symfony\/var-exporter\/tree\/v6.4.45"
             },
             "funding": [
                 {

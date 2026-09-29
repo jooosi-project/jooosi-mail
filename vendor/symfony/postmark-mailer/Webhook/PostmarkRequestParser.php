@@ -38,6 +38,9 @@ final class PostmarkRequestParser extends AbstractRequestParser
         string $secret
     ): ?AbstractMailerEvent
     {
+        if ($secret && !hash_equals('Basic ' . base64_encode($secret), $request->headers->get('Authorization', ''))) {
+            throw new RejectWebhookException(403, 'Invalid credentials.');
+        }
         $payload = $request->toArray();
         if (!isset($payload['RecordType']) || !isset($payload['MessageID']) || !(isset($payload['Recipient']) || isset($payload['Email']))) {
             throw new RejectWebhookException(406, 'Payload is malformed.');

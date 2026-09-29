@@ -34,7 +34,7 @@ class TagAwareMarshaller implements MarshallerInterface
                     $f = [];
                     $failed[] = $id;
                 } else {
-                    if ([] === $value['tags']) {
+                    if (!$value['tags']) {
                         $v['tags'] = '';
                     }
                     $serialized[$id] = "\x9d" . ($value['meta'] ?? "\x00\x00\x00\x00\x00\x00\x00\x00") . pack('N', \strlen($v['tags'])) . $v['tags'] . $v['value'];

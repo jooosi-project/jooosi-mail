@@ -4,7 +4,10 @@ declare (strict_types=1);
 namespace JooosiMail\Database\Migration\Versions;
 
 use JooosiMailDeps\Doctrine\DBAL\Connection;
+use JooosiMailDeps\Doctrine\DBAL\Schema\Table;
+use JooosiMailDeps\Doctrine\DBAL\Types\Types;
 use JooosiMail\Database\Migration\MigrationInterface;
+use JooosiMail\Database\Migration\MigrationSchema;
 use JooosiMail\Infrastructure\Database\TableNameResolver;
 /**
  * Creates persisted routing state tables for circuit breakers and rate limits.
@@ -23,40 +26,35 @@ final class Version202603220001CreateRoutingStateTables implements MigrationInte
     }
     public function up(Connection $connection, TableNameResolver $tableNameResolver): void
     {
-        $charsetCollation = $this->getCharsetCollation();
-        $connection->executeStatement(sprintf('CREATE TABLE IF NOT EXISTS %s (
-                connection_id BIGINT UNSIGNED NOT NULL,
-                recent_failure_count INT NOT NULL DEFAULT 0,
-                window_started_at DATETIME DEFAULT NULL,
-                last_failure_at DATETIME DEFAULT NULL,
-                blacklisted_until DATETIME DEFAULT NULL,
-                last_error_message LONGTEXT DEFAULT NULL,
-                created_at DATETIME NOT NULL,
-                updated_at DATETIME NOT NULL,
-                PRIMARY KEY (connection_id),
-                KEY idx_blacklisted_until (blacklisted_until)
-            ) %s', $tableNameResolver->resolve('connection_circuit_breakers'), $charsetCollation));
-        $connection->executeStatement(sprintf('CREATE TABLE IF NOT EXISTS %s (
-                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                connection_id BIGINT UNSIGNED NOT NULL,
-                period_key VARCHAR(32) NOT NULL,
-                usage_count INT NOT NULL DEFAULT 0,
-                window_started_at DATETIME NOT NULL,
-                window_ends_at DATETIME NOT NULL,
-                created_at DATETIME NOT NULL,
-                updated_at DATETIME NOT NULL,
-                UNIQUE KEY uk_connection_period (connection_id, period_key),
-                KEY idx_window_ends_at (window_ends_at)
-            ) %s', $tableNameResolver->resolve('connection_rate_limits'), $charsetCollation));
+        $circuitBreakers = new Table($tableNameResolver->resolve('connection_circuit_breakers'));
+        $circuitBreakers->addColumn('connection_id', Types::BIGINT, ['unsigned' => \true, 'notnull' => \true]);
+        $circuitBreakers->addColumn('recent_failure_count', Types::INTEGER, ['notnull' => \true, 'default' => 0]);
+        $circuitBreakers->addColumn('window_started_at', Types::DATETIME_MUTABLE, ['notnull' => \false, 'default' => null]);
+        $circuitBreakers->addColumn('last_failure_at', Types::DATETIME_MUTABLE, ['notnull' => \false, 'default' => null]);
+        $circuitBreakers->addColumn('blacklisted_until', Types::DATETIME_MUTABLE, ['notnull' => \false, 'default' => null]);
+        $circuitBreakers->addColumn('last_error_message', Types::TEXT, ['notnull' => \false, 'default' => null]);
+        $circuitBreakers->addColumn('created_at', Types::DATETIME_MUTABLE, ['notnull' => \true]);
+        $circuitBreakers->addColumn('updated_at', Types::DATETIME_MUTABLE, ['notnull' => \true]);
+        $circuitBreakers->setPrimaryKey(['connection_id']);
+        $circuitBreakers->addIndex(['blacklisted_until'], 'idx_blacklisted_until');
+        MigrationSchema::createTable($connection, $circuitBreakers);
+        $rateLimits = new Table($tableNameResolver->resolve('connection_rate_limits'));
+        $rateLimits->addColumn('id', Types::BIGINT, ['unsigned' => \true, 'autoincrement' => \true]);
+        $rateLimits->addColumn('connection_id', Types::BIGINT, ['unsigned' => \true, 'notnull' => \true]);
+        $rateLimits->addColumn('period_key', Types::STRING, ['length' => 32, 'notnull' => \true]);
+        $rateLimits->addColumn('usage_count', Types::INTEGER, ['notnull' => \true, 'default' => 0]);
+        $rateLimits->addColumn('window_started_at', Types::DATETIME_MUTABLE, ['notnull' => \true]);
+        $rateLimits->addColumn('window_ends_at', Types::DATETIME_MUTABLE, ['notnull' => \true]);
+        $rateLimits->addColumn('created_at', Types::DATETIME_MUTABLE, ['notnull' => \true]);
+        $rateLimits->addColumn('updated_at', Types::DATETIME_MUTABLE, ['notnull' => \true]);
+        $rateLimits->setPrimaryKey(['id']);
+        $rateLimits->addUniqueIndex(['connection_id', 'period_key'], 'uk_connection_period');
+        $rateLimits->addIndex(['window_ends_at'], 'idx_window_ends_at');
+        MigrationSchema::createTable($connection, $rateLimits);
     }
     public function down(Connection $connection, TableNameResolver $tableNameResolver): void
     {
-        $connection->executeStatement(sprintf('DROP TABLE IF EXISTS %s', $tableNameResolver->resolve('connection_rate_limits')));
-        $connection->executeStatement(sprintf('DROP TABLE IF EXISTS %s', $tableNameResolver->resolve('connection_circuit_breakers')));
-    }
-    private function getCharsetCollation(): string
-    {
-        global $wpdb;
-        return $wpdb->get_charset_collate();
+        MigrationSchema::dropTable($connection, $tableNameResolver->resolve('connection_rate_limits'));
+        MigrationSchema::dropTable($connection, $tableNameResolver->resolve('connection_circuit_breakers'));
     }
 }

@@ -19,7 +19,10 @@ use JooosiMailDeps\Symfony\Contracts\HttpClient\ResponseInterface;
 trait HttpExceptionTrait
 {
     private ResponseInterface $response;
-    public function __construct(ResponseInterface $response)
+    /**
+     * @param (\Closure(): string)|null $getErrorBody Returns the part of the body the message is parsed from
+     */
+    public function __construct(ResponseInterface $response, ?\Closure $getErrorBody = null)
     {
         $this->response = $response;
         $code = $response->getInfo('http_code');
@@ -47,7 +50,7 @@ trait HttpExceptionTrait
         // Try to guess a better error message using common API error formats
         // The MIME type isn't explicitly checked because some formats inherit from others
         // Ex: JSON:API follows RFC 7807 semantics, Hydra can be used in any JSON-LD-compatible format
-        if ($isJson && $body = json_decode($response->getContent(\false), \true)) {
+        if ($isJson && $body = json_decode($getErrorBody ? $getErrorBody() : $response->getContent(\false), \true)) {
             if (isset($body['hydra:title']) || isset($body['hydra:description'])) {
                 // see http://www.hydra-cg.com/spec/latest/core/#description-of-http-status-codes-and-errors
                 $separator = isset($body['hydra:title'], $body['hydra:description']) ? "\n\n" : '';

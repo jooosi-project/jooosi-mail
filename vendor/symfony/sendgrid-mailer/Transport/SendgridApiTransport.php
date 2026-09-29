@@ -62,7 +62,7 @@ class SendgridApiTransport extends AbstractApiTransport
     }
     private function getPayload(Email $email, Envelope $envelope): array
     {
-        $addressStringifier = function (Address $address) {
+        $addressStringifier = static function (Address $address) {
             $stringified = ['email' => $address->getAddress()];
             if ($address->getName()) {
                 $stringified['name'] = $address->getName();

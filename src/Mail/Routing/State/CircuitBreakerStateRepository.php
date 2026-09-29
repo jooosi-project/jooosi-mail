@@ -4,6 +4,7 @@ declare (strict_types=1);
 namespace JooosiMail\Mail\Routing\State;
 
 use JooosiMailDeps\Doctrine\DBAL\Connection as DbalConnection;
+use JooosiMailDeps\Doctrine\DBAL\Platforms\SQLitePlatform;
 use JooosiMail\Discovery\Attribute\Service;
 use JooosiMail\Infrastructure\Database\TableNameResolver;
 use Throwable;
@@ -81,15 +82,22 @@ final class CircuitBreakerStateRepository
     {
         $table = $this->tableNameResolver->resolve('connection_circuit_breakers');
         $now = gmdate('Y-m-d H:i:s');
-        $this->connection->executeStatement(sprintf('INSERT INTO %s (connection_id, recent_failure_count, window_started_at, last_failure_at, blacklisted_until, last_error_message, created_at, updated_at)
-                 VALUES (:connection_id, :recent_failure_count, :window_started_at, :last_failure_at, :blacklisted_until, :last_error_message, :created_at, :updated_at)
-                 ON DUPLICATE KEY UPDATE
+        $conflictClause = $this->connection->getDatabasePlatform() instanceof SQLitePlatform ? 'ON CONFLICT (connection_id) DO UPDATE SET
+                 recent_failure_count = excluded.recent_failure_count,
+                 window_started_at = excluded.window_started_at,
+                 last_failure_at = excluded.last_failure_at,
+                 blacklisted_until = excluded.blacklisted_until,
+                 last_error_message = excluded.last_error_message,
+                 updated_at = excluded.updated_at' : 'ON DUPLICATE KEY UPDATE
                  recent_failure_count = VALUES(recent_failure_count),
                  window_started_at = VALUES(window_started_at),
                  last_failure_at = VALUES(last_failure_at),
                  blacklisted_until = VALUES(blacklisted_until),
                  last_error_message = VALUES(last_error_message),
-                 updated_at = VALUES(updated_at)', $table), ['connection_id' => $connectionId, 'recent_failure_count' => $recentFailureCount, 'window_started_at' => $this->toDateTime($windowStartedAt), 'last_failure_at' => $this->toDateTime($lastFailureAt), 'blacklisted_until' => $this->toDateTime($blacklistedUntil), 'last_error_message' => $lastErrorMessage, 'created_at' => $now, 'updated_at' => $now]);
+                 updated_at = VALUES(updated_at)';
+        $this->connection->executeStatement(sprintf('INSERT INTO %s (connection_id, recent_failure_count, window_started_at, last_failure_at, blacklisted_until, last_error_message, created_at, updated_at)
+                 VALUES (:connection_id, :recent_failure_count, :window_started_at, :last_failure_at, :blacklisted_until, :last_error_message, :created_at, :updated_at)
+                 %s', $table, $conflictClause), ['connection_id' => $connectionId, 'recent_failure_count' => $recentFailureCount, 'window_started_at' => $this->toDateTime($windowStartedAt), 'last_failure_at' => $this->toDateTime($lastFailureAt), 'blacklisted_until' => $this->toDateTime($blacklistedUntil), 'last_error_message' => $lastErrorMessage, 'created_at' => $now, 'updated_at' => $now]);
     }
     /**
      * @since 0.1.0
@@ -97,9 +105,10 @@ final class CircuitBreakerStateRepository
     private function ensureStateRowExists(int $connectionId): void
     {
         $now = gmdate('Y-m-d H:i:s');
+        $conflictClause = $this->connection->getDatabasePlatform() instanceof SQLitePlatform ? 'ON CONFLICT (connection_id) DO NOTHING' : 'ON DUPLICATE KEY UPDATE connection_id = connection_id';
         $this->connection->executeStatement(sprintf('INSERT INTO %s (connection_id, recent_failure_count, created_at, updated_at)
                  VALUES (:connection_id, 0, :created_at, :updated_at)
-                 ON DUPLICATE KEY UPDATE connection_id = connection_id', $this->tableNameResolver->resolve('connection_circuit_breakers')), ['connection_id' => $connectionId, 'created_at' => $now, 'updated_at' => $now]);
+                 %s', $this->tableNameResolver->resolve('connection_circuit_breakers'), $conflictClause), ['connection_id' => $connectionId, 'created_at' => $now, 'updated_at' => $now]);
     }
     /**
      * @return array<string, int|string|null>
@@ -108,8 +117,20 @@ final class CircuitBreakerStateRepository
      */
     private function fetchStateForUpdate(int $connectionId, int $windowSeconds): array
     {
-        $row = $this->connection->fetchAssociative(sprintf('SELECT * FROM %s WHERE connection_id = :connection_id LIMIT 1 FOR UPDATE', $this->tableNameResolver->resolve('connection_circuit_breakers')), ['connection_id' => $connectionId]);
+        $row = $this->connection->fetchAssociative(sprintf('SELECT * FROM %s WHERE connection_id = :connection_id LIMIT 1%s', $this->tableNameResolver->resolve('connection_circuit_breakers'), $this->lockClause()), ['connection_id' => $connectionId]);
         return $this->normalizeState(is_array($row) ? $row : [], $windowSeconds);
+    }
+    /**
+     * Return the row-lock suffix supported by the active platform.
+     *
+     * @since 0.1.0
+     */
+    private function lockClause(): string
+    {
+        if ($this->connection->getDatabasePlatform() instanceof SQLitePlatform) {
+            return '';
+        }
+        return ' FOR UPDATE';
     }
     /**
      * @param array<string, mixed> $row

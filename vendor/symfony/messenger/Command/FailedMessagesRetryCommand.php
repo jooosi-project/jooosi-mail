@@ -144,7 +144,7 @@ EOF
                     $this->phpSerializer?->rejectPhpIncompleteClass();
                 }
                 // break the loop if all messages are consumed
-                if (0 === \count($envelopes)) {
+                if (!$envelopes) {
                     break;
                 }
                 $this->retrySpecificEnvelopes($envelopes, $failureTransportName, $io, $errorIo, $shouldForce);

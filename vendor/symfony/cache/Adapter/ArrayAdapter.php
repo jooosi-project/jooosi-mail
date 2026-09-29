@@ -124,6 +124,9 @@ class ArrayAdapter implements AdapterInterface, CacheInterface, LoggerAwareInter
     public function deleteItems(array $keys): bool
     {
         foreach ($keys as $key) {
+            \assert('' !== CacheItem::validateKey($key));
+        }
+        foreach ($keys as $key) {
             $this->deleteItem($key);
         }
         return \true;

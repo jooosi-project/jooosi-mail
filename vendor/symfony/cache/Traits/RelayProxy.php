@@ -29,6 +29,7 @@ use JooosiMailDeps\Symfony\Component\Cache\Traits\Relay\Relay21Trait;
 use JooosiMailDeps\Symfony\Component\Cache\Traits\Relay\Relay22Trait;
 use JooosiMailDeps\Symfony\Component\Cache\Traits\Relay\Relay30Trait;
 use JooosiMailDeps\Symfony\Component\Cache\Traits\Relay\Relay40Trait;
+use JooosiMailDeps\Symfony\Component\Cache\Traits\Relay\Relay50Trait;
 use JooosiMailDeps\Symfony\Component\Cache\Traits\Relay\SwapdbTrait;
 use JooosiMailDeps\Symfony\Component\VarExporter\LazyObjectInterface;
 use JooosiMailDeps\Symfony\Component\VarExporter\LazyProxyTrait;
@@ -65,6 +66,7 @@ class RelayProxy extends \Relay\Relay implements ResetInterface, LazyObjectInter
     use Relay22Trait;
     use Relay30Trait;
     use Relay40Trait;
+    use Relay50Trait;
     use SwapdbTrait;
     private const LAZY_OBJECT_PROPERTY_SCOPES = [];
     public function __construct(

@@ -4,7 +4,7 @@ Donate link: https://ko-fi.com/Q5Q75XSF7
 Tags: email, smtp, mailer, transactional email, logs
 Requires at least: 7.0
 Tested up to: 7.1
-Stable tag: 1.0.10
+Stable tag: 1.0.11
 Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -157,6 +157,12 @@ Yes. Jooosi Mail includes WP-CLI commands for operational tasks such as managing
 7. Mail delivery and routing settings.
 
 == Changelog ==
+
+= 1.0.11 - 2026-09-29 =
+
+**Added**
+
+* SQLite database compatibility
 
 = 1.0.10 - 2026-09-28 =
 

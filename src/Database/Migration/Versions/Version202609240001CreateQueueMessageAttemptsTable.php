@@ -4,7 +4,10 @@ declare (strict_types=1);
 namespace JooosiMail\Database\Migration\Versions;
 
 use JooosiMailDeps\Doctrine\DBAL\Connection;
+use JooosiMailDeps\Doctrine\DBAL\Schema\Table;
+use JooosiMailDeps\Doctrine\DBAL\Types\Types;
 use JooosiMail\Database\Migration\MigrationInterface;
+use JooosiMail\Database\Migration\MigrationSchema;
 use JooosiMail\Infrastructure\Database\TableNameResolver;
 /**
  * Creates queue message attempt history storage.
@@ -23,24 +26,24 @@ final class Version202609240001CreateQueueMessageAttemptsTable implements Migrat
     }
     public function up(Connection $connection, TableNameResolver $tableNameResolver): void
     {
-        global $wpdb;
-        $connection->executeStatement(sprintf('CREATE TABLE IF NOT EXISTS %s (
-                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                queue_message_id BIGINT UNSIGNED NOT NULL,
-                attempt_number INT UNSIGNED NOT NULL,
-                claimed_by VARCHAR(100) NOT NULL,
-                outcome VARCHAR(32) NOT NULL DEFAULT \'processing\',
-                error_message LONGTEXT DEFAULT NULL,
-                retry_delay_seconds INT UNSIGNED DEFAULT NULL,
-                started_at DATETIME NOT NULL,
-                finished_at DATETIME DEFAULT NULL,
-                KEY idx_queue_message_attempts (queue_message_id, id),
-                KEY idx_queue_attempt_claim (queue_message_id, claimed_by),
-                KEY idx_queue_attempt_outcome (outcome, started_at)
-            ) %s', $tableNameResolver->resolve('queue_message_attempts'), $wpdb->get_charset_collate()));
+        $table = new Table($tableNameResolver->resolve('queue_message_attempts'));
+        $table->addColumn('id', Types::BIGINT, ['unsigned' => \true, 'autoincrement' => \true]);
+        $table->addColumn('queue_message_id', Types::BIGINT, ['unsigned' => \true, 'notnull' => \true]);
+        $table->addColumn('attempt_number', Types::INTEGER, ['unsigned' => \true, 'notnull' => \true]);
+        $table->addColumn('claimed_by', Types::STRING, ['length' => 100, 'notnull' => \true]);
+        $table->addColumn('outcome', Types::STRING, ['length' => 32, 'notnull' => \true, 'default' => 'processing']);
+        $table->addColumn('error_message', Types::TEXT, ['notnull' => \false, 'default' => null]);
+        $table->addColumn('retry_delay_seconds', Types::INTEGER, ['unsigned' => \true, 'notnull' => \false, 'default' => null]);
+        $table->addColumn('started_at', Types::DATETIME_MUTABLE, ['notnull' => \true]);
+        $table->addColumn('finished_at', Types::DATETIME_MUTABLE, ['notnull' => \false, 'default' => null]);
+        $table->setPrimaryKey(['id']);
+        $table->addIndex(['queue_message_id', 'id'], 'idx_queue_message_attempts');
+        $table->addIndex(['queue_message_id', 'claimed_by'], 'idx_queue_attempt_claim');
+        $table->addIndex(['outcome', 'started_at'], 'idx_queue_attempt_outcome');
+        MigrationSchema::createTable($connection, $table);
     }
     public function down(Connection $connection, TableNameResolver $tableNameResolver): void
     {
-        $connection->executeStatement(sprintf('DROP TABLE IF EXISTS %s', $tableNameResolver->resolve('queue_message_attempts')));
+        MigrationSchema::dropTable($connection, $tableNameResolver->resolve('queue_message_attempts'));
     }
 }

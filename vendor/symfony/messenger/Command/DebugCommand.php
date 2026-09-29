@@ -71,7 +71,7 @@ EOF
                 }
                 $tableRows[] = [\sprintf('<fg=cyan>%s</fg=cyan>', $message)];
                 foreach ($handlers as $handler) {
-                    $tableRows[] = [\sprintf('    handled by <info>%s</>', $handler[0]) . $this->formatConditions($handler[1])];
+                    $tableRows[] = [\sprintf('    handled by <info>%s</>', $handler[0]) . $this->formatConditions($handler[1], $handler[0])];
                     if ($handlerDescription = self::getClassDescription($handler[0])) {
                         $tableRows[] = [\sprintf('               <comment>%s</>', $handlerDescription)];
                     }
@@ -88,8 +88,12 @@ EOF
         }
         return 0;
     }
-    private function formatConditions(array $options): string
+    private function formatConditions(array $options, string $serviceId): string
     {
+        // the alias MessengerPass generates is the service id, which is already displayed as the handler
+        if ($serviceId === ($options['alias'] ?? null)) {
+            unset($options['alias']);
+        }
         if (!$options) {
             return '';
         }

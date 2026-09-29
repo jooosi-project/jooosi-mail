@@ -94,9 +94,9 @@ class AnalyzeServiceReferencesPass extends AbstractRecursivePass
         if ($value instanceof Reference) {
             $targetId = $this->getDefinitionId((string) $value);
             $targetDefinition = null !== $targetId ? $this->container->getDefinition($targetId) : null;
-            $this->graph->connect($this->currentId, $this->currentDefinition, $targetId, $targetDefinition, $value, $this->lazy || $this->hasProxyDumper && $targetDefinition?->isLazy(), ContainerInterface::IGNORE_ON_UNINITIALIZED_REFERENCE === $value->getInvalidBehavior(), $this->byConstructor, $this->byMultiUseArgument);
+            $this->graph->connect($this->currentId, $this->currentDefinition, $targetId, $targetDefinition, $value, $this->lazy || $this->hasProxyDumper && $targetDefinition?->isLazy(), ContainerInterface::IGNORE_ON_UNINITIALIZED_REFERENCE === $value->getInvalidBehavior(), $this->byConstructor, $this->byMultiUseArgument, $inExpression);
             if ($inExpression) {
-                $this->graph->connect('.internal.reference_in_expression', null, $targetId, $targetDefinition, $value, $this->lazy || $targetDefinition?->isLazy(), \true, $this->byConstructor, $this->byMultiUseArgument);
+                $this->graph->connect('.internal.reference_in_expression', null, $targetId, $targetDefinition, $value, $this->lazy || $targetDefinition?->isLazy(), \true, $this->byConstructor, $this->byMultiUseArgument, \true);
             }
             return $value;
         }

@@ -4,7 +4,10 @@ declare (strict_types=1);
 namespace JooosiMail\Database\Migration\Versions;
 
 use JooosiMailDeps\Doctrine\DBAL\Connection;
+use JooosiMailDeps\Doctrine\DBAL\Schema\Table;
+use JooosiMailDeps\Doctrine\DBAL\Types\Types;
 use JooosiMail\Database\Migration\MigrationInterface;
+use JooosiMail\Database\Migration\MigrationSchema;
 use JooosiMail\Infrastructure\Database\TableNameResolver;
 /**
  * Creates persisted smooth weighted round robin routing state.
@@ -23,22 +26,17 @@ final class Version202603300001CreateWeightedRoundRobinStateTable implements Mig
     }
     public function up(Connection $connection, TableNameResolver $tableNameResolver): void
     {
-        $connection->executeStatement(sprintf('CREATE TABLE IF NOT EXISTS %s (
-                scope_key VARCHAR(64) NOT NULL,
-                weights_json LONGTEXT NOT NULL,
-                created_at DATETIME NOT NULL,
-                updated_at DATETIME NOT NULL,
-                PRIMARY KEY (scope_key),
-                KEY idx_updated_at (updated_at)
-            ) %s', $tableNameResolver->resolve('weighted_round_robin_states'), $this->getCharsetCollation()));
+        $table = new Table($tableNameResolver->resolve('weighted_round_robin_states'));
+        $table->addColumn('scope_key', Types::STRING, ['length' => 64, 'notnull' => \true]);
+        $table->addColumn('weights_json', Types::TEXT, ['notnull' => \true]);
+        $table->addColumn('created_at', Types::DATETIME_MUTABLE, ['notnull' => \true]);
+        $table->addColumn('updated_at', Types::DATETIME_MUTABLE, ['notnull' => \true]);
+        $table->setPrimaryKey(['scope_key']);
+        $table->addIndex(['updated_at'], 'idx_updated_at');
+        MigrationSchema::createTable($connection, $table);
     }
     public function down(Connection $connection, TableNameResolver $tableNameResolver): void
     {
-        $connection->executeStatement(sprintf('DROP TABLE IF EXISTS %s', $tableNameResolver->resolve('weighted_round_robin_states')));
-    }
-    private function getCharsetCollation(): string
-    {
-        global $wpdb;
-        return $wpdb->get_charset_collate();
+        MigrationSchema::dropTable($connection, $tableNameResolver->resolve('weighted_round_robin_states'));
     }
 }

@@ -4,6 +4,7 @@ declare (strict_types=1);
 namespace JooosiMail\Mail\Routing\State;
 
 use JooosiMailDeps\Doctrine\DBAL\Connection as DbalConnection;
+use JooosiMailDeps\Doctrine\DBAL\Platforms\SQLitePlatform;
 use JooosiMail\Discovery\Attribute\Service;
 use JooosiMail\Infrastructure\Database\TableNameResolver;
 use Throwable;
@@ -93,13 +94,18 @@ final class RateLimitStateRepository
     {
         $table = $this->tableNameResolver->resolve('connection_rate_limits');
         $now = gmdate('Y-m-d H:i:s');
-        $this->connection->executeStatement(sprintf('INSERT INTO %s (connection_id, period_key, usage_count, window_started_at, window_ends_at, created_at, updated_at)
-                 VALUES (:connection_id, :period_key, :usage_count, :window_started_at, :window_ends_at, :created_at, :updated_at)
-                 ON DUPLICATE KEY UPDATE
+        $conflictClause = $this->connection->getDatabasePlatform() instanceof SQLitePlatform ? 'ON CONFLICT (connection_id, period_key) DO UPDATE SET
+                 usage_count = excluded.usage_count,
+                 window_started_at = excluded.window_started_at,
+                 window_ends_at = excluded.window_ends_at,
+                 updated_at = excluded.updated_at' : 'ON DUPLICATE KEY UPDATE
                  usage_count = VALUES(usage_count),
                  window_started_at = VALUES(window_started_at),
                  window_ends_at = VALUES(window_ends_at),
-                 updated_at = VALUES(updated_at)', $table), ['connection_id' => $connectionId, 'period_key' => $period, 'usage_count' => $state['count'], 'window_started_at' => gmdate('Y-m-d H:i:s', $state['started_at']), 'window_ends_at' => gmdate('Y-m-d H:i:s', $state['ends_at']), 'created_at' => $now, 'updated_at' => $now]);
+                 updated_at = VALUES(updated_at)';
+        $this->connection->executeStatement(sprintf('INSERT INTO %s (connection_id, period_key, usage_count, window_started_at, window_ends_at, created_at, updated_at)
+                 VALUES (:connection_id, :period_key, :usage_count, :window_started_at, :window_ends_at, :created_at, :updated_at)
+                 %s', $table, $conflictClause), ['connection_id' => $connectionId, 'period_key' => $period, 'usage_count' => $state['count'], 'window_started_at' => gmdate('Y-m-d H:i:s', $state['started_at']), 'window_ends_at' => gmdate('Y-m-d H:i:s', $state['ends_at']), 'created_at' => $now, 'updated_at' => $now]);
     }
     /**
      * @since 0.1.0
@@ -108,9 +114,10 @@ final class RateLimitStateRepository
     {
         $now = time();
         $createdAt = gmdate('Y-m-d H:i:s', $now);
+        $conflictClause = $this->connection->getDatabasePlatform() instanceof SQLitePlatform ? 'ON CONFLICT (connection_id, period_key) DO NOTHING' : 'ON DUPLICATE KEY UPDATE period_key = period_key';
         $this->connection->executeStatement(sprintf('INSERT INTO %s (connection_id, period_key, usage_count, window_started_at, window_ends_at, created_at, updated_at)
                  VALUES (:connection_id, :period_key, 0, :window_started_at, :window_ends_at, :created_at, :updated_at)
-                 ON DUPLICATE KEY UPDATE period_key = period_key', $this->tableNameResolver->resolve('connection_rate_limits')), ['connection_id' => $connectionId, 'period_key' => $period, 'window_started_at' => $createdAt, 'window_ends_at' => gmdate('Y-m-d H:i:s', $now + $windowSeconds), 'created_at' => $createdAt, 'updated_at' => $createdAt]);
+                 %s', $this->tableNameResolver->resolve('connection_rate_limits'), $conflictClause), ['connection_id' => $connectionId, 'period_key' => $period, 'window_started_at' => $createdAt, 'window_ends_at' => gmdate('Y-m-d H:i:s', $now + $windowSeconds), 'created_at' => $createdAt, 'updated_at' => $createdAt]);
     }
     /**
      * @return array{count: int, started_at: int, ends_at: int}
@@ -119,8 +126,20 @@ final class RateLimitStateRepository
      */
     private function fetchStateForUpdate(int $connectionId, string $period, int $windowSeconds): array
     {
-        $row = $this->connection->fetchAssociative(sprintf('SELECT * FROM %s WHERE connection_id = :connection_id AND period_key = :period_key LIMIT 1 FOR UPDATE', $this->tableNameResolver->resolve('connection_rate_limits')), ['connection_id' => $connectionId, 'period_key' => $period]);
+        $row = $this->connection->fetchAssociative(sprintf('SELECT * FROM %s WHERE connection_id = :connection_id AND period_key = :period_key LIMIT 1%s', $this->tableNameResolver->resolve('connection_rate_limits'), $this->lockClause()), ['connection_id' => $connectionId, 'period_key' => $period]);
         return $this->normalizeState(is_array($row) ? $row : [], $windowSeconds);
+    }
+    /**
+     * Return the row-lock suffix supported by the active platform.
+     *
+     * @since 0.1.0
+     */
+    private function lockClause(): string
+    {
+        if ($this->connection->getDatabasePlatform() instanceof SQLitePlatform) {
+            return '';
+        }
+        return ' FOR UPDATE';
     }
     /**
      * @param array<string, mixed> $row
