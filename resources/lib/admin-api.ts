@@ -429,6 +429,25 @@ export type AdminSettingsData = {
   }
 }
 
+export type AdminAlertChannel = string
+
+export type AdminAlertChannelStatus = {
+  enabled: boolean
+  configured: boolean
+  hasSavedCredential: boolean
+  target: string
+}
+
+export type AdminAlertSettings = {
+  channels: Record<AdminAlertChannel, AdminAlertChannelStatus>
+}
+
+export type AdminAlertChannelSavePayload = {
+  enabled: boolean
+  secret: string
+  target: string
+}
+
 export type ConnectionSecretAction = "keep" | "replace" | "clear"
 
 export type ConnectionSavePayload = {
@@ -749,5 +768,37 @@ export async function updateSettings(settings: AdminSettings): Promise<AdminSett
   return adminFetch<AdminSettingsData>("settings", {
     method: "PUT",
     body: JSON.stringify({ settings }),
+  })
+}
+
+export async function getAlertSettings(signal?: AbortSignal): Promise<AdminAlertSettings> {
+  return adminFetch<AdminAlertSettings>("alerts", { signal })
+}
+
+export async function saveAlertChannel(
+  channel: AdminAlertChannel,
+  payload: AdminAlertChannelSavePayload,
+): Promise<AdminAlertSettings> {
+  return adminFetch<AdminAlertSettings>(`alerts/${channel}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function testAlertChannel(
+  channel: AdminAlertChannel,
+): Promise<{ sent: boolean; message: string }> {
+  return adminFetch<{ sent: boolean; message: string }>(`alerts/${channel}/test`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  })
+}
+
+export async function disconnectAlertChannel(
+  channel: AdminAlertChannel,
+): Promise<AdminAlertSettings> {
+  return adminFetch<AdminAlertSettings>(`alerts/${channel}/disconnect`, {
+    method: "POST",
+    body: JSON.stringify({}),
   })
 }

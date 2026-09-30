@@ -130,6 +130,18 @@ Current settings include:
 - circuit-breaker threshold, failure window, and cooldown defaults
 - queue retry count, initial delay, multiplier, and maximum delay
 
+### Delivery Failure Alerts
+
+The Settings → Alerts screen can notify Telegram, Discord, and Slack when an email reaches a terminal failed state. A message that is still waiting for a retry does not trigger an alert. Each WordPress site sends notifications directly to the provider API using the credentials configured for that channel; Jooosi Mail does not operate a notification relay. Credentials are encrypted before they are saved in the `jooosi_mail_config` option.
+
+An alert includes the site name, email subject, delivery error, and a link to its mail log. The email body and recipient list are not attached.
+
+- **Telegram:** Create a bot with [@BotFather](https://t.me/BotFather), then save its bot token and destination. The token identifies the sender; `chat_id` tells Telegram where to deliver the message. For a direct message, the user must send the bot `/start` first and the destination is a numeric chat ID. Private groups also use a numeric chat ID. Public supergroups and channels can use `@username`; for channels, make the bot an administrator with permission to post. A regular user's `@username` is not a valid destination.
+- **Discord:** Create a webhook in the destination channel’s settings, then save the webhook URL.
+- **Slack:** Create and install your Slack app with the `chat:write` bot scope, invite its bot to the destination channel, then save the Bot User OAuth Token (`xoxb-…`) and channel ID.
+
+Use **Send test alert** to check the saved credentials and destination. Leaving a secret field blank keeps the stored credential. **Disconnect** disables that channel and removes its saved credential and destination.
+
 ## Routing Model
 
 Jooosi Mail separates routing into four concerns:

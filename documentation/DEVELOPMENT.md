@@ -144,6 +144,18 @@ To add a provider adapter:
 4. Keep provider parsing isolated inside the adapter.
 5. Feed normalized events into the shared webhook event model.
 
+### Add a New Alert Channel
+
+To add an alert provider:
+
+1. Add a `#[Service]` class under `src/Alert/Channel` that implements `AlertChannelDriverInterface`.
+2. Give it a stable lowercase key, display name, saved credential field, optional target field, validation, and delivery behavior. Driver services are tagged into `AlertChannelRegistry` automatically.
+3. Use `AlertHttpClient` for outbound JSON requests and provider response handling.
+4. Add one channel definition to `resources/components/alert-settings.tsx` for its labels and setup instructions. The admin API accepts generic `secret` and `target` fields.
+5. Keep the option field names stable after release so existing credentials remain readable.
+
+The configuration service, REST routes, and notifier dispatch channels through the registry; they should not need provider-specific branches.
+
 ### Add a New Queue Handler or Message
 
 To extend async processing:

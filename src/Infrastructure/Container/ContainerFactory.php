@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace JooosiMail\Infrastructure\Container;
 
 use Doctrine\DBAL\Connection;
+use JooosiMail\Alert\Channel\AlertChannelDriverInterface;
+use JooosiMail\Alert\Channel\AlertChannelRegistry;
 use JooosiMail\Bootstrap\Environment;
 use JooosiMail\Bootstrap\LifecycleManager;
 use JooosiMail\Bootstrap\Paths;
@@ -27,7 +29,7 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use ReflectionClass;
-use Throwable;
+use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
@@ -37,6 +39,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\Serialization\PhpSerializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Throwable;
 
 /**
  * Builds the Jooosi Mail Symfony container.
@@ -188,6 +191,17 @@ final class ContainerFactory
             $reflectionClass = new ReflectionClass($className);
             if ($reflectionClass->isAbstract()) {
                 continue;
+            }
+
+            if ($reflectionClass->implementsInterface(AlertChannelDriverInterface::class)) {
+                $definition->addTag(AlertChannelRegistry::SERVICE_TAG);
+            }
+
+            if ($className === AlertChannelRegistry::class) {
+                $definition->setArgument(
+                    '$channels',
+                    new TaggedIteratorArgument(AlertChannelRegistry::SERVICE_TAG),
+                );
             }
 
             $builder->setDefinition($className, $definition);

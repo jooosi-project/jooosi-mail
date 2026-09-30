@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Email failure alert via Telegram bots, Discord channel webhooks, and Slack apps.
+
 ## [1.0.11] - 2026-09-29
 
 ### Added

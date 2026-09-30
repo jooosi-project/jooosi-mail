@@ -2,6 +2,7 @@ import * as React from "react";
 import Alert02Icon from "~icons/hugeicons/alert-02";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/reui/alert";
+import { AlertSettings } from "@/components/alert-settings";
 import { Badge } from "@/components/reui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -215,6 +216,7 @@ export default function SettingsPage() {
   const [draft, setDraft] = React.useState<SettingsDraft | null>(null);
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState("delivery");
 
   React.useEffect(() => {
     if (!data) {
@@ -398,9 +400,11 @@ export default function SettingsPage() {
             Configure delivery policy, routing safeguards, and retry behavior for the whole plugin.
           </p>
         </div>
-        <Button type="button" onClick={() => void handleSave()} disabled={saving}>
-          {saving ? "Saving..." : "Save settings"}
-        </Button>
+        {activeTab !== "alerts" ? (
+          <Button type="button" onClick={() => void handleSave()} disabled={saving}>
+            {saving ? "Saving..." : "Save settings"}
+          </Button>
+        ) : null}
       </div>
 
       {error || saveError ? (
@@ -413,13 +417,18 @@ export default function SettingsPage() {
         </div>
       ) : null}
 
-      <Tabs defaultValue="delivery" className="gap-4 px-4 lg:px-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as string)}
+        className="gap-4 px-4 lg:px-6"
+      >
         <TabsList variant="line" className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
           <TabsTrigger value="sender">Sender</TabsTrigger>
           <TabsTrigger value="limits">Limits</TabsTrigger>
           <TabsTrigger value="recovery">Recovery</TabsTrigger>
+          <TabsTrigger value="alerts">Alerts</TabsTrigger>
         </TabsList>
 
         <TabsContent value="delivery" className="flex flex-col gap-4">
@@ -996,6 +1005,10 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="alerts" className="flex flex-col gap-4">
+          <AlertSettings />
         </TabsContent>
       </Tabs>
     </div>
