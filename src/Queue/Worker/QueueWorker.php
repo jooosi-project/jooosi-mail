@@ -15,6 +15,7 @@ use JooosiMail\Queue\Stamp\DatabaseMessageStamp;
 use JooosiMail\Queue\Transport\DatabaseReceiver;
 use JooosiMail\Queue\Transport\DatabaseTransport;
 use JooosiMailDeps\Symfony\Component\Messenger\Envelope;
+use JooosiMailDeps\Symfony\Component\Messenger\Exception\HandlerFailedException;
 use JooosiMailDeps\Symfony\Component\Messenger\MessageBusInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\ReceivedStamp;
 use Throwable;
@@ -67,7 +68,7 @@ final class QueueWorker
                     try {
                         $result = $this->handleFailure($attemptEnvelope, $throwable);
                     } catch (Throwable $handlingThrowable) {
-                        $this->recordAttemptOutcome($attemptEnvelope, 'interrupted', $handlingThrowable->getMessage());
+                        $this->recordAttemptOutcome($attemptEnvelope, 'interrupted', $this->resolveFailureMessage($handlingThrowable));
                         throw $handlingThrowable;
                     }
                     $this->recordAttemptOutcome($attemptEnvelope, $result['outcome'], $result['errorMessage'], $result['retryDelaySeconds']);
@@ -94,22 +95,42 @@ final class QueueWorker
      */
     private function handleFailure(Envelope $envelope, Throwable $throwable): array
     {
+        $errorMessage = $this->resolveFailureMessage($throwable);
         if ($this->retryDecider->shouldRetry($envelope, $throwable)) {
             $delaySeconds = $this->retryDecider->getDelaySeconds($envelope, $throwable);
-            if (!$this->databaseReceiver->reschedule($envelope, $throwable->getMessage(), $delaySeconds)) {
+            if (!$this->databaseReceiver->reschedule($envelope, $errorMessage, $delaySeconds)) {
                 $this->eventPublisher->doAction('a!jooosi-mail/queue:message.claim-lost', $envelope, $throwable);
-                return ['outcome' => 'claim_lost', 'errorMessage' => $throwable->getMessage(), 'retryDelaySeconds' => null];
+                return ['outcome' => 'claim_lost', 'errorMessage' => $errorMessage, 'retryDelaySeconds' => null];
             }
             $this->eventPublisher->doAction('a!jooosi-mail/queue:message.retrying', $envelope, $throwable, $delaySeconds);
-            return ['outcome' => 'retrying', 'errorMessage' => $throwable->getMessage(), 'retryDelaySeconds' => $delaySeconds];
+            return ['outcome' => 'retrying', 'errorMessage' => $errorMessage, 'retryDelaySeconds' => $delaySeconds];
         }
-        if (!$this->databaseReceiver->rejectClaimed($envelope, $throwable->getMessage())) {
+        if (!$this->databaseReceiver->rejectClaimed($envelope, $errorMessage)) {
             $this->eventPublisher->doAction('a!jooosi-mail/queue:message.claim-lost', $envelope, $throwable);
-            return ['outcome' => 'claim_lost', 'errorMessage' => $throwable->getMessage(), 'retryDelaySeconds' => null];
+            return ['outcome' => 'claim_lost', 'errorMessage' => $errorMessage, 'retryDelaySeconds' => null];
         }
-        $this->markMailFailed($envelope, $throwable);
+        $this->markMailFailed($envelope, $errorMessage);
         $this->eventPublisher->doAction('a!jooosi-mail/queue:message.failed', $envelope, $throwable);
-        return ['outcome' => 'failed', 'errorMessage' => $throwable->getMessage(), 'retryDelaySeconds' => null];
+        return ['outcome' => 'failed', 'errorMessage' => $errorMessage, 'retryDelaySeconds' => null];
+    }
+    /**
+     * Remove Messenger's handler wrapper while retaining every underlying failure.
+     *
+     * @since 1.0.12
+     */
+    private function resolveFailureMessage(Throwable $throwable): string
+    {
+        if (!$throwable instanceof HandlerFailedException) {
+            return $throwable->getMessage();
+        }
+        $messages = [];
+        foreach ($throwable->getWrappedExceptions() as $failure) {
+            $message = trim($this->resolveFailureMessage($failure));
+            if ($message !== '' && !in_array($message, $messages, \true)) {
+                $messages[] = $message;
+            }
+        }
+        return $messages !== [] ? implode(' | ', $messages) : $throwable->getMessage();
     }
     /**
      * @since 1.0.9
@@ -132,15 +153,15 @@ final class QueueWorker
     /**
      * @since 0.1.0
      */
-    private function markMailFailed(Envelope $envelope, Throwable $throwable): void
+    private function markMailFailed(Envelope $envelope, string $errorMessage): void
     {
         $message = $envelope->getMessage();
         if (!$message instanceof SendEmailMessage) {
             return;
         }
         try {
-            $this->mailLogRepository->markFailed($message->mailLogId, $throwable->getMessage());
-            $this->eventPublisher->doAction('a!jooosi-mail/mail:failed', $message->mailLogId, $throwable->getMessage());
+            $this->mailLogRepository->markFailed($message->mailLogId, $errorMessage);
+            $this->eventPublisher->doAction('a!jooosi-mail/mail:failed', $message->mailLogId, $errorMessage);
             $this->cleanupTerminalLog($message->mailLogId);
         } catch (Throwable $failureThrowable) {
             $this->eventPublisher->doAction('a!jooosi-mail/mail:failed-log.failed', $message->mailLogId, $throwable, $failureThrowable);

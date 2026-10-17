@@ -4,7 +4,7 @@ Donate link: https://ko-fi.com/Q5Q75XSF7
 Tags: email, smtp, mailer, transactional email, logs
 Requires at least: 7.0
 Tested up to: 7.1
-Stable tag: 1.0.11
+Stable tag: 1.0.12
 Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -157,6 +157,14 @@ Yes. Jooosi Mail includes WP-CLI commands for operational tasks such as managing
 7. Mail delivery and routing settings.
 
 == Changelog ==
+
+= 1.0.12 - 2026-10-17 =
+
+**Added**
+
+* Email failure alert via Telegram bots, Discord channel webhooks, and Slack apps.
+* Form to compose and send emails from the Mail Logs page.
+* WP-CLI `mail:send` command to send emails from the command line.
 
 = 1.0.11 - 2026-09-29 =
 

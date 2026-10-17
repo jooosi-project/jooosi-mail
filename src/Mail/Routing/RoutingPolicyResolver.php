@@ -25,7 +25,11 @@ final class RoutingPolicyResolver
         $priority = $this->resolvePriority($mailRequest);
         $delaySeconds = $this->resolveDelay($mailRequest);
         $preferredConnectionId = $this->resolvePreferredConnectionId($mailRequest);
-        return new \JooosiMail\Mail\Routing\DeliveryPlan(mode: \JooosiMail\Mail\Routing\DeliveryMode::fromMixed($this->optionStore->get('settings.delivery.mode', \JooosiMail\Mail\Routing\DeliveryMode::Async->value)), strategy: \JooosiMail\Mail\Routing\RoutingStrategy::fromMixed($this->optionStore->get('settings.delivery.strategy', \JooosiMail\Mail\Routing\RoutingStrategy::WeightedRandom->value)), priority: $priority, delaySeconds: $delaySeconds, preferredConnectionId: $preferredConnectionId);
+        $mode = \JooosiMail\Mail\Routing\DeliveryMode::fromMixed($this->optionStore->get('settings.delivery.mode', \JooosiMail\Mail\Routing\DeliveryMode::Async->value));
+        if ($delaySeconds > 0) {
+            $mode = \JooosiMail\Mail\Routing\DeliveryMode::Async;
+        }
+        return new \JooosiMail\Mail\Routing\DeliveryPlan(mode: $mode, strategy: \JooosiMail\Mail\Routing\RoutingStrategy::fromMixed($this->optionStore->get('settings.delivery.strategy', \JooosiMail\Mail\Routing\RoutingStrategy::WeightedRandom->value)), priority: $priority, delaySeconds: $delaySeconds, preferredConnectionId: $preferredConnectionId);
     }
     /**
      * @since 0.1.0

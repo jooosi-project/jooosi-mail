@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInitbd2cfb39ddfb60a99212966346f33c21
+class ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
@@ -1624,6 +1624,7 @@ class ComposerStaticInitbd2cfb39ddfb60a99212966346f33c21
         'JooosiMail\\Admin\\Connection\\AdminConnectionPayloadFactory' => __DIR__ . '/../..' . '/src/Admin/Connection/AdminConnectionPayloadFactory.php',
         'JooosiMail\\Admin\\Connection\\AdminConnectionPresenter' => __DIR__ . '/../..' . '/src/Admin/Connection/AdminConnectionPresenter.php',
         'JooosiMail\\Admin\\Controller\\AdminRouteAuthorization' => __DIR__ . '/../..' . '/src/Admin/Controller/AdminRouteAuthorization.php',
+        'JooosiMail\\Admin\\Controller\\AlertController' => __DIR__ . '/../..' . '/src/Admin/Controller/AlertController.php',
         'JooosiMail\\Admin\\Controller\\ConnectionController' => __DIR__ . '/../..' . '/src/Admin/Controller/ConnectionController.php',
         'JooosiMail\\Admin\\Controller\\DashboardController' => __DIR__ . '/../..' . '/src/Admin/Controller/DashboardController.php',
         'JooosiMail\\Admin\\Controller\\Log\\LogQueryNormalizer' => __DIR__ . '/../..' . '/src/Admin/Controller/Log/LogQueryNormalizer.php',
@@ -1632,6 +1633,7 @@ class ComposerStaticInitbd2cfb39ddfb60a99212966346f33c21
         'JooosiMail\\Admin\\Controller\\Log\\QueueController' => __DIR__ . '/../..' . '/src/Admin/Controller/Log/QueueController.php',
         'JooosiMail\\Admin\\Controller\\Log\\WebhookController' => __DIR__ . '/../..' . '/src/Admin/Controller/Log/WebhookController.php',
         'JooosiMail\\Admin\\Controller\\SettingsController' => __DIR__ . '/../..' . '/src/Admin/Controller/SettingsController.php',
+        'JooosiMail\\Admin\\Mail\\ComposedEmailSender' => __DIR__ . '/../..' . '/src/Admin/Mail/ComposedEmailSender.php',
         'JooosiMail\\Admin\\Mail\\TestEmailDeliveryTemplateListener' => __DIR__ . '/../..' . '/src/Admin/Mail/TestEmailDeliveryTemplateListener.php',
         'JooosiMail\\Admin\\Mail\\TestEmailResult' => __DIR__ . '/../..' . '/src/Admin/Mail/TestEmailResult.php',
         'JooosiMail\\Admin\\Mail\\TestEmailSender' => __DIR__ . '/../..' . '/src/Admin/Mail/TestEmailSender.php',
@@ -1658,6 +1660,17 @@ class ComposerStaticInitbd2cfb39ddfb60a99212966346f33c21
         'JooosiMail\\Admin\\Settings\\SettingsPayloadFactory' => __DIR__ . '/../..' . '/src/Admin/Settings/SettingsPayloadFactory.php',
         'JooosiMail\\Admin\\Settings\\SettingsUpdater' => __DIR__ . '/../..' . '/src/Admin/Settings/SettingsUpdater.php',
         'JooosiMail\\Admin\\Settings\\SettingsValidationException' => __DIR__ . '/../..' . '/src/Admin/Settings/SettingsValidationException.php',
+        'JooosiMail\\Alert\\AlertConfigurationService' => __DIR__ . '/../..' . '/src/Alert/AlertConfigurationService.php',
+        'JooosiMail\\Alert\\AlertDeliveryException' => __DIR__ . '/../..' . '/src/Alert/AlertDeliveryException.php',
+        'JooosiMail\\Alert\\AlertMessage' => __DIR__ . '/../..' . '/src/Alert/AlertMessage.php',
+        'JooosiMail\\Alert\\AlertNotifier' => __DIR__ . '/../..' . '/src/Alert/AlertNotifier.php',
+        'JooosiMail\\Alert\\Channel\\AlertChannelDriverInterface' => __DIR__ . '/../..' . '/src/Alert/Channel/AlertChannelDriverInterface.php',
+        'JooosiMail\\Alert\\Channel\\AlertChannelRegistry' => __DIR__ . '/../..' . '/src/Alert/Channel/AlertChannelRegistry.php',
+        'JooosiMail\\Alert\\Channel\\AlertHttpClient' => __DIR__ . '/../..' . '/src/Alert/Channel/AlertHttpClient.php',
+        'JooosiMail\\Alert\\Channel\\DiscordAlertChannel' => __DIR__ . '/../..' . '/src/Alert/Channel/DiscordAlertChannel.php',
+        'JooosiMail\\Alert\\Channel\\SlackAlertChannel' => __DIR__ . '/../..' . '/src/Alert/Channel/SlackAlertChannel.php',
+        'JooosiMail\\Alert\\Channel\\TelegramAlertChannel' => __DIR__ . '/../..' . '/src/Alert/Channel/TelegramAlertChannel.php',
+        'JooosiMail\\Alert\\MailFailureAlertListener' => __DIR__ . '/../..' . '/src/Alert/MailFailureAlertListener.php',
         'JooosiMail\\Bootstrap\\Environment' => __DIR__ . '/../..' . '/src/Bootstrap/Environment.php',
         'JooosiMail\\Bootstrap\\Kernel' => __DIR__ . '/../..' . '/src/Bootstrap/Kernel.php',
         'JooosiMail\\Bootstrap\\LifecycleManager' => __DIR__ . '/../..' . '/src/Bootstrap/LifecycleManager.php',
@@ -1972,9 +1985,9 @@ class ComposerStaticInitbd2cfb39ddfb60a99212966346f33c21
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInitbd2cfb39ddfb60a99212966346f33c21::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInitbd2cfb39ddfb60a99212966346f33c21::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInitbd2cfb39ddfb60a99212966346f33c21::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b::$classMap;
 
         }, null, ClassLoader::class);
     }

@@ -101,6 +101,8 @@ final class DeliveryService
         if ($connectionErrors === []) {
             return $deliveryResult;
         }
-        return new DeliveryResult(successful: \false, error: implode(' | ', array_values($connectionErrors)), temporaryFailure: $deliveryResult->temporaryFailure, retryAfterSeconds: $deliveryResult->retryAfterSeconds);
+        $summary = trim((string) ($deliveryResult->error ?? ''));
+        $details = implode(' | ', array_values($connectionErrors));
+        return new DeliveryResult(successful: \false, error: $summary !== '' ? sprintf('%s %s', $summary, $details) : $details, temporaryFailure: $deliveryResult->temporaryFailure, retryAfterSeconds: $deliveryResult->retryAfterSeconds);
     }
 }
