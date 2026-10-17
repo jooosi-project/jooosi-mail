@@ -29,6 +29,8 @@ wp jooosi-mail connection:status --all
 wp jooosi-mail webhook:status --all=true
 wp jooosi-mail queue:status
 wp jooosi-mail queue:failed
+wp jooosi-mail mail:send --to=you@example.com --subject="Hello" --text-message="Hello from WP-CLI."
+wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at="2030-01-01T09:00:00+07:00"
 wp jooosi-mail mail:test --to=you@example.com
 wp jooosi-mail mail:test --to=you@example.com --connection-id=3
 pnpm dev

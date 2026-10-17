@@ -64,7 +64,7 @@ final class ConnectionViewFactoryTest extends JooosiMailIntegrationTestCase
     /**
      * @since 0.1.0
      */
-    public function testDetailPayloadIncludesTransportSchemeChoicesAndCredentialDescriptions(): void
+    public function testDetailPayloadIncludesTransportSchemeChoicesAndCredentialRequirements(): void
     {
         $connection = $this->connectionManager()->create([
             'profile' => 'mailkite',
@@ -87,10 +87,6 @@ final class ConnectionViewFactoryTest extends JooosiMailIntegrationTestCase
         self::assertSame([
             ['field' => 'scheme', 'operator' => 'in', 'values' => ['mailkite+smtp', 'mailkite+smtps']],
         ], $payload['configurationFields']['smtp_password']['requiredWhen']);
-        self::assertSame(
-            'Enter this separately; the API key is not used automatically.',
-            $payload['configurationFields']['smtp_password']['description'],
-        );
     }
 
     /**

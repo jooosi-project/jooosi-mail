@@ -38,18 +38,25 @@ final class AdminConnectionPresenter
                     continue;
                 }
 
-                $configurationFields[] = [
+                $configurationField = [
                     'name' => (string) $fieldName,
                     'label' => (string) ($field['label'] ?? $fieldName),
                     'type' => (string) ($field['type'] ?? 'text'),
                     'required' => (bool) ($field['required'] ?? false),
-                    'description' => is_string($field['description'] ?? null) ? trim($field['description']) : '',
                     'secret' => (($field['type'] ?? null) === 'password') || (($field['secret'] ?? false) === true),
                     'default' => $field['default'] ?? null,
                     'choices' => array_values(array_map('strval', is_array($field['choices'] ?? null) ? $field['choices'] : [])),
                     'visibleWhen' => $this->normalizeFieldConditions($field['visible_when'] ?? null),
                     'requiredWhen' => $this->normalizeFieldConditions($field['required_when'] ?? null),
                 ];
+
+                $description = is_string($field['description'] ?? null) ? trim($field['description']) : '';
+
+                if ($description !== '') {
+                    $configurationField['description'] = $description;
+                }
+
+                $configurationFields[] = $configurationField;
             }
 
             $payload = [

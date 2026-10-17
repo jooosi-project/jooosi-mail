@@ -191,6 +191,30 @@ export type AdminSendTestEmailResponse = {
   message: string
 }
 
+export type AdminComposeEmailPayload = {
+  to: string
+  cc?: string
+  bcc?: string
+  replyTo?: string
+  subject: string
+  htmlBody: string
+  connectionId?: number
+  sendAt?: string
+}
+
+export type AdminComposeEmailResponse = {
+  submitted: boolean
+  mailLogId: number
+  message: string
+}
+
+export type AdminRecipientSuggestion = {
+  id: number
+  name: string
+  email: string
+  avatarUrl: string
+}
+
 export type AdminWebhookLog = {
   id: number
   connectionId: number | null
@@ -668,6 +692,25 @@ export async function sendTestEmail(payload: AdminSendTestEmailPayload): Promise
     method: "POST",
     body: JSON.stringify(payload),
   })
+}
+
+export async function composeEmail(payload: AdminComposeEmailPayload): Promise<AdminComposeEmailResponse> {
+  return adminFetch<AdminComposeEmailResponse>("logs/mail/compose", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function getMailRecipientSuggestions(
+  search: string,
+  signal?: AbortSignal,
+): Promise<{ users: AdminRecipientSuggestion[] }> {
+  const searchParams = new URLSearchParams({ search })
+
+  return adminFetch<{ users: AdminRecipientSuggestion[] }>(
+    `logs/mail/recipients?${searchParams.toString()}`,
+    { signal },
+  )
 }
 
 export async function getWebhookLogs(query: AdminWebhookLogQuery = {}, signal?: AbortSignal): Promise<AdminWebhookLogPageData> {

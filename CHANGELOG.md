@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Email failure alert via Telegram bots, Discord channel webhooks, and Slack apps.
+- Form to compose and send emails from the Mail Logs page.
+- WP-CLI `mail:send` command to send emails from the command line.
 
 ## [1.0.11] - 2026-09-29
 

@@ -184,9 +184,12 @@ final class DeliveryService
             return $deliveryResult;
         }
 
+        $summary = trim((string) ($deliveryResult->error ?? ''));
+        $details = implode(' | ', array_values($connectionErrors));
+
         return new DeliveryResult(
             successful: false,
-            error: implode(' | ', array_values($connectionErrors)),
+            error: $summary !== '' ? sprintf('%s %s', $summary, $details) : $details,
             temporaryFailure: $deliveryResult->temporaryFailure,
             retryAfterSeconds: $deliveryResult->retryAfterSeconds,
         );

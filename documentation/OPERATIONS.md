@@ -268,11 +268,30 @@ wp jooosi-mail mail:attempts --connection-id=3 --status=failed
 
 This gives operators a direct view into per-connection outcomes, provider message ids, and the latest error text without querying the database manually.
 
+Send plain text, HTML, or a multipart email with both alternatives through the configured Jooosi Mail delivery mode. Add `--send-at` to schedule a future delivery. It accepts ISO 8601 timestamps, Unix timestamps in seconds, and PHP `strtotime`-compatible expressions such as `tomorrow 9am`. Local date/time values and relative expressions use the WordPress timezone. Scheduled messages use the queue even when synchronous delivery is configured:
+
+```bash
+wp jooosi-mail mail:send --to=you@example.com --subject="Hello" --text-message="Hello from WP-CLI."
+wp jooosi-mail mail:send --to="you@example.com,team@example.com" --subject="Update" --html-message="<p>All set.</p>" --connection-id=3
+wp jooosi-mail mail:send --to=you@example.com --subject="Update" --text-message="All set." --html-message="<p>All set.</p>"
+wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at="2030-01-01T09:00:00+07:00"
+wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at="2030-01-01 09:00"
+wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at="2030-01-01T02:00:00Z"
+wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at="tomorrow 9am"
+wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at=1893488400
+```
+
+Scheduled messages are delivered on the first queue run at or after the requested time, so actual delivery depends on WordPress/Action Scheduler running. The command also accepts `--cc`, `--bcc`, and `--reply-to` with comma-separated addresses. Use `mail:attempts --mail-log-id=<id>` to inspect delivery attempts for the returned mail log id.
+
+## Email Logs
+
+Use **Compose email** on the Email logs page to submit a rich-text email through the configured delivery pipeline. Add To, Cc, Bcc, and an optional Reply-To address, choose a preferred connection profile, and set a send time in the browser's local time zone. Leaving the connection on configured routing uses the normal routing rules. Leaving the send time empty submits the message immediately; scheduled messages use the queue and are delivered on the first run at or after the requested time.
+
+Use **Resend email** from any retained email log to submit a fresh copy through the current routing and delivery settings. The action is available for every lifecycle status and requires confirmation because resending a queued or processing entry can intentionally create a duplicate delivery. Jooosi Mail preserves the source log, creates a new lifecycle row, and removes stale scheduling and message identity headers from the new submission.
+
 ## Email Log Retention
 
 Email logging is enabled by default and terminal logs are kept forever by default.
-
-Use **Resend email** from any retained email log to submit a fresh copy through the current routing and delivery settings. The action is available for every lifecycle status and requires confirmation because resending a queued or processing entry can intentionally create a duplicate delivery. Jooosi Mail preserves the source log, creates a new lifecycle row, and removes stale scheduling and message identity headers from the new submission.
 
 Administrators can disable retained email logs or set a retention duration from the plugin settings screen. Jooosi Mail still keeps the internal mail-log row while a message is `pending`, `queued`, or `processing`, because async delivery reconstructs the message from that durable payload. When logging is disabled, terminal `sent` and `failed` mail logs and their delivery-attempt rows are deleted after delivery completes.
 

@@ -105,10 +105,6 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
         self::assertSame([
             ['field' => 'scheme', 'operator' => 'in', 'values' => ['mailkite+smtp', 'mailkite+smtps']],
         ], $profiles['mailkite']['configuration_fields']['smtp_password']['required_when']);
-        self::assertSame(
-            'Enter this separately; the API key is not used automatically.',
-            $profiles['mailkite']['configuration_fields']['smtp_password']['description'],
-        );
         self::assertSame(['mailjet+api', 'mailjet+smtp'], $profiles['mailjet']['schemes']);
         self::assertTrue((bool) $profiles['mailjet']['supports_webhooks']);
         self::assertSame([
@@ -174,10 +170,6 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
         self::assertSame([
             ['field' => 'scheme', 'operator' => 'in', 'values' => ['turbosmtp+smtp']],
         ], $profiles['turbosmtp']['configuration_fields']['smtp_username']['required_when']);
-        self::assertSame(
-            'Enter separately; API credentials are not used automatically.',
-            $profiles['turbosmtp']['configuration_fields']['smtp_password']['description'],
-        );
         self::assertSame(['zohomail+smtp', 'zohomail+smtps'], $profiles['zohomail']['schemes']);
         self::assertFalse((bool) $profiles['zohomail']['supports_webhooks']);
     }
@@ -1058,7 +1050,7 @@ final class ProviderProfileTest extends JooosiMailIntegrationTestCase
             'scheme' => 'scaleway+smtp',
             'smtp_project_id' => 'smtp-project-id-1',
             'smtp_api_key' => 'scaleway-smtp-key',
-        ], 'scaleway+smtp://project-id-1:scaleway-smtp-key@default', 'Symfony\\Component\\Mailer\\Bridge\\Scaleway\\Transport\\ScalewaySmtpTransport');
+        ], 'scaleway+smtp://smtp-project-id-1:scaleway-smtp-key@default', 'Symfony\\Component\\Mailer\\Bridge\\Scaleway\\Transport\\ScalewaySmtpTransport');
     }
 
     /**

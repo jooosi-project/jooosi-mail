@@ -25,6 +25,7 @@ type MailLogConnectionHoverCardProps = {
   connectionName: string;
   profileKey: string;
   emphasis?: "default" | "prominent";
+  iconOnly?: boolean;
 };
 
 function getConfigurationEntries(
@@ -69,6 +70,7 @@ export function MailLogConnectionHoverCard({
   connectionName,
   profileKey,
   emphasis = "default",
+  iconOnly = false,
 }: MailLogConnectionHoverCardProps) {
   const [connection, setConnection] = React.useState<AdminConnectionDetail | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -102,10 +104,13 @@ export function MailLogConnectionHoverCard({
         render={
           <button
             type="button"
+            aria-label={iconOnly ? connectionName : undefined}
             className={
               emphasis === "prominent"
                 ? "inline-flex min-w-0 max-w-full items-center gap-3 rounded-sm text-left text-lg font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                : "inline-flex min-w-0 max-w-56 items-center gap-2 rounded-sm text-left font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                : iconOnly
+                  ? "inline-flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-background shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 dark:bg-input/32"
+                  : "inline-flex min-w-0 max-w-56 items-center gap-2 rounded-sm text-left font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             }
           />
         }
@@ -113,9 +118,12 @@ export function MailLogConnectionHoverCard({
         <ProfileBrandIcon
           profileKey={profileKey}
           label={connectionName}
-          size={emphasis === "prominent" ? "default" : "sm"}
+          size={emphasis === "prominent" ? "default" : iconOnly ? "inline" : "sm"}
+          className={iconOnly ? "size-5" : undefined}
         />
-        <span className="min-w-0 truncate">{connectionName}</span>
+        {iconOnly ? <span className="sr-only">{connectionName}</span> : (
+          <span className="min-w-0 truncate">{connectionName}</span>
+        )}
       </PopoverTrigger>
       <PopoverContent
         side="right"

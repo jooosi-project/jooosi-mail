@@ -17,6 +17,7 @@ import { MailLogDetailsDialog } from "@/components/mail-log-details-dialog";
 import { MailLogConnectionHoverCard } from "@/components/mail-log-connection-hover-card";
 import { MailLogTablePagination } from "@/components/mail-log-table-pagination";
 import { MailLogTableToolbar } from "@/components/mail-log-table-toolbar";
+import { TruncatedTextTooltip } from "@/components/truncated-text-tooltip";
 import {
   normalizeMailLogRows,
   type MailLogDateRangeFilter,
@@ -63,8 +64,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import AlertCircleIcon from "~icons/tabler/alert-circle";
 import ArrowDown01Icon from "~icons/hugeicons/arrow-down-01";
 import ArrowUp01Icon from "~icons/hugeicons/arrow-up-01";
@@ -145,62 +144,6 @@ function SortableHeader({
       {direction === "desc" ? <ArrowDown01Icon data-icon="inline-end" /> : null}
       {direction === false ? <UnfoldMoreIcon data-icon="inline-end" /> : null}
     </Button>
-  );
-}
-
-function TruncatedTextTooltip({
-  value,
-  className,
-}: {
-  value: string;
-  className?: string;
-}) {
-  const textRef = React.useRef<HTMLSpanElement>(null);
-  const [isTruncated, setIsTruncated] = React.useState(false);
-
-  React.useLayoutEffect(() => {
-    const text = textRef.current;
-
-    if (!text) {
-      return;
-    }
-
-    const updateTruncation = () => {
-      const nextIsTruncated = text.scrollWidth > text.clientWidth;
-
-      setIsTruncated((currentIsTruncated) =>
-        currentIsTruncated === nextIsTruncated ? currentIsTruncated : nextIsTruncated,
-      );
-    };
-
-    updateTruncation();
-
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
-
-    const observer = new ResizeObserver(updateTruncation);
-
-    observer.observe(text);
-
-    return () => observer.disconnect();
-  }, [value]);
-
-  return (
-    <Tooltip disabled={!isTruncated}>
-      <TooltipTrigger
-        render={
-          <span
-            ref={textRef}
-            className={cn("block min-w-0 truncate", className)}
-            data-truncated={isTruncated || undefined}
-          />
-        }
-      >
-        {value}
-      </TooltipTrigger>
-      <TooltipContent className="max-w-sm break-all">{value}</TooltipContent>
-    </Tooltip>
   );
 }
 

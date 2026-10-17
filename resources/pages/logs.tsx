@@ -13,12 +13,15 @@ import {
 import { useLogsData } from "@/hooks/use-logs-data";
 import { formatAdminNumber } from "@/lib/admin-format";
 import { MailLogDataTable } from "@/components/mail-log-data-table";
+import { ComposeEmailSheet } from "@/components/compose-email-sheet";
 import { SendTestEmailDialog } from "@/components/send-test-email-dialog";
 import MailIcon from "~icons/tabler/mail";
+import EditIcon from "~icons/tabler/edit";
 import RefreshIcon from "~icons/tabler/refresh";
 
 export default function MailLogsPage() {
   const { data, loading, refreshing, error, refresh } = useLogsData();
+  const [composeOpen, setComposeOpen] = React.useState(false);
   const [sendTestOpen, setSendTestOpen] = React.useState(false);
   const [mailLogRefreshToken, setMailLogRefreshToken] = React.useState(0);
 
@@ -68,7 +71,11 @@ export default function MailLogsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={() => setSendTestOpen(true)}>
+          <Button type="button" onClick={() => setComposeOpen(true)}>
+            <EditIcon data-icon="inline-start" />
+            Compose email
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setSendTestOpen(true)}>
             <MailIcon data-icon="inline-start" />
             Send test
           </Button>
@@ -109,6 +116,11 @@ export default function MailLogsPage() {
         <MailLogDataTable refreshToken={mailLogRefreshToken} />
       </div>
 
+      <ComposeEmailSheet
+        open={composeOpen}
+        onOpenChange={setComposeOpen}
+        onSent={handleRefresh}
+      />
       <SendTestEmailDialog
         open={sendTestOpen}
         onOpenChange={setSendTestOpen}

@@ -81,10 +81,6 @@ final class ConnectionControllerTest extends JooosiMailIntegrationTestCase
         self::assertSame([
             ['field' => 'scheme', 'operator' => 'in', 'values' => ['mailkite+smtp', 'mailkite+smtps']],
         ], $mailKiteSmtpPasswordField['requiredWhen']);
-        self::assertSame(
-            'Enter this separately; the API key is not used automatically.',
-            $mailKiteSmtpPasswordField['description'],
-        );
 
         $listItem = $this->findConnection($listData['connections'], $connection->id);
         self::assertSame('REST Null Connection', $listItem['name']);

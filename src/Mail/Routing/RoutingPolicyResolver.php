@@ -29,9 +29,14 @@ final class RoutingPolicyResolver
         $priority = $this->resolvePriority($mailRequest);
         $delaySeconds = $this->resolveDelay($mailRequest);
         $preferredConnectionId = $this->resolvePreferredConnectionId($mailRequest);
+        $mode = DeliveryMode::fromMixed($this->optionStore->get('settings.delivery.mode', DeliveryMode::Async->value));
+
+        if ($delaySeconds > 0) {
+            $mode = DeliveryMode::Async;
+        }
 
         return new DeliveryPlan(
-            mode: DeliveryMode::fromMixed($this->optionStore->get('settings.delivery.mode', DeliveryMode::Async->value)),
+            mode: $mode,
             strategy: RoutingStrategy::fromMixed($this->optionStore->get('settings.delivery.strategy', RoutingStrategy::WeightedRandom->value)),
             priority: $priority,
             delaySeconds: $delaySeconds,
