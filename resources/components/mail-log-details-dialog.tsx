@@ -2,8 +2,6 @@
 
 import * as React from "react";
 
-import "@twinkleplop/theme-github";
-
 import { MailLogConnectionHoverCard } from "@/components/mail-log-connection-hover-card";
 import type { MailLogTableRow } from "@/components/mail-log-table-types";
 import { formatAddressList } from "@/components/mail-log-table-types";
@@ -15,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatAdminDateTime, titleCase } from "@/lib/admin-format";
 import { getLogStatusVariant } from "@/lib/admin-log-helpers";
-import { highlightHtmlCode } from "@/lib/admin-twinkleplop";
+import { highlightHtmlCode } from "@/lib/admin-highlights";
 import { cn } from "@/lib/utils";
 import RefreshIcon from "~icons/tabler/refresh";
 
@@ -389,7 +387,7 @@ export function MailLogDetailsDialog({
                       <TabsContent value="html-raw" className="mt-0">
                         {highlightedHtml ? (
                           <div
-                            className="twinkleplop-wrapper overflow-x-auto rounded-md border bg-muted/10 [&_pre]:m-0 [&_pre]:inline-block [&_pre]:min-w-full [&_pre]:align-top [&_pre]:bg-transparent [&_pre]:px-4 [&_pre]:py-4"
+                            className="overflow-x-auto rounded-md border bg-muted/10 [&_pre]:m-0 [&_pre]:inline-block [&_pre]:min-w-full [&_pre]:align-top [&_pre]:px-4 [&_pre]:py-4"
                             dangerouslySetInnerHTML={{ __html: highlightedHtml }}
                           />
                         ) : (

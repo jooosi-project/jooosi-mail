@@ -2,8 +2,6 @@
 
 import * as React from "react";
 
-import "@twinkleplop/theme-github";
-
 import { MailLogConnectionHoverCard } from "@/components/mail-log-connection-hover-card";
 import type { WebhookLogTableRow } from "@/components/webhook-log-table-types";
 import { Badge } from "@/components/reui/badge";
@@ -18,7 +16,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { tokenizeJsonCode, type TwinkleplopToken } from "@/lib/admin-twinkleplop";
+import { highlightJsonCode } from "@/lib/admin-highlights";
 import { cn } from "@/lib/utils";
 import { formatAdminDateTime, titleCase } from "@/lib/admin-format";
 import { getWebhookEventVariant } from "@/lib/admin-log-helpers";
@@ -89,7 +87,7 @@ function ConnectionHero({ event }: { event: WebhookLogTableRow }) {
 }
 
 function useHighlightedPayload(payloadJson: string | null) {
-  const [highlightedPayload, setHighlightedPayload] = React.useState<TwinkleplopToken[] | null>(null);
+  const [highlightedPayload, setHighlightedPayload] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -100,10 +98,10 @@ function useHighlightedPayload(payloadJson: string | null) {
     }
 
     setHighlightedPayload(null);
-    void tokenizeJsonCode(payloadJson)
-      .then((tokens) => {
+    void highlightJsonCode(payloadJson)
+      .then((html) => {
         if (active) {
-          setHighlightedPayload(tokens);
+          setHighlightedPayload(html);
         }
       })
       .catch(() => {
@@ -206,18 +204,9 @@ export function WebhookEventSheet({ event, open, onOpenChange }: WebhookEventShe
                   {event.payloadJson ? (
                     highlightedPayload ? (
                       <div
-                        className="overflow-x-auto rounded-md border bg-muted/20"
-                      >
-                        <pre className="twinkleplop m-0 min-w-full bg-transparent p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words">
-                          <code>
-                            {highlightedPayload.map((token, index) => (
-                              <span key={index} className={`tok ${token.type}`}>
-                                {token.text}
-                              </span>
-                            ))}
-                          </code>
-                        </pre>
-                      </div>
+                        className="overflow-x-auto rounded-md border bg-muted/20 [&_pre]:m-0 [&_pre]:min-w-full [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-xs [&_pre]:leading-relaxed [&_pre]:whitespace-pre-wrap [&_pre]:break-words"
+                        dangerouslySetInnerHTML={{ __html: highlightedPayload }}
+                      />
                     ) : (
                       <pre className="overflow-x-auto rounded-md border bg-muted/20 p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words">
                         {event.payloadJson}
