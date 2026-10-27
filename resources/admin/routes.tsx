@@ -57,6 +57,13 @@ export const adminRoutes: AdminRoute[] = [
     component: ConnectionsPage,
   },
   {
+    path: "/connections/new",
+    title: "New connection",
+    description: "Configure a new email delivery connection.",
+    icon: <Database01Icon />,
+    component: ConnectionsPage,
+  },
+  {
     path: "/logs/mail",
     title: "Email Logs",
     description: "Review message lifecycle rows and provider delivery attempts.",

@@ -41,25 +41,36 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAdminQuery } from "@/hooks/use-admin-query";
-import ahaSendIconUrl from "@/icons/provider-icons/ahasend.svg";
-import birdIconUrl from "@/icons/provider-icons/bird.svg";
-import emailitIconUrl from "@/icons/provider-icons/emailit.svg";
-import infobipIconUrl from "@/icons/provider-icons/infobip.svg";
-import mailerSendIconUrl from "@/icons/provider-icons/mailersend.svg";
-import mailKiteIconUrl from "@/icons/provider-icons/mailkite.svg";
-import mailomatIconUrl from "@/icons/provider-icons/mailomat.svg";
-import mailPaceIconUrl from "@/icons/provider-icons/mailpace.svg";
-import pepipostIconUrl from "@/icons/provider-icons/pepipost.svg";
-import postalIconUrl from "@/icons/provider-icons/postal.svg";
-import postmarkIconUrl from "@/icons/provider-icons/postmark.svg";
-import pufferPostIconUrl from "@/icons/provider-icons/pufferpost.svg";
-import sendLayerIconUrl from "@/icons/provider-icons/sendlayer.svg";
-import sendPulseIconUrl from "@/icons/provider-icons/sendpulse.svg";
-import smtp2goIconUrl from "@/icons/provider-icons/smtp2go.svg";
-import smtpComIconUrl from "@/icons/provider-icons/smtpcom.svg";
-import sweegoIconUrl from "@/icons/provider-icons/sweego.svg";
-import toSendIconUrl from "@/icons/provider-icons/tosend.svg";
-import turboSmtpIconUrl from "@/icons/provider-icons/turbosmtp.svg";
+import AhaSendIcon from "@/icons/provider-icons/ahasend.svg?react";
+import BirdIcon from "@/icons/provider-icons/bird.svg?react";
+import EmailitIcon from "@/icons/provider-icons/emailit.svg?react";
+import HeloIcon from "@/icons/provider-icons/helo.svg?react";
+import InfobipIcon from "@/icons/provider-icons/infobip.svg?react";
+import IterableIcon from "@/icons/provider-icons/iterable.svg?react";
+import JetEmailIcon from "@/icons/provider-icons/jetemail.svg?react";
+import LetterMintIcon from "@/icons/provider-icons/lettermint.svg?react";
+import LettrIcon from "@/icons/provider-icons/lettr.svg?react";
+import LoopsIcon from "@/icons/provider-icons/loops.svg?react";
+import MailerSendIcon from "@/icons/provider-icons/mailersend.svg?react";
+import MailKiteIcon from "@/icons/provider-icons/mailkite.svg?react";
+import MailomatIcon from "@/icons/provider-icons/mailomat.svg?react";
+import MailPaceIcon from "@/icons/provider-icons/mailpace.svg?react";
+import PepipostIcon from "@/icons/provider-icons/pepipost.svg?react";
+import PlunkIcon from "@/icons/provider-icons/plunk.svg?react";
+import PostalIcon from "@/icons/provider-icons/postal.svg?react";
+import PostmarkIcon from "@/icons/provider-icons/postmark.svg?react";
+import PufferPostIcon from "@/icons/provider-icons/pufferpost.svg?react";
+import PrimitiveIcon from "@/icons/provider-icons/primitive.svg?react";
+import SendLayerIcon from "@/icons/provider-icons/sendlayer.svg?react";
+import SendHeronIcon from "@/icons/provider-icons/sendheron.svg?react";
+import SendPulseIcon from "@/icons/provider-icons/sendpulse.svg?react";
+import SequenzyIcon from "@/icons/provider-icons/sequenzy.svg?react";
+import Smtp2GoIcon from "@/icons/provider-icons/smtp2go.svg?react";
+import SmtpComIcon from "@/icons/provider-icons/smtpcom.svg?react";
+import SweegoIcon from "@/icons/provider-icons/sweego.svg?react";
+import ToSendIcon from "@/icons/provider-icons/tosend.svg?react";
+import TurboSmtpIcon from "@/icons/provider-icons/turbosmtp.svg?react";
+import UnoSendIcon from "@/icons/provider-icons/unosend.svg?react";
 import {
   deleteConnection,
   getConnection,
@@ -153,7 +164,7 @@ type ProfileBrandPalette = {
 type ProfileBrandIcon = React.ComponentType<React.SVGProps<SVGSVGElement>>;
 
 type ProfileBrandIconAsset = {
-  src: string;
+  component: ProfileBrandIcon;
   className?: string;
   containerClassName?: string;
 };
@@ -173,7 +184,13 @@ const PROFILE_BRAND_PALETTES: Record<string, ProfileBrandPalette> = {
   elasticemail: { background: "#005571", foreground: "#ffffff", soft: "rgb(0 85 113 / 16%)" },
   emailit: { background: "#15c182", foreground: "#052e16", soft: "rgb(21 193 130 / 16%)" },
   gmail: { background: "#ea4335", foreground: "#ffffff", soft: "rgb(234 67 53 / 16%)" },
+  helo: { background: "#f96342", foreground: "#ffffff", soft: "rgb(249 99 66 / 16%)" },
   infobip: { background: "#fc6423", foreground: "#111827", soft: "rgb(252 100 35 / 16%)" },
+  iterable: { background: "#302c5a", foreground: "#ffffff", soft: "rgb(48 44 90 / 16%)" },
+  jetemail: { background: "#247bb3", foreground: "#ffffff", soft: "rgb(36 123 179 / 16%)" },
+  lettermint: { background: "#2d6a4f", foreground: "#ffffff", soft: "rgb(45 106 79 / 16%)" },
+  lettr: { background: "#ec104b", foreground: "#ffffff", soft: "rgb(236 16 75 / 16%)" },
+  loops: { background: "#fc5200", foreground: "#ffffff", soft: "rgb(252 82 0 / 16%)" },
   mailpace: { background: "#f38f0b", foreground: "#111827", soft: "rgb(243 143 11 / 18%)" },
   mailgun: { background: "#c21f32", foreground: "#ffffff", soft: "rgb(194 31 50 / 16%)" },
   mailersend: { background: "#4f46e5", foreground: "#ffffff", soft: "rgb(79 70 229 / 16%)" },
@@ -186,11 +203,15 @@ const PROFILE_BRAND_PALETTES: Record<string, ProfileBrandPalette> = {
   pepipost: { background: "#fc5e02", foreground: "#111827", soft: "rgb(252 94 2 / 16%)" },
   postal: { background: "#ff9900", foreground: "#111827", soft: "rgb(255 153 0 / 18%)" },
   postmark: { background: "#ffde00", foreground: "#111827", soft: "rgb(255 222 0 / 20%)" },
+  plunk: { background: "#111827", foreground: "#ffffff", soft: "rgb(17 24 39 / 16%)" },
+  primitive: { background: "#262b2a", foreground: "#ffffff", soft: "rgb(38 43 42 / 16%)" },
   pufferpost: { background: "#1f8a7a", foreground: "#ffffff", soft: "rgb(31 138 122 / 16%)" },
   resend: { background: "#111827", foreground: "#ffffff", soft: "rgb(17 24 39 / 16%)" },
   sendgrid: { background: "#1a82e2", foreground: "#ffffff", soft: "rgb(26 130 226 / 16%)" },
+  sendheron: { background: "#ffffff", foreground: "#07845f", soft: "rgb(0 127 95 / 16%)" },
   sendlayer: { background: "#211fa6", foreground: "#ffffff", soft: "rgb(33 31 166 / 16%)" },
   sendpulse: { background: "#009fc1", foreground: "#ffffff", soft: "rgb(0 159 193 / 16%)" },
+  sequenzy: { background: "#fc655f", foreground: "#ffffff", soft: "rgb(252 101 95 / 16%)" },
   ses: { background: "#ff9900", foreground: "#111827", soft: "rgb(255 153 0 / 20%)" },
   smtp: {
     background: "var(--primary)",
@@ -202,37 +223,49 @@ const PROFILE_BRAND_PALETTES: Record<string, ProfileBrandPalette> = {
   sweego: { background: "#111827", foreground: "#ffffff", soft: "rgb(17 24 39 / 16%)" },
   tosend: { background: "#4d2243", foreground: "#ffffff", soft: "rgb(77 34 67 / 16%)" },
   turbosmtp: { background: "#0879b8", foreground: "#ffffff", soft: "rgb(8 121 184 / 16%)" },
+  unosend: { background: "#ffffff", foreground: "#000000", soft: "rgb(0 0 0 / 12%)" },
   zohomail: { background: "#d9232e", foreground: "#ffffff", soft: "rgb(217 35 46 / 16%)" },
 };
 
 const PROFILE_BRAND_ICON_ASSETS: Record<string, ProfileBrandIconAsset> = {
-  ahasend: { src: ahaSendIconUrl, className: "size-10" },
-  bird: { src: birdIconUrl },
-  emailit: { src: emailitIconUrl, className: "size-10" },
-  infobip: { src: infobipIconUrl },
-  mailersend: { src: mailerSendIconUrl },
-  mailkite: { src: mailKiteIconUrl },
-  mailomat: { src: mailomatIconUrl, containerClassName: "bg-[var(--profile-brand)] p-2" },
-  mailpace: { src: mailPaceIconUrl, className: "size-10" },
-  pepipost: { src: pepipostIconUrl, className: "size-10" },
-  postal: { src: postalIconUrl, className: "size-10" },
-  postmark: { src: postmarkIconUrl },
-  pufferpost: { src: pufferPostIconUrl },
-  sendlayer: { src: sendLayerIconUrl, className: "size-10" },
-  sendpulse: { src: sendPulseIconUrl, className: "size-9" },
+  ahasend: { component: AhaSendIcon, className: "size-10" },
+  bird: { component: BirdIcon },
+  emailit: { component: EmailitIcon, className: "size-10" },
+  helo: { component: HeloIcon },
+  infobip: { component: InfobipIcon },
+  iterable: { component: IterableIcon, containerClassName: "bg-[var(--profile-brand)] p-2" },
+  jetemail: { component: JetEmailIcon },
+  lettermint: { component: LetterMintIcon },
+  lettr: { component: LettrIcon },
+  loops: { component: LoopsIcon },
+  mailersend: { component: MailerSendIcon },
+  mailkite: { component: MailKiteIcon },
+  mailomat: { component: MailomatIcon, containerClassName: "bg-[var(--profile-brand)] p-2" },
+  mailpace: { component: MailPaceIcon, className: "size-10" },
+  pepipost: { component: PepipostIcon, className: "size-10" },
+  postal: { component: PostalIcon, className: "size-10" },
+  postmark: { component: PostmarkIcon },
+  plunk: { component: PlunkIcon, containerClassName: "bg-[var(--profile-brand)] p-2" },
+  primitive: { component: PrimitiveIcon, containerClassName: "bg-[var(--profile-brand)] p-2" },
+  pufferpost: { component: PufferPostIcon },
+  sendheron: { component: SendHeronIcon, containerClassName: "bg-[var(--profile-brand)] p-2" },
+  sendlayer: { component: SendLayerIcon, className: "size-10" },
+  sendpulse: { component: SendPulseIcon, className: "size-9" },
+  sequenzy: { component: SequenzyIcon },
   smtp2go: {
-    src: smtp2goIconUrl,
+    component: Smtp2GoIcon,
     className: "size-9",
     containerClassName: "bg-[var(--profile-brand)] p-2",
   },
-  smtpcom: { src: smtpComIconUrl, className: "size-10" },
+  smtpcom: { component: SmtpComIcon, className: "size-10" },
   sweego: {
-    src: sweegoIconUrl,
+    component: SweegoIcon,
     className: "size-11",
     containerClassName: "bg-[var(--profile-brand)] p-2",
   },
-  tosend: { src: toSendIconUrl, className: "size-10" },
-  turbosmtp: { src: turboSmtpIconUrl },
+  tosend: { component: ToSendIcon, className: "size-10" },
+  turbosmtp: { component: TurboSmtpIcon },
+  unosend: { component: UnoSendIcon, containerClassName: "bg-[var(--profile-brand)] p-2" },
 };
 
 const PROFILE_BRAND_ICON_CONTAINER_CLASSES: Record<string, string> = {
@@ -577,12 +610,16 @@ function createClosedAdvancedSettingsState(): AdvancedSettingsOpenState {
   };
 }
 
-function getConnectionIdFromHash(): number | null {
+function getConnectionHashSnapshot(): string {
   if (typeof window === "undefined") {
-    return null;
+    return "#/connections";
   }
 
-  const connectionId = parseAdminHashLocation(window.location.hash).searchParams.get("id");
+  return window.location.hash;
+}
+
+function getConnectionIdFromHash(hash: string): number | null {
+  const connectionId = parseAdminHashLocation(hash).searchParams.get("id");
 
   if (!connectionId || /^\d+$/.test(connectionId) === false) {
     return null;
@@ -612,11 +649,12 @@ export default function ConnectionsPage() {
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = React.useState<AdvancedSettingsOpenState>(
     createClosedAdvancedSettingsState,
   );
-  const targetedConnectionId = React.useSyncExternalStore(
+  const connectionHash = React.useSyncExternalStore(
     subscribeToHashChange,
-    getConnectionIdFromHash,
-    () => null,
+    getConnectionHashSnapshot,
+    () => "#/connections",
   );
+  const connectionLocation = parseAdminHashLocation(connectionHash);
 
   const profiles = data?.profiles ?? [];
   const connections = data?.connections ?? [];
@@ -634,6 +672,7 @@ export default function ConnectionsPage() {
   const activeProfileMark = formatProfileMark(activeProfileLabel);
   const activeProfileBrandStyle = getProfileBrandStyle(activeProfileKey);
   const activeProfileIconAsset = PROFILE_BRAND_ICON_ASSETS[activeProfileKey];
+  const ActiveProfileIconAsset = activeProfileIconAsset?.component;
   const activeProfileIconContainerClassName =
     PROFILE_BRAND_ICON_CONTAINER_CLASSES[activeProfileKey];
   const ActiveProfileIcon = PROFILE_BRAND_ICONS[activeProfileKey];
@@ -689,23 +728,29 @@ export default function ConnectionsPage() {
   ].filter(Boolean).length;
   const showOverview = selectedConnectionId === null && draft === null;
 
-  const syncConnectionHash = React.useCallback((connectionId: number | null) => {
-    if (typeof window === "undefined") {
-      return;
-    }
+  const syncConnectionHash = React.useCallback(
+    (connectionId: number | null, isNewConnection = false) => {
+      if (typeof window === "undefined") {
+        return;
+      }
 
-    const { searchParams } = parseAdminHashLocation(window.location.hash);
+      const { searchParams } = parseAdminHashLocation(window.location.hash);
 
-    if (connectionId === null) {
-      searchParams.delete("id");
-    } else {
-      searchParams.set("id", `${connectionId}`);
-    }
+      if (connectionId === null) {
+        searchParams.delete("id");
+      } else {
+        searchParams.set("id", `${connectionId}`);
+      }
 
-    const nextUrl = new URL(window.location.href);
-    nextUrl.hash = buildAdminHashHref("/connections", searchParams);
-    window.history.replaceState(window.history.state, "", nextUrl);
-  }, []);
+      const path = isNewConnection ? "/connections/new" : "/connections";
+      const nextHash = buildAdminHashHref(path, searchParams);
+
+      if (window.location.hash !== nextHash) {
+        window.location.hash = nextHash;
+      }
+    },
+    [],
+  );
 
   const handleReturnToList = React.useCallback(() => {
     syncConnectionHash(null);
@@ -722,7 +767,7 @@ export default function ConnectionsPage() {
       return;
     }
 
-    const hashConnectionId = getConnectionIdFromHash();
+    const hashConnectionId = getConnectionIdFromHash(connectionHash);
 
     if (hashConnectionId !== null) {
       if (selectedConnectionId === hashConnectionId) {
@@ -738,10 +783,35 @@ export default function ConnectionsPage() {
       return;
     }
 
-    if (selectedConnectionId !== null) {
+    if (connectionLocation.path === "/connections/new") {
+      if (selectedConnectionId !== null) {
+        setSelectedConnectionId(null);
+        setCurrentConnection(null);
+        setDraft(profiles[0] ? createDraftFromProfile(profiles[0]) : null);
+        setDetailError(null);
+        setActionError(null);
+        setAdvancedSettingsOpen(createClosedAdvancedSettingsState());
+      }
+
+      if (draft === null && profiles[0]) {
+        setDraft(createDraftFromProfile(profiles[0]));
+      }
+
+      return;
+    }
+
+    if (selectedConnectionId !== null || draft !== null) {
       handleReturnToList();
     }
-  }, [data, handleReturnToList, selectedConnectionId, targetedConnectionId]);
+  }, [
+    connectionHash,
+    connectionLocation.path,
+    data,
+    draft,
+    handleReturnToList,
+    profiles,
+    selectedConnectionId,
+  ]);
 
   React.useEffect(() => {
     if (selectedConnectionId === null) {
@@ -789,7 +859,7 @@ export default function ConnectionsPage() {
       return;
     }
 
-    syncConnectionHash(null);
+    syncConnectionHash(null, true);
     setSelectedConnectionId(null);
     setCurrentConnection(null);
     setDetailError(null);
@@ -1036,7 +1106,9 @@ export default function ConnectionsPage() {
           <p className="text-sm text-muted-foreground">
             {showOverview
               ? "Set up and manage the email services Jooosi Mail can use to send messages from your site."
-              : "Review and update the selected connection settings."}
+              : selectedConnectionId === null
+                ? "Configure a new email connection."
+                : "Review and update the selected connection settings."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -1129,10 +1201,8 @@ export default function ConnectionsPage() {
                                 "bg-[var(--profile-brand)] text-3xl font-semibold text-[var(--profile-brand-foreground)]"),
                         )}
                       >
-                        {activeProfileIconAsset ? (
-                          <img
-                            src={activeProfileIconAsset.src}
-                            alt=""
+                        {ActiveProfileIconAsset ? (
+                          <ActiveProfileIconAsset
                             aria-hidden="true"
                             className={cn(
                               "size-10 object-contain",

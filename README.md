@@ -96,7 +96,13 @@ Jooosi Mail works with SMTP and many popular email providers. The table below sh
 | [Elastic Email](https://elasticemail.com) | `elasticemail` | API, SMTP, SMTPS |  |
 | [Emailit](https://emailit.com) | `emailit` | API, SMTP, SMTPS |  |
 | [Gmail](https://workspace.google.com/products/gmail/) | `gmail` | API, SMTP |  |
+| [Helo](https://helohq.com) | `helo` | API |  |
 | [Infobip](https://www.infobip.com) | `infobip` | API, SMTP |  |
+| [Iterable](https://iterable.com) | `iterable` | API |  |
+| [JetEmail](https://jetemail.com) | `jetemail` | API |  |
+| [Lettermint](https://lettermint.co) | `lettermint` | API |  |
+| [Lettr](https://lettr.com) | `lettr` | API |  |
+| [Loops](https://loops.so) | `loops` | API |  |
 | [MailerSend](https://www.mailersend.com) | `mailersend` | API, SMTP | ✅ |
 | [Mailgun](https://www.mailgun.com) | `mailgun` | API, HTTPS, SMTP | ✅ |
 | [Mailjet](https://www.mailjet.com) | `mailjet` | API, SMTP | ✅ |
@@ -109,15 +115,19 @@ Jooosi Mail works with SMTP and many popular email providers. The table below sh
 | Native PHP | `native` | Native PHP |  |
 | Null | `null` | Null |  |
 | [Pepipost](https://netcorecloud.com/email/) | `pepipost` | API, SMTP, SMTPS |  |
+| [Plunk](https://useplunk.com) | `plunk` | API |  |
 | [PufferPost](https://pufferpost.com) | `pufferpost` | API |  |
 | [Postal](https://docs.postalserver.io) | `postal` | API |  |
 | [Postmark](https://postmarkapp.com) | `postmark` | API, SMTP | ✅ |
+| [Primitive](https://primitive.dev) | `primitive` | API |  |
 | [Resend](https://resend.com) | `resend` | API, SMTP | ✅ |
 | [Scaleway](https://www.scaleway.com/en/transactional-email-tem/) | `scaleway` | API, SMTP |  |
 | [SendGrid](https://sendgrid.com) | `sendgrid` | API, SMTP | ✅ |
+| [SendHeron](https://sendheron.com) | `sendheron` | API |  |
 | [SendLayer](https://sendlayer.com) | `sendlayer` | API, SMTP, SMTPS | ✅ |
 | Sendmail | `sendmail` | Sendmail |  |
 | [SendPulse](https://sendpulse.com) | `sendpulse` | API, SMTP, SMTPS |  |
+| [Sequenzy](https://www.sequenzy.com) | `sequenzy` | API |  |
 | [Amazon SES](https://aws.amazon.com/ses/) | `ses` | API, HTTPS, SMTP |  |
 | SMTP | `smtp` | SMTP, SMTPS |  |
 | [SMTP2GO](https://www.smtp2go.com) | `smtp2go` | API, SMTP, SMTPS | ✅ |
@@ -126,6 +136,7 @@ Jooosi Mail works with SMTP and many popular email providers. The table below sh
 | [Sweego](https://www.sweego.io) | `sweego` | API, SMTP | ✅ |
 | [toSend](https://tosend.com) | `tosend` | API | ✅ |
 | [TurboSMTP](https://www.turbo-smtp.com) | `turbosmtp` | API, SMTP |  |
+| [Unosend](https://unosend.co) | `unosend` | API |  |
 | [ZeptoMail](https://www.zoho.com/zeptomail/) | `zeptomail` | API, SMTP, SMTPS | ✅ |
 | [Zoho Mail](https://www.zoho.com/mail/) | `zohomail` | SMTP, SMTPS |  |
 

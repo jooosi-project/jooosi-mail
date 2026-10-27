@@ -1,24 +1,35 @@
 import * as React from "react"
 
-import ahaSendIconUrl from "@/icons/provider-icons/ahasend.svg"
-import birdIconUrl from "@/icons/provider-icons/bird.svg"
-import emailitIconUrl from "@/icons/provider-icons/emailit.svg"
-import infobipIconUrl from "@/icons/provider-icons/infobip.svg"
-import mailerSendIconUrl from "@/icons/provider-icons/mailersend.svg"
-import mailKiteIconUrl from "@/icons/provider-icons/mailkite.svg"
-import mailomatIconUrl from "@/icons/provider-icons/mailomat.svg"
-import mailPaceIconUrl from "@/icons/provider-icons/mailpace.svg"
-import pepipostIconUrl from "@/icons/provider-icons/pepipost.svg"
-import postalIconUrl from "@/icons/provider-icons/postal.svg"
-import postmarkIconUrl from "@/icons/provider-icons/postmark.svg"
-import pufferPostIconUrl from "@/icons/provider-icons/pufferpost.svg"
-import sendLayerIconUrl from "@/icons/provider-icons/sendlayer.svg"
-import sendPulseIconUrl from "@/icons/provider-icons/sendpulse.svg"
-import smtp2goIconUrl from "@/icons/provider-icons/smtp2go.svg"
-import smtpComIconUrl from "@/icons/provider-icons/smtpcom.svg"
-import sweegoIconUrl from "@/icons/provider-icons/sweego.svg"
-import toSendIconUrl from "@/icons/provider-icons/tosend.svg"
-import turboSmtpIconUrl from "@/icons/provider-icons/turbosmtp.svg"
+import AhaSendIcon from "@/icons/provider-icons/ahasend.svg?react"
+import BirdIcon from "@/icons/provider-icons/bird.svg?react"
+import EmailitIcon from "@/icons/provider-icons/emailit.svg?react"
+import HeloIcon from "@/icons/provider-icons/helo.svg?react"
+import InfobipIcon from "@/icons/provider-icons/infobip.svg?react"
+import IterableIcon from "@/icons/provider-icons/iterable.svg?react"
+import JetEmailIcon from "@/icons/provider-icons/jetemail.svg?react"
+import LetterMintIcon from "@/icons/provider-icons/lettermint.svg?react"
+import LettrIcon from "@/icons/provider-icons/lettr.svg?react"
+import LoopsIcon from "@/icons/provider-icons/loops.svg?react"
+import MailerSendIcon from "@/icons/provider-icons/mailersend.svg?react"
+import MailKiteIcon from "@/icons/provider-icons/mailkite.svg?react"
+import MailomatIcon from "@/icons/provider-icons/mailomat.svg?react"
+import MailPaceIcon from "@/icons/provider-icons/mailpace.svg?react"
+import PepipostIcon from "@/icons/provider-icons/pepipost.svg?react"
+import PlunkIcon from "@/icons/provider-icons/plunk.svg?react"
+import PostalIcon from "@/icons/provider-icons/postal.svg?react"
+import PostmarkIcon from "@/icons/provider-icons/postmark.svg?react"
+import PufferPostIcon from "@/icons/provider-icons/pufferpost.svg?react"
+import PrimitiveIcon from "@/icons/provider-icons/primitive.svg?react"
+import SendLayerIcon from "@/icons/provider-icons/sendlayer.svg?react"
+import SendHeronIcon from "@/icons/provider-icons/sendheron.svg?react"
+import SendPulseIcon from "@/icons/provider-icons/sendpulse.svg?react"
+import SequenzyIcon from "@/icons/provider-icons/sequenzy.svg?react"
+import Smtp2GoIcon from "@/icons/provider-icons/smtp2go.svg?react"
+import SmtpComIcon from "@/icons/provider-icons/smtpcom.svg?react"
+import SweegoIcon from "@/icons/provider-icons/sweego.svg?react"
+import ToSendIcon from "@/icons/provider-icons/tosend.svg?react"
+import TurboSmtpIcon from "@/icons/provider-icons/turbosmtp.svg?react"
+import UnoSendIcon from "@/icons/provider-icons/unosend.svg?react"
 import { cn } from "@/lib/utils"
 import MailjetIcon from "~icons/logos/mailjet-icon"
 import MandrillIcon from "~icons/logos/mandrill"
@@ -47,7 +58,7 @@ type ProfileBrandPalette = {
 type ProfileBrandIconComponent = React.ComponentType<React.SVGProps<SVGSVGElement>>
 
 type ProfileBrandIconAsset = {
-  src: string
+  component: ProfileBrandIconComponent
   className?: string
   brandBackground?: boolean
 }
@@ -73,7 +84,13 @@ const PROFILE_BRAND_PALETTES: Record<string, ProfileBrandPalette> = {
   elasticemail: { background: "#005571", foreground: "#ffffff" },
   emailit: { background: "#15c182", foreground: "#052e16" },
   gmail: { background: "#ea4335", foreground: "#ffffff" },
+  helo: { background: "#f96342", foreground: "#ffffff" },
   infobip: { background: "#fc6423", foreground: "#111827" },
+  iterable: { background: "#302c5a", foreground: "#ffffff" },
+  jetemail: { background: "#247bb3", foreground: "#ffffff" },
+  lettermint: { background: "#2d6a4f", foreground: "#ffffff" },
+  lettr: { background: "#ec104b", foreground: "#ffffff" },
+  loops: { background: "#fc5200", foreground: "#ffffff" },
   mailpace: { background: "#f38f0b", foreground: "#111827" },
   mailgun: { background: "#c21f32", foreground: "#ffffff" },
   mailersend: { background: "#4f46e5", foreground: "#ffffff" },
@@ -86,11 +103,15 @@ const PROFILE_BRAND_PALETTES: Record<string, ProfileBrandPalette> = {
   pepipost: { background: "#fc5e02", foreground: "#111827" },
   postal: { background: "#ff9900", foreground: "#111827" },
   postmark: { background: "#ffde00", foreground: "#111827" },
+  plunk: { background: "#111827", foreground: "#ffffff" },
+  primitive: { background: "#262b2a", foreground: "#ffffff" },
   pufferpost: { background: "#1f8a7a", foreground: "#ffffff" },
   resend: { background: "#111827", foreground: "#ffffff" },
   sendgrid: { background: "#1a82e2", foreground: "#ffffff" },
+  sendheron: { background: "#ffffff", foreground: "#07845f" },
   sendlayer: { background: "#211fa6", foreground: "#ffffff" },
   sendpulse: { background: "#009fc1", foreground: "#ffffff" },
+  sequenzy: { background: "#fc655f", foreground: "#ffffff" },
   ses: { background: "#ff9900", foreground: "#111827" },
   smtp: { background: "var(--primary)", foreground: "var(--primary-foreground)" },
   smtp2go: { background: "#1d4f86", foreground: "#ffffff" },
@@ -98,29 +119,41 @@ const PROFILE_BRAND_PALETTES: Record<string, ProfileBrandPalette> = {
   sweego: { background: "#111827", foreground: "#ffffff" },
   tosend: { background: "#4d2243", foreground: "#ffffff" },
   turbosmtp: { background: "#0879b8", foreground: "#ffffff" },
+  unosend: { background: "#ffffff", foreground: "#000000" },
   zohomail: { background: "#d9232e", foreground: "#ffffff" },
 }
 
 const PROFILE_BRAND_ICON_ASSETS: Record<string, ProfileBrandIconAsset> = {
-  ahasend: { src: ahaSendIconUrl, className: "size-10" },
-  bird: { src: birdIconUrl },
-  emailit: { src: emailitIconUrl, className: "size-10" },
-  infobip: { src: infobipIconUrl },
-  mailersend: { src: mailerSendIconUrl },
-  mailkite: { src: mailKiteIconUrl },
-  mailomat: { src: mailomatIconUrl, brandBackground: true },
-  mailpace: { src: mailPaceIconUrl, className: "size-10" },
-  pepipost: { src: pepipostIconUrl, className: "size-10" },
-  postal: { src: postalIconUrl, className: "size-10" },
-  postmark: { src: postmarkIconUrl },
-  pufferpost: { src: pufferPostIconUrl },
-  sendlayer: { src: sendLayerIconUrl, className: "size-10" },
-  sendpulse: { src: sendPulseIconUrl, className: "size-9" },
-  smtp2go: { src: smtp2goIconUrl, className: "size-9", brandBackground: true },
-  smtpcom: { src: smtpComIconUrl, className: "size-10" },
-  sweego: { src: sweegoIconUrl, className: "size-11", brandBackground: true },
-  tosend: { src: toSendIconUrl, className: "size-10" },
-  turbosmtp: { src: turboSmtpIconUrl },
+  ahasend: { component: AhaSendIcon, className: "size-10" },
+  bird: { component: BirdIcon },
+  emailit: { component: EmailitIcon, className: "size-10" },
+  helo: { component: HeloIcon },
+  infobip: { component: InfobipIcon },
+  iterable: { component: IterableIcon, brandBackground: true },
+  jetemail: { component: JetEmailIcon },
+  lettermint: { component: LetterMintIcon },
+  lettr: { component: LettrIcon },
+  loops: { component: LoopsIcon },
+  mailersend: { component: MailerSendIcon },
+  mailkite: { component: MailKiteIcon },
+  mailomat: { component: MailomatIcon, brandBackground: true },
+  mailpace: { component: MailPaceIcon, className: "size-10" },
+  pepipost: { component: PepipostIcon, className: "size-10" },
+  postal: { component: PostalIcon, className: "size-10" },
+  postmark: { component: PostmarkIcon },
+  plunk: { component: PlunkIcon, brandBackground: true },
+  primitive: { component: PrimitiveIcon, brandBackground: true },
+  pufferpost: { component: PufferPostIcon },
+  sendheron: { component: SendHeronIcon, brandBackground: true },
+  sendlayer: { component: SendLayerIcon, className: "size-10" },
+  sendpulse: { component: SendPulseIcon, className: "size-9" },
+  sequenzy: { component: SequenzyIcon },
+  smtp2go: { component: Smtp2GoIcon, className: "size-9", brandBackground: true },
+  smtpcom: { component: SmtpComIcon, className: "size-10" },
+  sweego: { component: SweegoIcon, className: "size-11", brandBackground: true },
+  tosend: { component: ToSendIcon, className: "size-10" },
+  turbosmtp: { component: TurboSmtpIcon },
+  unosend: { component: UnoSendIcon, brandBackground: true },
 }
 
 const PROFILE_BRAND_ICON_CONTAINER_CLASSES: Record<string, string> = {
@@ -186,6 +219,7 @@ export function ProfileBrandIcon({
 }: ProfileBrandIconProps) {
   const small = size === "sm"
   const iconAsset = PROFILE_BRAND_ICON_ASSETS[profileKey]
+  const AssetIcon = iconAsset?.component
   const Icon = PROFILE_BRAND_ICONS[profileKey]
 
   if (size === "inline") {
@@ -200,8 +234,8 @@ export function ProfileBrandIcon({
           className,
         )}
       >
-        {iconAsset ? (
-          <img src={iconAsset.src} alt="" className="size-full object-contain" />
+        {AssetIcon ? (
+          <AssetIcon className="size-full object-contain" />
         ) : Icon ? (
           <Icon />
         ) : (
@@ -227,10 +261,8 @@ export function ProfileBrandIcon({
         className,
       )}
     >
-      {iconAsset ? (
-        <img
-          src={iconAsset.src}
-          alt=""
+      {AssetIcon ? (
+        <AssetIcon
           aria-hidden="true"
           className={cn("object-contain", small ? "size-5" : "size-10", small ? undefined : iconAsset.className)}
         />

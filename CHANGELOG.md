@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [Helo](https://helohq.com) mail provider.
+- [Iterable](https://iterable.com) mail provider.
+- [JetEmail](https://jetemail.com) mail provider.
+- [Lettermint](https://lettermint.co) mail provider.
+- [Lettr](https://lettr.com) mail provider.
+- [Loops](https://loops.so) mail provider.
+- [Plunk](https://useplunk.com) mail provider.
+- [Primitive](https://primitive.dev) mail provider.
+- [Sequenzy](https://www.sequenzy.com) mail provider.
+- [SendHeron](https://sendheron.com) mail provider.
+- [Unosend](https://unosend.co) mail provider.
+
+### Changed
+- Added provider-specific API field mapping and validation for recipients, headers, tags, metadata, templates, and attachments.
+- Updated provider profile and operations documentation with setup requirements and field limitations.
+
 ## [1.0.12] - 2026-10-17
 
 ### Added
