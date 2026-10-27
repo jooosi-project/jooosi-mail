@@ -1,197 +1,85 @@
 # Jooosi Mail Operations
 
-This guide covers how Jooosi Mail is configured and operated today. The project is still in its initial phase, so admin workflows, provider setup guidance, and operator playbooks are still being hardened.
+This guide covers setup, delivery, and troubleshooting. See the [provider catalog](../README.md#email-providers) for the current source tree; an installed release may have a different catalog. Run `wp jooosi-mail connection:profiles` to inspect its profiles, schemes, fields, and webhook support.
 
-## Operating Model
+## Setup
 
-Jooosi Mail is currently administered through both the WordPress admin UI and WP-CLI. The plugin intercepts `wp_mail()`, stores normalized mail records and delivery-attempt history according to the configured email log retention policy, then delivers synchronously or through its database-backed queue.
+1. Activate the plugin and open **Jooosi Mail → Connections** in WordPress admin.
+2. Add a connection, select its sending method, and enter the provider credentials and sender settings. Use credentials and a sender authorized by the provider.
+3. Set a default connection if needed, then use **Email Logs → Send test**. Check the log and delivery attempts for the result.
+4. Choose delivery mode, routing, sender policy, logging, and retry settings under **Settings**. Enable webhooks and alerts if needed.
 
-The built-in profile catalog currently includes core transports (`smtp`, `sendmail`, `native`, `null`) plus provider profiles for `ahasend`, `azure`, `bird`, `brevo`, `cloudflare`, `elasticemail`, `emailit`, `gmail`, `helo`, `infobip`, `iterable`, `jetemail`, `lettermint`, `lettr`, `loops`, `mailersend`, `mailgun`, `mailjet`, `mailkite`, `mailomat`, `mailpace`, `mailtrap`, `mandrill`, `microsoftgraph`, `pepipost`, `plunk`, `pufferpost`, `postal`, `postmark`, `primitive`, `resend`, `scaleway`, `sendgrid`, `sendheron`, `sendlayer`, `sendpulse`, `sequenzy`, `ses`, `smtp2go`, `smtpcom`, `sparkpost`, `sweego`, `tosend`, `turbosmtp`, `unosend`, `zeptomail`, and `zohomail`.
+The plugin requires WordPress 7.0+ and PHP 8.1+. The PHP Sodium extension is needed to encrypt connection and alert credentials using WordPress authentication salts. Preserve those salts when restoring or moving a site, or re-enter affected credentials after changing them.
 
-Use `wp jooosi-mail connection:profiles` as the authoritative source for supported schemes, field names, and webhook support.
+The admin app is available at `wp-admin/admin.php?page=jooosi-mail`. It includes Dashboard, Connections, Email Logs, Queue Logs, Webhook Event Logs, Settings, and About.
 
-MailKite supports API and SMTP delivery; use SMTP for inline CID attachments. PufferPost supports API delivery with inline message content and fans out multiple envelope recipients through its batch endpoint. A PufferPost batch can partially accept recipients before returning a failure, so retrying a failed batch may resend already accepted recipients. PufferPost-hosted templates require Symfony's `RemoteTemplateEmail`, which is not available in this project's Symfony 6.4 Mailer, so this integration sends the supplied subject and body inline. TurboSMTP supports API and SMTP delivery with global and EU endpoints configured by region.
+## Sending and Routing
 
-Helo, JetEmail, Lettermint, Lettr, Plunk, Sequenzy, and Unosend support provider-specific SMTP schemes. Helo requires a scoped SMTP user ID and password; SMTP users are scoped to one Channel. JetEmail uses separate SMTP credentials and selects the global or EU relay by region. Lettermint, Lettr, Plunk, Sequenzy, and Unosend use their API key as the SMTP password with provider-specific usernames. These profiles expose `+smtp` and `+smtps` where the provider documents both TLS modes. Loops exposes `loops+smtp` on port 587.
+When enabled, Jooosi Mail intercepts `wp_mail()` unless another `pre_wp_mail` filter has already returned a result. **Email Logs** also offers **Compose email**, **Send test**, and **Resend email**. Compose accepts To, Cc, Bcc, Reply-To, rich text, an optional preferred connection, and an optional send time in the browser's local timezone.
 
-Iterable and Loops require a published provider-side transactional template and send one To recipient per request. Iterable passes `subject`, `html`, `text`, and `from` as `dataFields`, and sends metadata through its metadata field. Loops passes those message fields and each metadata value in `dataVariables`; `loops+smtp` serializes them into the structured payload required by its SMTP relay. Loops SMTP does not support Cc, Bcc, Reply-To, attachments, tags, or custom headers. Configure each template to use the values it needs. Iterable requires a campaign ID and does not support attachments; Loops API attachments require provider-side enablement. Primitive supports one To recipient and does not accept Cc, Bcc, Reply-To, custom headers, tags, or metadata. Sequenzy supports up to 50 To recipients, one Reply-To address, and metadata variables, but does not accept Cc, Bcc, custom headers, or tags. Plunk and Sequenzy API transports send HTML when present and otherwise pass the plain-text body as their single `body` field. SendHeron accepts one To recipient and converts text-only content to escaped HTML. Lettr allows at most 50 recipients across To, Cc, and Bcc. Lettermint can optionally use a configured route. Helo's API transport can optionally use a Channel ID; its SMTP user is scoped to a Channel.
+A successful submission in async mode means the message was queued, not that the provider delivered it. Check Email Logs and delivery attempts for its final state. Test email uses `wp_mail()`: if interception is disabled or preempted, it may use another mail implementation instead.
 
-## Admin UI
+Resending a retained log creates a new submission using current routing and delivery settings; it does not change the original. The action requires confirmation and can create duplicate delivery, including when the original is still queued or processing. Stale scheduling and message identity headers are removed from the new submission.
 
-Open the Jooosi Mail admin app from the WordPress dashboard or directly at:
+Settings control synchronous or asynchronous delivery and one of four routing strategies:
 
-```text
-wp-admin/admin.php?page=jooosi-mail
-```
+- `single` selects one available connection per attempt; it does not try another connection after a delivery failure.
+- `failover` orders available connections and can try subsequent candidates.
+- `weighted_random` (the default) and `round_robin` select a primary using weights, then order remaining candidates for failover. Round robin uses shared, persisted state.
 
-Current admin screens include:
+Preferred and default connections influence selection but are not hard locks. Availability, health, priority, weight, circuit breakers, and rate limits also affect routing. Queued mail uses current routing defaults at delivery time. If all connections are temporarily unavailable, queued delivery can be deferred until a route becomes available.
 
-- Dashboard for delivery mode, routing strategy, connection health, queue counts, mail counts, webhook counts, sending trends, recent attempts, recent webhooks, and failed messages
-- Connections for profile discovery, connection CRUD, enabled/default state, sender overrides, rate limits, circuit-breaker settings, webhook settings, webhook URL visibility, and masked secret state
-- Email Logs for message lifecycle rows, delivery-attempt detail, filtering, manual resending, and test email sending
-- Queue Logs for queued, deferred, processing, stale, and failed work
-- Webhook Logs for normalized provider callback records
-- Settings for interception, sender policy, return-path policy, logging retention, delivery mode, routing strategy, rate limits, circuit breaker defaults, and queue retry policy
-
-The UI is functional but still early. Keep WP-CLI available for incident response, automation, and workflows that are not yet covered by polished admin screens.
-
-## Activation and Runtime
-
-On activation, Jooosi Mail:
-
-- runs database migrations,
-- creates the core mail and queue tables,
-- creates routing-state tables for circuit breakers and rate limits,
-- schedules recurring Action Scheduler queue processing.
-
-At runtime, Jooosi Mail:
-
-- boots a compiled Symfony container,
-- validates the compiled container against cache metadata and a source hash,
-- discovers services, commands, hooks, controllers, profiles, and handlers,
-- registers WordPress hooks, REST routes, and WP-CLI commands,
-- intercepts `wp_mail()` when Jooosi Mail is enabled.
-
-### Container Cache
-
-Use WP-CLI to inspect or clear the compiled container cache:
+Send from WP-CLI:
 
 ```bash
-wp jooosi-mail container:status
-wp jooosi-mail container:clear
+wp jooosi-mail mail:test --to=you@example.com
+wp jooosi-mail mail:test --to=you@example.com --connection-id=3
+wp jooosi-mail mail:send --to=you@example.com --subject="Hello" --text-message="Hello from WP-CLI."
+wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at="2030-01-01T09:00:00+07:00"
 ```
 
-Jooosi Mail only reuses the compiled container when both the cache file and metadata file are present and their source hash matches the current plugin sources. This validation also applies in debug mode. If the cache becomes stale or corrupted, Jooosi Mail serializes concurrent rebuild attempts, reruns discovery, and atomically publishes the rebuilt container.
+`mail:send` also accepts `--html-message`, `--cc`, `--bcc`, `--reply-to`, and `--connection-id`. `--send-at` accepts an ISO 8601 timestamp, Unix timestamp in seconds, or a PHP `strtotime` expression such as `tomorrow 9am`. Local and relative times use the WordPress timezone. Scheduled messages use the queue even in sync mode and run on the first queue execution at or after the requested time.
 
-## Connection Management
+### Provider Setup
 
-### Inspect Profiles
+- **MailKite:** Use SMTP for inline CID attachments.
+- **PufferPost:** A batch may partially accept recipients before failing, so retrying can resend to already accepted recipients. The integration sends subject and body inline; provider-hosted templates are not supported.
+- **TurboSMTP:** Choose the global or EU region.
+- **Helo and JetEmail:** SMTP uses separate credentials. Helo's SMTP user is scoped to a Channel; JetEmail selects the global or EU relay by region. Helo's API can use an optional Channel ID.
+- **Lettermint, Lettr, Plunk, Sequenzy, and Unosend:** SMTP uses the API key as the password with a provider-specific username. Lettermint can also use an optional route.
+- **Iterable and Loops:** Both require a published provider-side transactional template, accept one recipient per request, and do not support Cc, Bcc, Reply-To, tags, or custom headers. Iterable requires a campaign ID, passes message fields as `dataFields` and metadata separately, and does not support attachments. Loops passes message fields and metadata as `dataVariables`; API attachments require provider-side enablement and cannot be inline, while SMTP does not support attachments.
+- **Primitive API:** One To recipient; no Cc, Bcc, Reply-To, custom headers, tags, or metadata. **Sequenzy API:** Up to 50 To recipients, one Reply-To address, and metadata variables; no Cc, Bcc, custom headers, or tags. **Lettr API:** Up to 50 recipients across To, Cc, and Bcc.
+- **Plunk and Sequenzy APIs:** For inline content, HTML is sent when present; otherwise the plain-text body is used. **SendHeron:** One To recipient; text-only content is converted to escaped HTML.
+
+## Connections and Settings
+
+Inspect and manage connections with WP-CLI:
 
 ```bash
 wp jooosi-mail connection:profiles
-```
-
-Use this to see the registered profile keys, supported schemes, webhook support, and expected fields.
-
-### Create a Connection
-
-```bash
-wp jooosi-mail connection:create --profile=smtp --name="Primary SMTP" --host=smtp.example.com --port=587 --username=user --password=secret
-```
-
-Jooosi Mail stores canonical profile fields and builds the transport configuration lazily when delivery starts.
-
-### Inspect and Update Connections
-
-```bash
 wp jooosi-mail connection:list
+wp jooosi-mail connection:status --all
 wp jooosi-mail connection:update 3 --weight=5 --priority=10 --rate-limit-hour=500
-wp jooosi-mail connection:status
-```
-
-### Set the Default Route or Change Availability
-
-```bash
 wp jooosi-mail connection:set-default 3
 wp jooosi-mail connection:enable 3
 wp jooosi-mail connection:disable 3
-wp jooosi-mail connection:delete 3
 ```
 
-`connection:delete` asks for confirmation before removing the connection.
+`connection:create` accepts profile-specific fields; inspect `connection:profiles` and `wp help jooosi-mail connection:create` first. `connection:delete <id>` prompts for confirmation. Settings are stored in the `jooosi_mail_config` option and cover interception, sender and return-path policy, logging, delivery and routing, rate limits, circuit breakers, queue retries, and alerts.
 
-### Focused CLI Checks
+### Failure Alerts
 
-```bash
-wp jooosi-mail migration:status
-wp jooosi-mail queue:status
-wp jooosi-mail queue:work --limit=10
-```
+**Settings → Alerts** can notify Telegram, Discord, and Slack when a message reaches terminal failure. A pending retry does not trigger an alert. Each site sends directly to the configured service; credentials are encrypted in `jooosi_mail_config`.
 
-Use these focused commands to verify schema state and queue processing without relying on a single broad smoke command.
+- **Telegram:** Create a bot with [@BotFather](https://t.me/BotFather) and save its token and destination. For a direct message, start the bot and use the numeric chat ID. Private groups use numeric IDs; public supergroups and channels can use `@username`. A channel bot needs permission to post. A regular user's `@username` is not a valid destination.
+- **Discord:** Create a webhook in the destination channel and save its URL.
+- **Slack:** Install an app with the `chat:write` bot scope, invite the bot to the channel, and save the Bot User OAuth Token and channel ID.
 
-Useful migration commands:
+Use **Send test alert** to check the saved configuration. A blank secret keeps the existing credential; **Disconnect** removes it and disables the channel. Alerts contain the site name, subject, error, and mail-log link. The body and recipient list are not attached, but an error may contain recipient information. If retention is disabled, the linked terminal log may already have been removed.
 
-```bash
-wp jooosi-mail migration:list
-wp jooosi-mail migration:run --dry-run
-wp jooosi-mail migration:rollback --dry-run
-```
+## Queue and Retention
 
-## Admin Settings
-
-The Settings screen stores plugin-wide defaults in the `jooosi_mail_config` option.
-
-Current settings include:
-
-- `wp_mail()` interception enablement
-- global From email and From name policy
-- return-path policy: provider default, match From Email, or custom address
-- email log retention and terminal-log cleanup behavior
-- delivery mode: `sync` or `async`
-- routing strategy: `single`, `weighted_random`, `round_robin`, or `failover`
-- global rate-limit defaults for minute, hour, and day windows
-- circuit-breaker threshold, failure window, and cooldown defaults
-- queue retry count, initial delay, multiplier, and maximum delay
-
-### Delivery Failure Alerts
-
-The Settings → Alerts screen can notify Telegram, Discord, and Slack when an email reaches a terminal failed state. A message that is still waiting for a retry does not trigger an alert. Each WordPress site sends notifications directly to the provider API using the credentials configured for that channel; Jooosi Mail does not operate a notification relay. Credentials are encrypted before they are saved in the `jooosi_mail_config` option.
-
-An alert includes the site name, email subject, delivery error, and a link to its mail log. The email body and recipient list are not attached.
-
-- **Telegram:** Create a bot with [@BotFather](https://t.me/BotFather), then save its bot token and destination. The token identifies the sender; `chat_id` tells Telegram where to deliver the message. For a direct message, the user must send the bot `/start` first and the destination is a numeric chat ID. Private groups also use a numeric chat ID. Public supergroups and channels can use `@username`; for channels, make the bot an administrator with permission to post. A regular user's `@username` is not a valid destination.
-- **Discord:** Create a webhook in the destination channel’s settings, then save the webhook URL.
-- **Slack:** Create and install your Slack app with the `chat:write` bot scope, invite its bot to the destination channel, then save the Bot User OAuth Token (`xoxb-…`) and channel ID.
-
-Use **Send test alert** to check the saved credentials and destination. Leaving a secret field blank keeps the stored credential. **Disconnect** disables that channel and removes its saved credential and destination.
-
-## Routing Model
-
-Jooosi Mail separates routing into four concerns:
-
-- delivery mode: sync or async,
-- strategy: `single`, `weighted_random`, `round_robin`, or `failover`,
-- connection ranking: preferred connection, default connection, health, priority, and weight,
-- availability gating: circuit breaker and rate limits.
-
-### Preferred and Default Connections
-
-- A request can prefer a connection through `MailRequest` metadata or the `X-Jooosi-Mail-Connection-Id` header.
-- A default connection remains a preference, not a hard lock.
-- If the preferred or default route is unavailable, Jooosi Mail can still fail over to other active connections.
-
-### Health, Circuit Breaker, and Rate Limits
-
-- Health scores are built from recent delivery attempts and recent negative webhook events.
-- The circuit breaker temporarily blacklists repeatedly failing connections.
-- Rate limits are tracked per connection across minute, hour, and day windows.
-- If all active connections are temporarily unavailable, queued delivery is deferred and retried when the next route becomes available.
-
-### Routing Strategies
-
-- `weighted_random` is the default routing strategy.
-- `round_robin` uses smooth weighted round robin primary selection.
-- Smooth weighted round robin persists its shared state in a dedicated Jooosi Mail table.
-- Only reasonably healthy connections are eligible as weighted-random or round-robin primaries.
-- Remaining candidates are still ordered for failover.
-
-Queued messages re-read the current routing defaults when they are actually delivered, so routing strategy changes take effect for pending queue work.
-
-## Queue Operations
-
-Async mail is stored in the Jooosi Mail queue table and processed by a small WordPress-friendly worker.
-
-Queue entry points:
-
-- Action Scheduler async wakeups,
-- recurring Action Scheduler runs,
-- direct WP-CLI worker execution.
-
-Scheduled HTTP processing is single-worker by design: one Action Scheduler run holds the runner lease, and any remaining ready work is continued by at most one pending wakeup.
-Immediate queue wakeups can also nudge Action Scheduler's internal async runner so due actions do not have to wait for a later site visit.
-
-### Inspect and Work the Queue
+Async mail is stored in plugin tables and processed by Action Scheduler wakeups, recurring scheduled runs, or WP-CLI. Scheduled HTTP processing uses an owner lease so only one worker chain runs at a time. Make sure WordPress scheduled tasks can run; idle or blocked scheduling can delay delivery.
 
 ```bash
 wp jooosi-mail queue:status
@@ -199,151 +87,47 @@ wp jooosi-mail queue:work --limit=25 --time-limit=20
 wp jooosi-mail queue:processing --limit=20
 wp jooosi-mail queue:release-stale --older-than=300
 wp jooosi-mail queue:failed --limit=20
-wp jooosi-mail queue:retry
 wp jooosi-mail queue:retry --id=42
 ```
 
-Retry timing is configurable through Jooosi Mail options. Temporary routing exhaustion can return a retry-after value so the worker reschedules the job at a better time instead of only using exponential backoff.
+`queue:status` distinguishes ready and deferred pending work, processing, stale claims, and failures. `queue:work` releases stale claims before processing; `--limit` controls the claim batch size, and multiple batches may be processed within `--time-limit`. Retry delays are configurable and can also reflect temporary route unavailability. `queue:retry` without an ID retries failed messages in bulk.
 
-`queue:status` now separates ready pending, deferred pending, active processing, stale processing claims, and failed messages. `queue:work` automatically releases stale claims older than five minutes before it claims more work.
+Email logging is enabled and terminal logs are retained forever by default. A retention period can be configured, or retained email logging disabled. Pending, queued, and processing mail keeps its payload because the queue needs it for delivery. When logging is disabled, terminal mail logs and delivery attempts are removed; webhook events are detached from deleted logs. Scheduled cleanup also prunes terminal queue-attempt history according to a configured retention period. Queue messages and webhook events remain separate operational records.
 
 ## Webhooks
 
-Webhook ingestion is available through the REST API.
-
-Endpoint shape:
+For a supported profile, enable webhooks on the connection and configure the displayed URL with the provider:
 
 ```text
 /wp-json/jooosi-mail/v1/webhook/{connection_id}
 ```
 
-Current webhook adapters:
+See the [provider catalog](../README.md#email-providers) for profile-level webhook support. The endpoint returns `404` for a connection with webhooks disabled.
 
-- AhaSend
-- Bird
-- Brevo
-- MailerSend
-- Mailgun
-- Mailjet
-- Mailomat
-- Mailtrap
-- Mandrill
-- Postmark
-- Resend
-- SendGrid
-- SendLayer
-- SMTP2GO
-- SparkPost
-- Sweego
-- toSend
-- ZeptoMail
-- Generic fallback parser
-
-Verification posture depends on the adapter and whether a connection has the required secret material configured. Jooosi Mail currently uses a mix of:
-
-- shared-secret or HMAC validation,
-- provider public-key validation,
-- IP allowlists,
-- unsigned-but-accepted callbacks for providers that do not expose a stronger verification path,
-- hard-fail `unsupported` states when a provider requires a secret that has not been configured.
-
-Useful webhook commands:
+Verification varies by adapter and configured credentials: it may use a shared secret, signature, public key, IP allowlist, or accept unsigned callbacks. Some configurations are unsupported until required secrets are supplied. Check the actual connection before relying on webhook feedback:
 
 ```bash
-wp jooosi-mail webhook:status
 wp jooosi-mail webhook:status --all=true
 wp jooosi-mail webhook:events --limit=20
 wp jooosi-mail webhook:events --connection-id=3
 ```
 
-Webhook requests now return `404` when the target connection exists but webhook ingestion is disabled for that connection. Use `webhook:status` to confirm whether a connection is currently accepting callbacks and whether the active adapter is protected by a shared secret or currently unsupported.
+Events are stored, projected into WordPress hooks, and can affect routing health. Replayed callbacks are not currently deduplicated, so repeated events can apply health feedback more than once.
 
-Webhook events are persisted and projected back into WordPress hooks so they can influence routing health.
+## Troubleshooting
 
-## Mail Attempt Visibility
-
-Use WP-CLI to inspect recent delivery attempts:
+- **A message stays queued:** inspect `queue:status` and Queue Logs, check Action Scheduler and WordPress scheduling, then use `queue:work` for a manual run. Deferred messages may be waiting for a scheduled time, retry delay, or an available connection.
+- **Delivery fails:** inspect Email Logs and `mail:attempts`, then check connection credentials, sender authorization, provider restrictions, and `connection:status --all`.
+- **Webhook events are missing:** check the provider's URL and webhook configuration, confirm the connection has webhooks enabled, and inspect `webhook:status --all=true` for its verification state.
+- **The plugin fails to boot after an update or move:** inspect `container:status`; `container:clear` removes the compiled cache so it can rebuild on the next boot. Cache identity includes source and runtime context.
+- **Schema changes are pending:** inspect `migration:status` and `migration:list`; `migration:run --dry-run` and `migration:rollback --dry-run` show planned changes.
 
 ```bash
 wp jooosi-mail mail:attempts --limit=20
 wp jooosi-mail mail:attempts --mail-log-id=42
-wp jooosi-mail mail:attempts --connection-id=3 --status=failed
+wp jooosi-mail container:status
+wp jooosi-mail container:clear
+wp jooosi-mail migration:status
 ```
 
-This gives operators a direct view into per-connection outcomes, provider message ids, and the latest error text without querying the database manually.
-
-Send plain text, HTML, or a multipart email with both alternatives through the configured Jooosi Mail delivery mode. Add `--send-at` to schedule a future delivery. It accepts ISO 8601 timestamps, Unix timestamps in seconds, and PHP `strtotime`-compatible expressions such as `tomorrow 9am`. Local date/time values and relative expressions use the WordPress timezone. Scheduled messages use the queue even when synchronous delivery is configured:
-
-```bash
-wp jooosi-mail mail:send --to=you@example.com --subject="Hello" --text-message="Hello from WP-CLI."
-wp jooosi-mail mail:send --to="you@example.com,team@example.com" --subject="Update" --html-message="<p>All set.</p>" --connection-id=3
-wp jooosi-mail mail:send --to=you@example.com --subject="Update" --text-message="All set." --html-message="<p>All set.</p>"
-wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at="2030-01-01T09:00:00+07:00"
-wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at="2030-01-01 09:00"
-wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at="2030-01-01T02:00:00Z"
-wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at="tomorrow 9am"
-wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at=1893488400
-```
-
-Scheduled messages are delivered on the first queue run at or after the requested time, so actual delivery depends on WordPress/Action Scheduler running. The command also accepts `--cc`, `--bcc`, and `--reply-to` with comma-separated addresses. Use `mail:attempts --mail-log-id=<id>` to inspect delivery attempts for the returned mail log id.
-
-## Email Logs
-
-Use **Compose email** on the Email logs page to submit a rich-text email through the configured delivery pipeline. Add To, Cc, Bcc, and an optional Reply-To address, choose a preferred connection profile, and set a send time in the browser's local time zone. Leaving the connection on configured routing uses the normal routing rules. Leaving the send time empty submits the message immediately; scheduled messages use the queue and are delivered on the first run at or after the requested time.
-
-Use **Resend email** from any retained email log to submit a fresh copy through the current routing and delivery settings. The action is available for every lifecycle status and requires confirmation because resending a queued or processing entry can intentionally create a duplicate delivery. Jooosi Mail preserves the source log, creates a new lifecycle row, and removes stale scheduling and message identity headers from the new submission.
-
-## Email Log Retention
-
-Email logging is enabled by default and terminal logs are kept forever by default.
-
-Administrators can disable retained email logs or set a retention duration from the plugin settings screen. Jooosi Mail still keeps the internal mail-log row while a message is `pending`, `queued`, or `processing`, because async delivery reconstructs the message from that durable payload. When logging is disabled, terminal `sent` and `failed` mail logs and their delivery-attempt rows are deleted after delivery completes.
-
-Retention cleanup runs through Action Scheduler and only deletes terminal mail logs. Queue records and webhook events remain as operational records; webhook events are detached from deleted mail-log ids.
-
-## Observability
-
-Current operational visibility comes from the admin UI, WP-CLI, and database-backed records.
-
-Admin visibility includes:
-
-- dashboard summary cards and sending chart,
-- connection health and availability details,
-- email logs and attempt detail,
-- queue logs,
-- webhook logs,
-- test email sending.
-
-Useful commands:
-
-- `wp jooosi-mail connection:status`
-- `wp jooosi-mail connection:list`
-- `wp jooosi-mail container:status`
-- `wp jooosi-mail mail:attempts --limit=20`
-- `wp jooosi-mail queue:status`
-- `wp jooosi-mail queue:processing`
-- `wp jooosi-mail queue:release-stale`
-- `wp jooosi-mail queue:failed`
-- `wp jooosi-mail container:clear`
-- `wp jooosi-mail webhook:status`
-- `wp jooosi-mail webhook:events --limit=20`
-- `wp jooosi-mail mail:test --to=you@example.com`
-- `wp jooosi-mail mail:test --to=you@example.com --connection-id=3`
-
-Persisted records include:
-
-- connections,
-- queue messages,
-- mail logs,
-- mail attempts,
-- webhook events,
-- circuit-breaker state,
-- rate-limit state,
-- weighted round robin state.
-
-## Current Operational Limits
-
-- Admin UI is implemented but still early; polish, accessibility review, provider setup guidance, and UI-oriented coverage are still ongoing
-- Provider-specific setup and incident-response guides are still incomplete
-- No provider-side quota synchronization yet
-- Some webhook adapters still rely on unsigned callbacks or provider-side allowlists instead of shared secrets
+Provider-side quota synchronization, webhook deduplication, and webhook verification for every profile are not currently available. See the [roadmap](../ROADMAP.md) for planned work.

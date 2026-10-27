@@ -9,7 +9,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const version = process.argv[2];
 
 if (!version || !/^\d+\.\d+\.\d+$/.test(version)) {
-  throw new Error("Usage: pnpm run release -- <major.minor.patch>");
+  throw new Error("Usage: pnpm run release <major.minor.patch>");
 }
 
 const status = execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" });

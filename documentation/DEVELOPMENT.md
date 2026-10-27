@@ -1,187 +1,84 @@
 # Jooosi Mail Development
 
-This guide is for contributors working on the Jooosi Mail codebase.
+## Setup
 
-## Local Setup
-
-Requirements:
-
-- PHP 8.1+
-- WordPress 6.8+
-- Composer
-- Node.js
-- `pnpm`
-
-Typical setup:
+The plugin declares WordPress 7.0+ and PHP 8.1+; encrypted credentials require PHP Sodium. Install Composer, Node.js, and pnpm for development. The release workflow uses Node 26 and pnpm 12.
 
 ```bash
 composer install
 pnpm install
-```
-
-After dependencies are installed, use `wp-env` for development and testing. Open `wp-admin/admin.php?page=jooosi-mail` and use WP-CLI for smoke testing.
-
-Useful commands:
-
-```bash
-wp jooosi-mail connection:profiles
-wp jooosi-mail connection:status --all
-wp jooosi-mail webhook:status --all=true
-wp jooosi-mail queue:status
-wp jooosi-mail queue:failed
-wp jooosi-mail mail:send --to=you@example.com --subject="Hello" --text-message="Hello from WP-CLI."
-wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-message="Your reminder." --send-at="2030-01-01T09:00:00+07:00"
-wp jooosi-mail mail:test --to=you@example.com
-wp jooosi-mail mail:test --to=you@example.com --connection-id=3
+pnpm wp-env:start
 pnpm dev
-pnpm check
-pnpm build
-pnpm wp-env:start
-pnpm wp-env:test:start
-pnpm test:php:docker
 ```
 
-Run frontend validation and WordPress-backed PHP integration tests before submitting changes. The current GitHub Actions configuration contains the tag-triggered deployment workflow; a pull-request validation workflow remains planned. Prepare a release with `pnpm run release -- <major.minor.patch>` (requires Composer), review the generated commit and tag, then push both to trigger the deployment workflow.
+`wp-env` requires Docker and mounts the plugin into WordPress. Open `wp-admin/admin.php?page=jooosi-mail`. The dev server provides frontend assets with HMR; use `pnpm build` when production assets are needed. `vp-wp` provides asset tooling, not a WordPress environment.
 
-## Docker Test Workflow
+The committed `.wp-env.json` is for development; `.wp-env.test.json` is a separate test environment. Their initial ports are 8888 and 8889 respectively, with automatic port selection enabled. Use `pnpm wp-env:status` or `pnpm wp-env:test:status` to inspect them; matching `:stop` and `:destroy` scripts are available.
 
-The repository also includes committed `wp-env` configs for a containerized WordPress workflow.
-
-Useful commands:
+## Validation
 
 ```bash
-pnpm wp-env:start
-pnpm wp-env:status
-pnpm wp-env:test:start
-pnpm wp-env:test:status
-pnpm test:php:docker
-pnpm wp-env:stop
-pnpm wp-env:test:stop
-pnpm wp-env:destroy
-pnpm wp-env:test:destroy
+pnpm check                                  # TypeScript
+composer test:rector                        # PHP downgrade-rule fixtures
+pnpm test:php:docker                        # Isolated WordPress integration suite
+node tests/Frontend/run-browser-tests.mjs   # React request and timezone regressions
 ```
 
-Notes:
+`pnpm test:php:docker` starts the test `wp-env`, installs Composer dependencies in its CLI container, and runs `composer test:php`. To run the WordPress-backed suite locally, configure the WordPress PHPUnit library with a WordPress installation and disposable test database, then run `composer test:php`. `tests/bootstrap.php` uses `WP_TESTS_DIR` if set, otherwise `vendor/wp-phpunit/wp-phpunit`; the Composer-supplied test configuration loads the file specified by `WP_PHPUNIT__TESTS_CONFIG`.
 
-- `vp-wp` is only used for frontend asset tooling. It does not provide a WordPress test environment.
-- `wp-env` is the preferred isolated workflow because it is WordPress-native, mounts the plugin automatically, and already includes `composer`, `phpunit`, and `wp-cli` inside the container.
-- `.wp-env.json` is the normal development environment. `.wp-env.test.json` is the isolated environment used by `pnpm test:php:docker`.
-- A custom Docker stack would only be worth the extra maintenance if the project later needs tighter image control, service customization, or a broader CI matrix.
+The frontend runner needs Chrome or Chromium; set `CHROME_PATH` if it is not in a standard location. It bundles a temporary test entry and checks request ordering, polling, cancellation, pagination, and UTC parsing in UTC, Asia/Jakarta, and America/Los_Angeles. It does not start the dev server or build production assets.
 
-## Frontend Query Regression Tests
-
-Run `node tests/Frontend/run-browser-tests.mjs` to exercise `useAdminQuery`, `useAdminLogQuery`, the log API loaders, and UTC timestamp parsing with real React in headless Chrome. Set `CHROME_PATH` if Chrome is not installed in a standard location. The runner bundles only the test entry into a temporary directory, uses an isolated browser profile, and removes its generated files afterward. It does not start the application dev server or create a production build.
-
-The tests cover response ordering, loading/error state, retained refresh data, unmounting, Strict Mode, slow polling, request cancellation, manual refresh, and server-clamped pagination across all three log endpoints. Continue to run `pnpm check` for application TypeScript validation.
-
-The browser runner repeats the cases in UTC, Asia/Jakarta, and America/Los_Angeles and verifies that Chrome actually uses each requested timezone.
+PHP integration coverage spans boot, migrations, CLI, mail, queue, routing, webhooks, connections, settings, and admin endpoints. It is not a complete provider or UI matrix. The checked-in GitHub Actions workflow deploys tagged releases; pull-request validation is not yet configured.
 
 ## Code Organization
 
-- `src/Bootstrap` - plugin boot, lifecycle, paths, environment, kernel
-- `src/Discovery` - attributes, discovery, runtime manifest
-- `src/Infrastructure` - container signatures/artifacts/locks, database, security, and WordPress bridge services
-- `src/Mail` - normalization, submission, profiles, connection input, routing, logging, and delivery lifecycle collaborators
-- `src/Queue` - bus, messages, state repositories, owner leases, transport, retry, workers, and triggers
-- `src/Webhook` - application ingestion services, provider adapters, the REST controller, persistence, and event projection
-- `src/Cli` - discovered WP-CLI facades plus application and presentation collaborators
-- `src/Admin` - thin REST controllers, read models, presenters, application services, settings boundaries, the admin menu, and test-email helpers
-- `resources/admin` and `resources/pages` - React admin app routes and screens
-- `src/Database/Migration` - schema management
+- `src/Bootstrap`, `src/Discovery`, `src/Infrastructure` — boot, attribute discovery, container, persistence, security, and WordPress bridges.
+- `src/Mail`, `src/Queue`, `src/Webhook` — submission, profiles, connections, routing, delivery, durable queueing, and provider callbacks.
+- `src/Alert` — failure alert configuration, notification, and channel drivers.
+- `src/Admin`, `src/Cli` — WordPress admin and WP-CLI adapters, application services, read models, and presenters.
+- `src/Database/Migration` — schema versions and migration services.
+- `resources/admin`, `resources/pages` — hash-routed React admin app.
+- `tests/Integration`, `tests/Frontend`, `tests/Rector` — PHP integration, browser regression, and downgrade-rule tests.
 
-## Key Architectural Conventions
-
-- Use strict types and PHP 8.1+ features.
-- Keep runtime discovery attribute-driven through the internal PSR-4 scanner.
-- Register WordPress hooks, REST routes, and CLI commands through discovery and registrars.
-- Keep provider-specific behavior in profiles and webhook adapters.
-- Use Doctrine DBAL-backed repositories for persistence.
-- Keep WordPress controllers, hooks, and CLI commands as adapters. Put SQL in repositories/read models, stable output shapes in presenters, and use-case coordination in application/domain services.
-- Preserve supported REST, CLI, hook, schema, payload, provider, and queue contracts while refactoring. Long-lived facades should retain positional constructor compatibility by adding optional collaborators at the end.
-- Treat mail requests, delivery plans, and queue messages as stable internal contracts.
-- Keep normalized submission orchestration in `MailSubmissionService`; WordPress interception should only adapt the hook contract. Persist the mail log and queue envelope together, and trigger workers after commit.
-- Use `useAdminLogQuery` for paginated log loaders, and forward its abort signal through the API client. Parse API timestamps through `parseAdminDateTime` before interpreting their time or age.
-- Use `wp jooosi-mail connection:profiles` and `wp jooosi-mail webhook:status` as the fastest way to confirm the live feature surface before changing docs.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for runtime flows and [AGENTS.md](../AGENTS.md) for project conventions.
 
 ## Extension Points
 
-### Customize Manual Resends
+Services, controllers, routes, hooks, CLI commands, profiles, transport factories, and message handlers are discovered through attributes. Keep WordPress controllers and commands thin; put persistence in repositories or read models and lifecycle coordination in application or domain services. Preserve existing REST, CLI, hook, schema, provider, payload, and queue contracts when refactoring. Keep positional constructors of long-lived service facades compatible; add new collaborators as optional trailing arguments.
 
-Manual resend reconstructs a retained `MailRequest`, removes stale `Date`, `Message-ID`, and `X-Schedule-Time` headers, then submits a new lifecycle entry through the current routing policy. The source log is never mutated.
+### Mail Submission Hooks
 
-Use `f!jooosi-mail/mail:resend.request` to replace the reconstructed request before submission. The filter receives the request and source mail-log ID:
+Manual resend reconstructs a retained `MailRequest`, removes stale `Date`, `Message-ID`, and `X-Schedule-Time` headers, and submits a new lifecycle entry. The filter receives the request and source log ID:
 
 ```php
 use JooosiMail\Mail\ValueObject\MailRequest;
 
 add_filter(
     'f!jooosi-mail/mail:resend.request',
-    static function (MailRequest $mailRequest, int $sourceMailLogId): MailRequest {
-        return $mailRequest;
+    static function (MailRequest $request, int $sourceMailLogId): MailRequest {
+        return $request;
     },
     10,
     2,
 );
 ```
 
-After submission, `a!jooosi-mail/mail:resend.submitted` receives the source mail-log ID, new mail-log ID, and acceptance status. Exceptions from action subscribers are logged without changing the already-completed submission result.
+`a!jooosi-mail/mail:resend.submitted` receives the source log ID, new log ID, and acceptance status. Admin compose exposes `f!jooosi-mail/mail:compose.request` with the request and user ID, and `a!jooosi-mail/mail:compose.submitted` with the log ID, user ID, and acceptance status. Subscriber failures after submission are logged without changing the completed result.
 
-### Add or Update an Email Provider
+### Providers and Webhooks
 
-Follow [`MAIL_PROVIDERS.md`](MAIL_PROVIDERS.md) for the provider research, profile, transport, optional webhook, coverage, discovery, and documentation checklist.
+Follow [MAIL_PROVIDERS.md](MAIL_PROVIDERS.md) for profile, transport, webhook, test, and documentation guidance. Check `wp jooosi-mail connection:profiles` and `wp jooosi-mail webhook:status --all=true` against a running installation.
 
-### Add a New Webhook Adapter
+### Alert Channels
 
-To add a provider adapter:
+Implement `AlertChannelDriverInterface` in a discovered `#[Service]` under `src/Alert/Channel`. Give it a stable key, credential and optional target fields, validation, and delivery behavior; use `AlertHttpClient` for outbound JSON. Add the corresponding labels and setup instructions in `resources/components/alert-settings.tsx`. Drivers are registered automatically; keep released option field names stable.
 
-1. Create a concrete adapter under `src/Webhook/Adapter`.
-2. Mark it as a discovered service.
-3. Implement `supports()`, `parse()`, and `verify()`.
-4. Keep provider parsing isolated inside the adapter.
-5. Feed normalized events into the shared webhook event model.
+### Queue Messages and CLI Commands
 
-### Add a New Alert Channel
+Add queue messages under `src/Queue/Message`, mark handlers with `#[MessageHandler(...)]`, and preserve retry semantics. Add WP-CLI adapters under `src/Cli` with `#[Command(...)]`; delegate domain work to services and document supported commands in [OPERATIONS.md](OPERATIONS.md).
 
-To add an alert provider:
+## Releases and Documentation
 
-1. Add a `#[Service]` class under `src/Alert/Channel` that implements `AlertChannelDriverInterface`.
-2. Give it a stable lowercase key, display name, saved credential field, optional target field, validation, and delivery behavior. Driver services are tagged into `AlertChannelRegistry` automatically.
-3. Use `AlertHttpClient` for outbound JSON requests and provider response handling.
-4. Add one channel definition to `resources/components/alert-settings.tsx` for its labels and setup instructions. The admin API accepts generic `secret` and `target` fields.
-5. Keep the option field names stable after release so existing credentials remain readable.
+Record notable changes under **Unreleased** in [CHANGELOG.md](../CHANGELOG.md), keep [ROADMAP.md](../ROADMAP.md) current, and update the relevant user and developer guides with behavior changes.
 
-The configuration service, REST routes, and notifier dispatch channels through the registry; they should not need provider-specific branches.
-
-### Add a New Queue Handler or Message
-
-To extend async processing:
-
-1. Create a message class under `src/Queue/Message`.
-2. Create a handler marked with `#[MessageHandler(...)]`.
-3. Route the message through the Messenger bus.
-4. Keep failure behavior compatible with the retry system.
-
-### Add a New WP-CLI Command
-
-To add a command:
-
-1. Create a service in `src/Cli`.
-2. Mark it with `#[Command(...)]`.
-3. Keep the command small and delegate domain behavior to a service class.
-4. Update the operations documentation when the command becomes part of the supported workflow.
-
-## Development Workflow Expectations
-
-- Update docs when behavior or operational workflows change.
-- Update `CHANGELOG.md` for notable changes.
-- Update `ROADMAP.md` when priorities move.
-- Prefer small, runtime-safe additions unless the task specifically requires broader UI or product changes.
-
-## Current Gaps
-
-- Admin UI exists, but polish, accessibility review, provider setup guidance, and UI-oriented coverage are still ongoing
-- Provider setup and troubleshooting docs still lag behind the shipped profile catalog
-- Some profiles are still transport-only and do not yet have matching webhook ingestion or verification support
-- Automated PHP coverage is still centered on WordPress integration paths such as plugin boot, activation migrations, connection/migration/queue/webhook/mail CLI behavior, `wp_mail()` interception, queue processing, webhook handling, routing behavior, config persistence, and mail payload normalization
-
-Use [`ROADMAP.md`](../ROADMAP.md) for planned work and [`CHANGELOG.md`](../CHANGELOG.md) for recorded changes.
+With a clean working tree, `pnpm run release <major.minor.patch>` updates release metadata and the WordPress readme, refreshes the Composer lock file, then creates a Git commit and tag. Review those changes before pushing the commit and tag. The tag-triggered deployment workflow builds and packages the release.

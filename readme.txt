@@ -22,15 +22,17 @@ Jooosi Mail is a modern email sending solution for WordPress sites. It routes Wo
 * **Provider failover**: Fall back to another connection when a provider is unavailable.
 * **Email logs**: Review sent, queued, failed, and webhook-related activity.
 * **Webhook feedback**: Supported providers can report deliveries, bounces, complaints, opens, and clicks back to WordPress.
+* **Compose and resend**: Send or schedule an email, send a test, or resend a retained email log.
+* **Failure alerts**: Notify Telegram, Discord, or Slack when delivery fails permanently.
 * **Admin and CLI workflows**: Manage Jooosi Mail from the WordPress dashboard or WP-CLI.
 
 ### Supported Providers
 
-Jooosi Mail works with SMTP and many popular email providers. Available sending methods include:
+Jooosi Mail works with SMTP and many email providers. This catalog describes the current source tree, which may include unreleased changes. Open **Jooosi Mail → Connections** to see the profiles available in your installed version:
 
 * [AhaSend](https://ahasend.com) - API, SMTP. Webhooks supported.
 * [Amazon SES](https://aws.amazon.com/ses/) - API, HTTPS, SMTP.
-* [Azure](https://azure.microsoft.com/en-us/products/communication-services) - API (Azure Communication Services).
+* [Azure](https://azure.microsoft.com/en-us/products/communication-services) - API.
 * [Bird](https://bird.com) - API, SMTP, SMTPS. Webhooks supported.
 * [Brevo](https://www.brevo.com) - API, SMTP. Webhooks supported.
 * [Cloudflare Email Service](https://developers.cloudflare.com/email-service/) - API.
@@ -46,8 +48,8 @@ Jooosi Mail works with SMTP and many popular email providers. Available sending 
 * [Loops](https://loops.so) - API, SMTP.
 * [MailerSend](https://www.mailersend.com) - API, SMTP. Webhooks supported.
 * [Mailgun](https://www.mailgun.com) - API, HTTPS, SMTP. Webhooks supported.
-* [MailKite](https://mailkite.dev) - API, SMTP, SMTPS.
 * [Mailjet](https://www.mailjet.com) - API, SMTP. Webhooks supported.
+* [MailKite](https://mailkite.dev) - API, SMTP, SMTPS.
 * [Mailomat](https://mailomat.swiss) - API, SMTP. Webhooks supported.
 * [MailPace](https://mailpace.com) - API, SMTP.
 * [Mailtrap](https://mailtrap.io) - SMTP, API, Sandbox. Webhooks supported.
@@ -70,8 +72,8 @@ Jooosi Mail works with SMTP and many popular email providers. Available sending 
 * [SendPulse](https://sendpulse.com) - API, SMTP, SMTPS.
 * [Sequenzy](https://www.sequenzy.com) - API, SMTP, SMTPS.
 * [SMTP](https://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol) - SMTP, SMTPS.
-* [SMTP2GO](https://www.smtp2go.com) - API, SMTP, SMTPS. Webhooks supported.
 * [SMTP.com](https://www.smtp.com) - API, SMTP, SMTPS.
+* [SMTP2GO](https://www.smtp2go.com) - API, SMTP, SMTPS. Webhooks supported.
 * [SparkPost](https://www.sparkpost.com) - API, SMTP, SMTPS. Webhooks supported.
 * [Sweego](https://www.sweego.io) - API, SMTP. Webhooks supported.
 * [toSend](https://tosend.com) - API. Webhooks supported.
@@ -84,7 +86,7 @@ Visit [the GitHub repository](https://github.com/jooosi-project/jooosi-mail) for
 
 ### External services
 
-Jooosi Mail routes WordPress emails through third-party email service providers. No data is sent to any external service unless the site administrator explicitly configures a connection to that provider.
+Jooosi Mail routes emails through the connections configured by the site administrator. External providers receive data when an email is submitted for delivery.
 
 When Jooosi Mail sends an email, the following data is transmitted to the configured provider:
 
@@ -93,9 +95,15 @@ When Jooosi Mail sends an email, the following data is transmitted to the config
 - Sender address (From, Reply-To)
 - Attachments (if any)
 
-This data is sent only when WordPress processes queued or immediate emails (via `wp_mail()` or Action Scheduler). Jooosi Mail does not collect or transmit any data independently.
+Messages may originate from `wp_mail()`, the admin compose screen, a resend, or WP-CLI, and may be sent immediately or by the queue.
 
 If webhooks are enabled for a supported provider, that provider may send delivery, bounce, complaint, open, and click data back to your WordPress site.
+
+If delivery failure alerts are enabled, Jooosi Mail sends the site name, email subject, error, and mail-log link directly to the configured Telegram, Discord, or Slack service. The email body and recipient list are not attached, though an error may contain recipient information. Test alerts also contact the configured service.
+
+* Telegram: [Terms](https://telegram.org/tos), [Privacy Policy](https://telegram.org/privacy)
+* Discord: [Terms](https://discord.com/terms), [Privacy Policy](https://discord.com/privacy)
+* Slack: [Terms](https://slack.com/terms-of-service), [Privacy Policy](https://slack.com/trust/privacy/privacy-policy)
 
 Named third-party provider terms and privacy policies are available here:
 
@@ -153,6 +161,9 @@ When a site administrator configures one of those transports to send through an 
 1. Upload the plugin files to `/wp-content/plugins/jooosi-mail`, or install the plugin through the WordPress plugins screen.
 2. Activate Jooosi Mail through the Plugins screen in WordPress.
 3. Open Jooosi Mail in the WordPress admin and configure a sending connection.
+4. Send a test email from Email Logs and check Settings for delivery, routing, and retention options.
+
+The PHP Sodium extension is required to encrypt saved credentials. Queued delivery also requires WordPress and Action Scheduler to run scheduled tasks.
 
 == Frequently Asked Questions ==
 
@@ -162,7 +173,7 @@ Jooosi Mail supports SMTP and many popular transactional email providers through
 
 = Does Jooosi Mail replace wp_mail()? =
 
-Yes. Jooosi Mail intercepts WordPress `wp_mail()` calls and routes them through the configured delivery workflow.
+When interception is enabled, Jooosi Mail routes `wp_mail()` calls through its configured delivery workflow. It respects an earlier `pre_wp_mail` result.
 
 = Does Jooosi Mail support WP-CLI? =
 

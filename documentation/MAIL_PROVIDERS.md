@@ -75,18 +75,18 @@ Add focused integration coverage alongside the existing provider tests, especial
 
 Cover each supported scheme, required and missing credentials, secrets that contain URL-reserved characters, and boundary cases from provider documentation. Use test doubles or mocked HTTP responses; do not make automated tests depend on live provider accounts or send live email.
 
-Use `wp jooosi-mail connection:profiles` to confirm discovery, supported schemes, configuration fields, and webhook support. Use `wp jooosi-mail webhook:status --all=true` when webhook behavior changes. Run the focused test and static-analysis commands required by the repository workflow, and lint changed PHP files.
+Use `wp jooosi-mail connection:profiles` to confirm discovery, supported schemes, configuration fields, and webhook support. Use `wp jooosi-mail webhook:status --all=true` when webhook behavior changes. Run relevant tests and lint changed PHP files; see [DEVELOPMENT.md](DEVELOPMENT.md) for the available validation commands.
 
 ## 6. Update User-Facing Documentation
 
 Update the same change set so the shipped profile and its documentation agree:
 
-- `readme.txt`: add the provider to **Supported Providers** with only the methods actually implemented. Add its terms and privacy links under **External services**.
-- `documentation/OPERATIONS.md`: describe setup requirements, region choices, SMTP credential differences, templates, and provider limitations that affect operators.
+- `README.md` and `readme.txt`: update both provider catalogs with the implemented sending methods and webhook support. Add terms and privacy links under **External services** in `readme.txt` for named providers.
+- [OPERATIONS.md](OPERATIONS.md): update relevant setup requirements and delivery limits.
 - `CHANGELOG.md`: record notable provider or transport additions under **Unreleased**.
 - `#[MailProfile(...)]`: keep the website, docs URL, description, and use cases accurate.
 
-When updating a provider, revisit existing setup notes and supported-method lists. Keep the profile catalog in `OPERATIONS.md` and any feature or limitation statements current. Use `wp jooosi-mail connection:profiles` as the runtime source of truth for profile keys, schemes, fields, and webhook support.
+Use `wp jooosi-mail connection:profiles` as the runtime source of truth for an installed site's profile keys, schemes, fields, and webhook support.
 
 ## Review Checklist
 
@@ -97,4 +97,4 @@ When updating a provider, revisit existing setup notes and supported-method list
 - [ ] SMTP security, port defaults, fixed usernames, and message adaptations match provider documentation.
 - [ ] Webhook claims, signature verification, event names, and profile metadata match official documentation.
 - [ ] Focused coverage and discovery checks are updated for the change.
-- [ ] README, Operations documentation, and changelog reflect the shipped behavior.
+- [ ] Both provider catalogs, operations guide, external service disclosures, and changelog reflect the shipped behavior.

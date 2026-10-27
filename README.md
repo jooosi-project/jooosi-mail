@@ -77,14 +77,27 @@ Send WordPress email through the provider you choose, and watch it work with you
 - 📬 **Multiple provider support**: Use SMTP or popular email services from one plugin.
 - 🔁 **Smarter delivery**: Queue busy sending periods and fall back to another connection when needed.
 - 🧪 **Test email sending**: Send a test message before relying on a new connection.
+- ✉️ **Compose and resend**: Write and schedule emails or resend them from your logs.
 - 📊 **Email logs**: See sent, queued, and failed emails in one place.
 - 🚦 **Connection health**: Keep an eye on provider availability and delivery issues.
 - 📥 **Webhook feedback**: Supported providers can report deliveries, bounces, complaints, opens, and clicks back to WordPress.
+- 🔔 **Delivery alerts**: Get notified through Telegram, Discord, or Slack when an email can't be delivered.
 - 🛠️ **Admin and CLI workflows**: Manage Jooosi Mail from the WordPress dashboard or with WP-CLI.
 
-### Email Providers
+## Getting Started
 
-Jooosi Mail works with SMTP and many popular email providers. The table below shows the available sending methods and whether delivery updates can be sent back to WordPress.
+Jooosi Mail requires WordPress 7.0 or later, PHP 8.1 or later, and the PHP Sodium extension for encrypted credentials.
+
+1. Install the plugin from [WordPress.org](https://wordpress.org/plugins/jooosi-mail/) or a release package, then activate it.
+2. Open **Jooosi Mail → Connections**, add a provider, and enter its credentials and sender details.
+3. Set the connection as the default if appropriate, then send a test from **Email Logs**.
+4. Review delivery, routing, and log retention under **Settings**. For queued delivery, ensure WordPress and Action Scheduler can run scheduled tasks.
+
+See the [operations guide](documentation/OPERATIONS.md) for configuration, troubleshooting, and WP-CLI examples.
+
+## Email Providers
+
+Jooosi Mail works with SMTP and many email providers. This catalog describes the current source tree, which may include unreleased changes. For the profiles in an installed version, check **Connections** or run `wp jooosi-mail connection:profiles`. Webhook verification depends on the provider and connection configuration.
 
 | Profile | Key | Transports | Webhooks |
 | --- | --- | --- | --- |
@@ -96,13 +109,13 @@ Jooosi Mail works with SMTP and many popular email providers. The table below sh
 | [Elastic Email](https://elasticemail.com) | `elasticemail` | API, SMTP, SMTPS |  |
 | [Emailit](https://emailit.com) | `emailit` | API, SMTP, SMTPS |  |
 | [Gmail](https://workspace.google.com/products/gmail/) | `gmail` | API, SMTP |  |
-| [Helo](https://helohq.com) | `helo` | API |  |
+| [Helo](https://helohq.com) | `helo` | API, SMTP, SMTPS |  |
 | [Infobip](https://www.infobip.com) | `infobip` | API, SMTP |  |
 | [Iterable](https://iterable.com) | `iterable` | API |  |
-| [JetEmail](https://jetemail.com) | `jetemail` | API |  |
-| [Lettermint](https://lettermint.co) | `lettermint` | API |  |
-| [Lettr](https://lettr.com) | `lettr` | API |  |
-| [Loops](https://loops.so) | `loops` | API |  |
+| [JetEmail](https://jetemail.com) | `jetemail` | API, SMTP, SMTPS |  |
+| [Lettermint](https://lettermint.co) | `lettermint` | API, SMTP, SMTPS |  |
+| [Lettr](https://lettr.com) | `lettr` | API, SMTP, SMTPS |  |
+| [Loops](https://loops.so) | `loops` | API, SMTP |  |
 | [MailerSend](https://www.mailersend.com) | `mailersend` | API, SMTP | ✅ |
 | [Mailgun](https://www.mailgun.com) | `mailgun` | API, HTTPS, SMTP | ✅ |
 | [Mailjet](https://www.mailjet.com) | `mailjet` | API, SMTP | ✅ |
@@ -115,7 +128,7 @@ Jooosi Mail works with SMTP and many popular email providers. The table below sh
 | Native PHP | `native` | Native PHP |  |
 | Null | `null` | Null |  |
 | [Pepipost](https://netcorecloud.com/email/) | `pepipost` | API, SMTP, SMTPS |  |
-| [Plunk](https://useplunk.com) | `plunk` | API |  |
+| [Plunk](https://useplunk.com) | `plunk` | API, SMTP, SMTPS |  |
 | [PufferPost](https://pufferpost.com) | `pufferpost` | API |  |
 | [Postal](https://docs.postalserver.io) | `postal` | API |  |
 | [Postmark](https://postmarkapp.com) | `postmark` | API, SMTP | ✅ |
@@ -127,7 +140,7 @@ Jooosi Mail works with SMTP and many popular email providers. The table below sh
 | [SendLayer](https://sendlayer.com) | `sendlayer` | API, SMTP, SMTPS | ✅ |
 | Sendmail | `sendmail` | Sendmail |  |
 | [SendPulse](https://sendpulse.com) | `sendpulse` | API, SMTP, SMTPS |  |
-| [Sequenzy](https://www.sequenzy.com) | `sequenzy` | API |  |
+| [Sequenzy](https://www.sequenzy.com) | `sequenzy` | API, SMTP, SMTPS |  |
 | [Amazon SES](https://aws.amazon.com/ses/) | `ses` | API, HTTPS, SMTP |  |
 | SMTP | `smtp` | SMTP, SMTPS |  |
 | [SMTP2GO](https://www.smtp2go.com) | `smtp2go` | API, SMTP, SMTPS | ✅ |
@@ -136,9 +149,11 @@ Jooosi Mail works with SMTP and many popular email providers. The table below sh
 | [Sweego](https://www.sweego.io) | `sweego` | API, SMTP | ✅ |
 | [toSend](https://tosend.com) | `tosend` | API | ✅ |
 | [TurboSMTP](https://www.turbo-smtp.com) | `turbosmtp` | API, SMTP |  |
-| [Unosend](https://unosend.co) | `unosend` | API |  |
+| [Unosend](https://unosend.co) | `unosend` | API, SMTP, SMTPS |  |
 | [ZeptoMail](https://www.zoho.com/zeptomail/) | `zeptomail` | API, SMTP, SMTPS | ✅ |
 | [Zoho Mail](https://www.zoho.com/mail/) | `zohomail` | SMTP, SMTPS |  |
+
+See the [operations guide](documentation/OPERATIONS.md#provider-setup) for configuration and delivery limits.
 
 ## Development
 

@@ -1,36 +1,11 @@
 # Jooosi Mail Documentation
 
-This directory contains the living documentation for Jooosi Mail. The root README is intentionally a concise product overview, while these documents keep the deeper setup, runtime, architecture, development, and current-limit details.
+- [Project overview and provider catalog](../README.md) — features, requirements, quick start, and supported providers.
+- [Operations](OPERATIONS.md) — configuration, sending, queue, webhooks, alerts, retention, and troubleshooting.
+- [Architecture](ARCHITECTURE.md) — runtime components, data flow, and persistence.
+- [Development](DEVELOPMENT.md) — setup, validation, extension points, and releases.
+- [Adding or updating providers](MAIL_PROVIDERS.md) — profile, transport, webhook, and testing guidance.
+- [Roadmap](../ROADMAP.md) and [changelog](../CHANGELOG.md) — planned work and notable changes.
+- [Third-party notices](THIRD_PARTY_NOTICES.md) — notices for incorporated code.
 
-Third-party code incorporated into the plugin is documented in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-
-## Start Here
-
-- [`../README.md`](../README.md) - product overview and entry points
-- [`OPERATIONS.md`](OPERATIONS.md) - setup, admin and CLI workflows, queue, routing, webhooks, observability, and current operational limits
-- [`MAIL_PROVIDERS.md`](MAIL_PROVIDERS.md) - workflow and review checklist for adding or updating provider profiles, transports, and webhooks
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) - how the runtime is structured and why
-- [`BACKEND_REBUILD.md`](BACKEND_REBUILD.md) - compatibility boundary, implemented internal slices, and remaining migration plan
-- [`DEVELOPMENT.md`](DEVELOPMENT.md) - local development notes and extension points
-- [`CODE_REVIEW.md`](CODE_REVIEW.md) - September 2026 review findings, completed refactors, and follow-up work
-
-## Document Roles
-
-- Overview docs explain what the plugin is and what is currently in scope.
-- Provider docs explain how to add or update provider integrations consistently.
-- Operations docs explain how to configure and run the plugin.
-- Architecture docs explain system boundaries, data flow, and design choices.
-- Development docs explain how to work on the codebase and extend it safely.
-
-## Project References
-
-- [`../ROADMAP.md`](../ROADMAP.md) tracks planned work.
-- [`../CHANGELOG.md`](../CHANGELOG.md) records notable changes.
-
-## Live Source Of Truth
-
-- Use the WordPress admin page at `wp-admin/admin.php?page=jooosi-mail` for the current dashboard, connection, settings, mail log, queue log, webhook log, and test-email workflows.
-- Use `wp jooosi-mail connection:profiles` to inspect the currently shipped profile catalog, supported schemes, configuration fields, and webhook support.
-- Use `wp jooosi-mail webhook:status --all=true` to inspect the webhook adapter and verification posture for real configured connections.
-
-When behavior changes, update the relevant documentation in the same change set so the docs remain trustworthy.
+Documentation in this checkout describes the current source tree, which may include unreleased changes. For an installed version, inspect its admin screens, `wp jooosi-mail connection:profiles`, and `wp jooosi-mail webhook:status --all=true`.

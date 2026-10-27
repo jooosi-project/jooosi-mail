@@ -20,10 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [SendHeron](https://sendheron.com) mail provider.
 - [Unosend](https://unosend.co) mail provider.
 
-### Changed
-- Added provider-specific API field mapping and validation for recipients, headers, tags, metadata, templates, and attachments.
-- Updated provider profile and operations documentation with setup requirements and field limitations.
-
 ## [1.0.12] - 2026-10-17
 
 ### Added
