@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b
+class ComposerStaticInitfffd260a672ef4a0a12bde3705e46a5b
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
@@ -920,6 +920,7 @@ class ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b
         'JooosiMailDeps\\Symfony\\Component\\Cache\\Traits\\Relay\\Relay22Trait' => __DIR__ . '/..' . '/symfony/cache/Traits/Relay/Relay22Trait.php',
         'JooosiMailDeps\\Symfony\\Component\\Cache\\Traits\\Relay\\Relay30Trait' => __DIR__ . '/..' . '/symfony/cache/Traits/Relay/Relay30Trait.php',
         'JooosiMailDeps\\Symfony\\Component\\Cache\\Traits\\Relay\\Relay40Trait' => __DIR__ . '/..' . '/symfony/cache/Traits/Relay/Relay40Trait.php',
+        'JooosiMailDeps\\Symfony\\Component\\Cache\\Traits\\Relay\\Relay502Trait' => __DIR__ . '/..' . '/symfony/cache/Traits/Relay/Relay502Trait.php',
         'JooosiMailDeps\\Symfony\\Component\\Cache\\Traits\\Relay\\Relay50Trait' => __DIR__ . '/..' . '/symfony/cache/Traits/Relay/Relay50Trait.php',
         'JooosiMailDeps\\Symfony\\Component\\Cache\\Traits\\Relay\\SwapdbTrait' => __DIR__ . '/..' . '/symfony/cache/Traits/Relay/SwapdbTrait.php',
         'JooosiMailDeps\\Symfony\\Component\\Clock\\Clock' => __DIR__ . '/..' . '/symfony/clock/Clock.php',
@@ -1765,7 +1766,13 @@ class ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b
         'JooosiMail\\Mail\\Profile\\Builtin\\ElasticEmailProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/ElasticEmailProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\EmailitProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/EmailitProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\GmailProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/GmailProfile.php',
+        'JooosiMail\\Mail\\Profile\\Builtin\\HeloProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/HeloProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\InfobipProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/InfobipProfile.php',
+        'JooosiMail\\Mail\\Profile\\Builtin\\IterableProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/IterableProfile.php',
+        'JooosiMail\\Mail\\Profile\\Builtin\\JetEmailProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/JetEmailProfile.php',
+        'JooosiMail\\Mail\\Profile\\Builtin\\LettermintProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/LettermintProfile.php',
+        'JooosiMail\\Mail\\Profile\\Builtin\\LettrProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/LettrProfile.php',
+        'JooosiMail\\Mail\\Profile\\Builtin\\LoopsProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/LoopsProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\MailKiteProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/MailKiteProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\MailPaceProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/MailPaceProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\MailerSendProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/MailerSendProfile.php',
@@ -1778,15 +1785,20 @@ class ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b
         'JooosiMail\\Mail\\Profile\\Builtin\\NativeProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/NativeProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\NullProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/NullProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\PepipostProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/PepipostProfile.php',
+        'JooosiMail\\Mail\\Profile\\Builtin\\PlunkProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/PlunkProfile.php',
+        'JooosiMail\\Mail\\Profile\\Builtin\\PostShibaProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/PostShibaProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\PostalProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/PostalProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\PostmarkProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/PostmarkProfile.php',
+        'JooosiMail\\Mail\\Profile\\Builtin\\PrimitiveProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/PrimitiveProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\PufferPostProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/PufferPostProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\ResendProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/ResendProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\ScalewayProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/ScalewayProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\SendGridProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/SendGridProfile.php',
+        'JooosiMail\\Mail\\Profile\\Builtin\\SendHeronProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/SendHeronProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\SendLayerProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/SendLayerProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\SendPulseProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/SendPulseProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\SendmailProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/SendmailProfile.php',
+        'JooosiMail\\Mail\\Profile\\Builtin\\SequenzyProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/SequenzyProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\SesProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/SesProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\Smtp2goProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/Smtp2goProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\SmtpComProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/SmtpComProfile.php',
@@ -1795,6 +1807,7 @@ class ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b
         'JooosiMail\\Mail\\Profile\\Builtin\\SweegoProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/SweegoProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\ToSendProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/ToSendProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\TurboSmtpProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/TurboSmtpProfile.php',
+        'JooosiMail\\Mail\\Profile\\Builtin\\UnosendProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/UnosendProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\ZeptoMailProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/ZeptoMailProfile.php',
         'JooosiMail\\Mail\\Profile\\Builtin\\ZohoMailProfile' => __DIR__ . '/../..' . '/src/Mail/Profile/Builtin/ZohoMailProfile.php',
         'JooosiMail\\Mail\\Profile\\MailProfileInterface' => __DIR__ . '/../..' . '/src/Mail/Profile/MailProfileInterface.php',
@@ -1844,6 +1857,23 @@ class ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b
         'JooosiMail\\Mail\\Transport\\Bridge\\Gmail\\Transport\\GmailApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Gmail/Transport/GmailApiTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\Gmail\\Transport\\GmailSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Gmail/Transport/GmailSmtpTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\Gmail\\Transport\\GmailTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Gmail/Transport/GmailTransportFactory.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Helo\\Transport\\HeloApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Helo/Transport/HeloApiTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Helo\\Transport\\HeloSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Helo/Transport/HeloSmtpTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Helo\\Transport\\HeloTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Helo/Transport/HeloTransportFactory.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Iterable\\Transport\\IterableApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Iterable/Transport/IterableApiTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Iterable\\Transport\\IterableTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Iterable/Transport/IterableTransportFactory.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\JetEmail\\Transport\\JetEmailApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/JetEmail/Transport/JetEmailApiTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\JetEmail\\Transport\\JetEmailSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/JetEmail/Transport/JetEmailSmtpTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\JetEmail\\Transport\\JetEmailTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/JetEmail/Transport/JetEmailTransportFactory.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Lettermint\\Transport\\LettermintApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Lettermint/Transport/LettermintApiTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Lettermint\\Transport\\LettermintSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Lettermint/Transport/LettermintSmtpTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Lettermint\\Transport\\LettermintTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Lettermint/Transport/LettermintTransportFactory.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Lettr\\Transport\\LettrApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Lettr/Transport/LettrApiTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Lettr\\Transport\\LettrSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Lettr/Transport/LettrSmtpTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Lettr\\Transport\\LettrTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Lettr/Transport/LettrTransportFactory.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Loops\\Transport\\LoopsApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Loops/Transport/LoopsApiTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Loops\\Transport\\LoopsSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Loops/Transport/LoopsSmtpTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Loops\\Transport\\LoopsTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Loops/Transport/LoopsTransportFactory.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\MailKite\\Transport\\MailKiteApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/MailKite/Transport/MailKiteApiTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\MailKite\\Transport\\MailKiteSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/MailKite/Transport/MailKiteSmtpTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\MailKite\\Transport\\MailKiteTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/MailKite/Transport/MailKiteTransportFactory.php',
@@ -1859,19 +1889,32 @@ class ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b
         'JooosiMail\\Mail\\Transport\\Bridge\\Pepipost\\Transport\\PepipostApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Pepipost/Transport/PepipostApiTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\Pepipost\\Transport\\PepipostSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Pepipost/Transport/PepipostSmtpTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\Pepipost\\Transport\\PepipostTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Pepipost/Transport/PepipostTransportFactory.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Plunk\\Transport\\PlunkApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Plunk/Transport/PlunkApiTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Plunk\\Transport\\PlunkSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Plunk/Transport/PlunkSmtpTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Plunk\\Transport\\PlunkTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Plunk/Transport/PlunkTransportFactory.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\PostShiba\\Transport\\PostShibaApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/PostShiba/Transport/PostShibaApiTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\PostShiba\\Transport\\PostShibaSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/PostShiba/Transport/PostShibaSmtpTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\PostShiba\\Transport\\PostShibaTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/PostShiba/Transport/PostShibaTransportFactory.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\Postal\\Transport\\PostalApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Postal/Transport/PostalApiTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\Postal\\Transport\\PostalTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Postal/Transport/PostalTransportFactory.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Primitive\\Transport\\PrimitiveApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Primitive/Transport/PrimitiveApiTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Primitive\\Transport\\PrimitiveTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Primitive/Transport/PrimitiveTransportFactory.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\PufferPost\\Transport\\PufferPostApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/PufferPost/Transport/PufferPostApiTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\PufferPost\\Transport\\PufferPostTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/PufferPost/Transport/PufferPostTransportFactory.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\Resend\\Transport\\ResendApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Resend/Transport/ResendApiTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\Resend\\Transport\\ResendSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Resend/Transport/ResendSmtpTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\Resend\\Transport\\ResendTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Resend/Transport/ResendTransportFactory.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\SendHeron\\Transport\\SendHeronApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/SendHeron/Transport/SendHeronApiTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\SendHeron\\Transport\\SendHeronTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/SendHeron/Transport/SendHeronTransportFactory.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\SendLayer\\Transport\\SendLayerApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/SendLayer/Transport/SendLayerApiTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\SendLayer\\Transport\\SendLayerSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/SendLayer/Transport/SendLayerSmtpTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\SendLayer\\Transport\\SendLayerTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/SendLayer/Transport/SendLayerTransportFactory.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\SendPulse\\Transport\\SendPulseApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/SendPulse/Transport/SendPulseApiTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\SendPulse\\Transport\\SendPulseSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/SendPulse/Transport/SendPulseSmtpTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\SendPulse\\Transport\\SendPulseTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/SendPulse/Transport/SendPulseTransportFactory.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Sequenzy\\Transport\\SequenzyApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Sequenzy/Transport/SequenzyApiTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Sequenzy\\Transport\\SequenzySmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Sequenzy/Transport/SequenzySmtpTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Sequenzy\\Transport\\SequenzyTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Sequenzy/Transport/SequenzyTransportFactory.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\Smtp2go\\Transport\\Smtp2goApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Smtp2go/Transport/Smtp2goApiTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\Smtp2go\\Transport\\Smtp2goSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Smtp2go/Transport/Smtp2goSmtpTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\Smtp2go\\Transport\\Smtp2goTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Smtp2go/Transport/Smtp2goTransportFactory.php',
@@ -1889,6 +1932,9 @@ class ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b
         'JooosiMail\\Mail\\Transport\\Bridge\\TurboSmtp\\Transport\\TurboSmtpApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/TurboSmtp/Transport/TurboSmtpApiTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\TurboSmtp\\Transport\\TurboSmtpSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/TurboSmtp/Transport/TurboSmtpSmtpTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\TurboSmtp\\Transport\\TurboSmtpTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/TurboSmtp/Transport/TurboSmtpTransportFactory.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Unosend\\Transport\\UnosendApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Unosend/Transport/UnosendApiTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Unosend\\Transport\\UnosendSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Unosend/Transport/UnosendSmtpTransport.php',
+        'JooosiMail\\Mail\\Transport\\Bridge\\Unosend\\Transport\\UnosendTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/Unosend/Transport/UnosendTransportFactory.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\ZeptoMail\\Transport\\ZeptoMailApiTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/ZeptoMail/Transport/ZeptoMailApiTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\ZeptoMail\\Transport\\ZeptoMailSmtpTransport' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/ZeptoMail/Transport/ZeptoMailSmtpTransport.php',
         'JooosiMail\\Mail\\Transport\\Bridge\\ZeptoMail\\Transport\\ZeptoMailTransportFactory' => __DIR__ . '/../..' . '/src/Mail/Transport/Bridge/ZeptoMail/Transport/ZeptoMailTransportFactory.php',
@@ -1944,6 +1990,7 @@ class ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b
         'JooosiMail\\Webhook\\Adapter\\MailomatWebhookAdapter' => __DIR__ . '/../..' . '/src/Webhook/Adapter/MailomatWebhookAdapter.php',
         'JooosiMail\\Webhook\\Adapter\\MailtrapWebhookAdapter' => __DIR__ . '/../..' . '/src/Webhook/Adapter/MailtrapWebhookAdapter.php',
         'JooosiMail\\Webhook\\Adapter\\MandrillWebhookAdapter' => __DIR__ . '/../..' . '/src/Webhook/Adapter/MandrillWebhookAdapter.php',
+        'JooosiMail\\Webhook\\Adapter\\PostShibaWebhookAdapter' => __DIR__ . '/../..' . '/src/Webhook/Adapter/PostShibaWebhookAdapter.php',
         'JooosiMail\\Webhook\\Adapter\\PostmarkWebhookAdapter' => __DIR__ . '/../..' . '/src/Webhook/Adapter/PostmarkWebhookAdapter.php',
         'JooosiMail\\Webhook\\Adapter\\ResendWebhookAdapter' => __DIR__ . '/../..' . '/src/Webhook/Adapter/ResendWebhookAdapter.php',
         'JooosiMail\\Webhook\\Adapter\\SendGridWebhookAdapter' => __DIR__ . '/../..' . '/src/Webhook/Adapter/SendGridWebhookAdapter.php',
@@ -1985,9 +2032,9 @@ class ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit5a78ceb263e5c364a4b75a4b5473742b::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitfffd260a672ef4a0a12bde3705e46a5b::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitfffd260a672ef4a0a12bde3705e46a5b::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInitfffd260a672ef4a0a12bde3705e46a5b::$classMap;
 
         }, null, ClassLoader::class);
     }

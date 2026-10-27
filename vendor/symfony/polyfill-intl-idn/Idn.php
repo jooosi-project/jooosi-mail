@@ -184,23 +184,26 @@ final class Idn
         if (!isset(self::$virama)) {
             self::$virama = require __DIR__ . \DIRECTORY_SEPARATOR . 'Resources' . \DIRECTORY_SEPARATOR . 'unidata' . \DIRECTORY_SEPARATOR . 'virama.php';
         }
-        $offset = 0;
+        $offset = $joinerOffset = 0;
         foreach ($codePoints as $i => $codePoint) {
             if (0x200c !== $codePoint && 0x200d !== $codePoint) {
                 continue;
             }
+            $currentOffset = strpos($label, 0x200c === $codePoint ? "‌" : "‍", $joinerOffset);
+            $joinerOffset = $currentOffset + 3;
             if (!isset($codePoints[$i - 1])) {
                 return \false;
             }
             // If Canonical_Combining_Class(Before(cp)) .eq. Virama Then True;
             if (isset(self::$virama[$codePoints[$i - 1]])) {
+                $offset = $joinerOffset;
                 continue;
             }
             // If RegExpMatch((Joining_Type:{L,D})(Joining_Type:T)*\u200C(Joining_Type:T)*(Joining_Type:{R,D})) Then
             // True;
             // Generated RegExp = ([Joining_Type:{L,D}][Joining_Type:T]*\u200C[Joining_Type:T]*)[Joining_Type:{R,D}]
-            if (0x200c === $codePoint && 1 === preg_match(Regex::ZWNJ, $label, $matches, \PREG_OFFSET_CAPTURE, $offset)) {
-                $offset += \strlen($matches[1][0]);
+            if (0x200c === $codePoint && preg_match(Regex::ZWNJ, $label, $matches, \PREG_OFFSET_CAPTURE, $offset) && $currentOffset === $matches[1][1] + strpos($matches[1][0], "‌")) {
+                $offset = $matches[1][1] + \strlen($matches[1][0]);
                 continue;
             }
             return \false;
@@ -531,6 +534,9 @@ final class Idn
             }
             $n += intdiv($i, $outPlusOne);
             $i %= $outPlusOne;
+            if ($n > 0x10ffff || $n >= 0xd800 && $n <= 0xdfff) {
+                throw new \Exception('Invalid code point');
+            }
             array_splice($output, $i++, 0, [mb_chr($n, 'utf-8')]);
         }
         return implode('', $output);

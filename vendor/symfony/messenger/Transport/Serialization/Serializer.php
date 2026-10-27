@@ -13,20 +13,25 @@ namespace JooosiMailDeps\Symfony\Component\Messenger\Transport\Serialization;
 use JooosiMailDeps\Symfony\Component\Messenger\Envelope;
 use JooosiMailDeps\Symfony\Component\Messenger\Exception\LogicException;
 use JooosiMailDeps\Symfony\Component\Messenger\Exception\MessageDecodingFailedException;
+use JooosiMailDeps\Symfony\Component\Messenger\Stamp\HandledStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\NonSendableStampInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\SerializedMessageStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\SerializerStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\StampInterface;
+use JooosiMailDeps\Symfony\Component\Messenger\Stamp\ValidationStamp;
+use JooosiMailDeps\Symfony\Component\Messenger\Transport\Serialization\Normalizer\FlattenExceptionNormalizer;
+use JooosiMailDeps\Symfony\Component\Serializer\Encoder\DecoderInterface;
 use JooosiMailDeps\Symfony\Component\Serializer\Encoder\JsonEncoder;
 use JooosiMailDeps\Symfony\Component\Serializer\Encoder\XmlEncoder;
-use JooosiMailDeps\Symfony\Component\Serializer\Exception\ExceptionInterface;
 use JooosiMailDeps\Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use JooosiMailDeps\Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use JooosiMailDeps\Symfony\Component\Serializer\Normalizer\ArrayDenormalizer;
 use JooosiMailDeps\Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
+use JooosiMailDeps\Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use JooosiMailDeps\Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use JooosiMailDeps\Symfony\Component\Serializer\Serializer as SymfonySerializer;
 use JooosiMailDeps\Symfony\Component\Serializer\SerializerInterface as SymfonySerializerInterface;
+use JooosiMailDeps\Symfony\Component\Validator\Constraints\GroupSequence;
 /**
  * @author Samuel Roze <samuel.roze@gmail.com>
  */
@@ -40,6 +45,7 @@ class Serializer implements SerializerInterface
     private string $format;
     private array $context;
     private array $stampContext;
+    private static \WeakMap $decoders;
     public function __construct(?SymfonySerializerInterface $serializer = null, string $format = 'json', array $context = [])
     {
         $this->serializer = $serializer ?? self::create()->serializer;
@@ -54,7 +60,7 @@ class Serializer implements SerializerInterface
             throw new LogicException(\sprintf('The "%s" class requires Symfony\'s Serializer component. Try running "composer require symfony/serializer" or use "%s" instead.', __CLASS__, PhpSerializer::class));
         }
         $encoders = [new XmlEncoder(), new JsonEncoder()];
-        $normalizers = [new DateTimeNormalizer(), new ArrayDenormalizer(), new ObjectNormalizer()];
+        $normalizers = [new FlattenExceptionNormalizer(), new DateTimeNormalizer(), new ArrayDenormalizer(), new ObjectNormalizer()];
         $serializer = new SymfonySerializer($normalizers, $encoders);
         return new self($serializer);
     }
@@ -67,7 +73,9 @@ class Serializer implements SerializerInterface
             throw new MessageDecodingFailedException('Encoded envelope does not have a "type" header.');
         }
         $stamps = $this->decodeStamps($encodedEnvelope);
-        $stamps[] = new SerializedMessageStamp($encodedEnvelope['body']);
+        $stamps[] = $serializedMessageStamp = new SerializedMessageStamp($encodedEnvelope['body']);
+        self::$decoders ??= new \WeakMap();
+        self::$decoders[$serializedMessageStamp] = $this;
         $serializerStamp = $this->findFirstSerializerStamp($stamps);
         $context = $this->context;
         if (null !== $serializerStamp) {
@@ -75,8 +83,8 @@ class Serializer implements SerializerInterface
         }
         try {
             $message = $this->serializer->deserialize($encodedEnvelope['body'], $encodedEnvelope['headers']['type'], $this->format, $context);
-        } catch (ExceptionInterface $e) {
-            throw new MessageDecodingFailedException('Could not decode message: ' . $e->getMessage(), $e->getCode(), $e);
+        } catch (\Throwable $e) {
+            throw new MessageDecodingFailedException('Could not decode message: ' . $e->getMessage(), (int) $e->getCode(), $e);
         }
         return new Envelope($message, $stamps);
     }
@@ -89,7 +97,15 @@ class Serializer implements SerializerInterface
         }
         /** @var SerializedMessageStamp|null $serializedMessageStamp */
         $serializedMessageStamp = $envelope->last(SerializedMessageStamp::class);
+        // the body can be reused only when it is what this serializer would produce
+        if ($serializedMessageStamp && ($decoder = self::$decoders[$serializedMessageStamp] ?? null) && [$decoder->serializer, $decoder->format, $decoder->context] !== [$this->serializer, $this->format, $this->context]) {
+            $serializedMessageStamp = null;
+        }
         $envelope = $envelope->withoutStampsOfType(NonSendableStampInterface::class);
+        // handler results are for synchronous callers: retries only need the names of the handlers that already ran
+        if ($handledStamps = $envelope->all(HandledStamp::class)) {
+            $envelope = $envelope->withoutAll(HandledStamp::class)->with(...array_map(static fn(HandledStamp $stamp) => new HandledStamp(null, $stamp->getHandlerName()), $handledStamps));
+        }
         $headers = ['type' => $envelope->getMessage()::class] + $this->encodeStamps($envelope) + $this->getContentTypeHeader();
         return ['body' => $serializedMessageStamp ? $serializedMessageStamp->getSerializedMessage() : $this->serializer->serialize($envelope->getMessage(), $this->format, $context), 'headers' => $headers];
     }
@@ -109,9 +125,13 @@ class Serializer implements SerializerInterface
                 continue;
             }
             try {
-                $stamps[] = $this->serializer->deserialize($value, $class . '[]', $this->format, $this->stampContext);
-            } catch (ExceptionInterface $e) {
-                throw new MessageDecodingFailedException('Could not decode stamp: ' . $e->getMessage(), $e->getCode(), $e);
+                if (ValidationStamp::class === $class && XmlEncoder::FORMAT === $this->format && $this->serializer instanceof DecoderInterface && $this->serializer instanceof DenormalizerInterface) {
+                    $stamps[] = $this->decodeXmlValidationStamps($value);
+                } else {
+                    $stamps[] = $this->serializer->deserialize($value, $class . '[]', $this->format, $this->stampContext);
+                }
+            } catch (\Throwable $e) {
+                throw new MessageDecodingFailedException('Could not decode stamp: ' . $e->getMessage(), (int) $e->getCode(), $e);
             }
         }
         if ($stamps) {
@@ -120,7 +140,23 @@ class Serializer implements SerializerInterface
         foreach ($stamps as $i => $stamp) {
             if ($stamp instanceof SerializerStamp) {
                 $stamps[$i] = new SerializerStamp(array_diff_key($stamp->getContext(), self::CODE_AFFECTING_CONTEXT_OPTIONS));
+            } elseif ($stamp instanceof ValidationStamp && \is_array($groups = $stamp->getGroups()) && isset($groups['groups']) && class_exists(GroupSequence::class)) {
+                // without type information, a GroupSequence decodes as an array
+                $stamps[$i] = new ValidationStamp(new GroupSequence((array) $groups['groups']));
             }
+        }
+        return $stamps;
+    }
+    /**
+     * The XML encoder decodes a list of one group as the group itself, and an empty list as an empty string.
+     *
+     * @return ValidationStamp[]
+     */
+    private function decodeXmlValidationStamps(string $value): array
+    {
+        $stamps = [];
+        foreach ((array) $this->serializer->decode($value, $this->format, $this->stampContext) as $data) {
+            $stamps[] = \is_string($groups = $data['groups'] ?? null) ? new ValidationStamp('' === $groups ? [] : [$groups]) : $this->serializer->denormalize($data, ValidationStamp::class, $this->format, $this->stampContext);
         }
         return $stamps;
     }

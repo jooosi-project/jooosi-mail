@@ -1,10 +1,10 @@
 === Jooosi Mail - Email delivery with routing, queues, and failover, built for WordPress ===
-Contributors: suasgn, jooosi, suabahasa
+Contributors: suasgn, suabahasa
 Donate link: https://ko-fi.com/Q5Q75XSF7
 Tags: email, smtp, mailer, transactional email, logs
 Requires at least: 7.0
 Tested up to: 7.1
-Stable tag: 1.0.12
+Stable tag: 1.0.13
 Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -22,26 +22,34 @@ Jooosi Mail is a modern email sending solution for WordPress sites. It routes Wo
 * **Provider failover**: Fall back to another connection when a provider is unavailable.
 * **Email logs**: Review sent, queued, failed, and webhook-related activity.
 * **Webhook feedback**: Supported providers can report deliveries, bounces, complaints, opens, and clicks back to WordPress.
+* **Compose and resend**: Send or schedule an email, send a test, or resend a retained email log.
+* **Failure alerts**: Notify Telegram, Discord, or Slack when delivery fails permanently.
 * **Admin and CLI workflows**: Manage Jooosi Mail from the WordPress dashboard or WP-CLI.
 
 ### Supported Providers
 
-Jooosi Mail works with SMTP and many popular email providers. Available sending methods include:
+Jooosi Mail works with SMTP and many email providers. This catalog describes the current source tree, which may include unreleased changes. Open **Jooosi Mail → Connections** to see the profiles available in your installed version:
 
 * [AhaSend](https://ahasend.com) - API, SMTP. Webhooks supported.
 * [Amazon SES](https://aws.amazon.com/ses/) - API, HTTPS, SMTP.
-* [Azure](https://azure.microsoft.com/en-us/products/communication-services) - API (Azure Communication Services).
+* [Azure](https://azure.microsoft.com/en-us/products/communication-services) - API.
 * [Bird](https://bird.com) - API, SMTP, SMTPS. Webhooks supported.
 * [Brevo](https://www.brevo.com) - API, SMTP. Webhooks supported.
 * [Cloudflare Email Service](https://developers.cloudflare.com/email-service/) - API.
 * [Elastic Email](https://elasticemail.com) - API, SMTP, SMTPS.
 * [Emailit](https://emailit.com) - API, SMTP, SMTPS.
 * [Gmail](https://workspace.google.com/products/gmail/) - API, SMTP.
+* [Helo](https://helohq.com) - API, SMTP, SMTPS.
 * [Infobip](https://www.infobip.com) - API, SMTP.
+* [Iterable](https://iterable.com) - API.
+* [JetEmail](https://jetemail.com) - API, SMTP, SMTPS.
+* [Lettermint](https://lettermint.co) - API, SMTP, SMTPS.
+* [Lettr](https://lettr.com) - API, SMTP, SMTPS.
+* [Loops](https://loops.so) - API, SMTP.
 * [MailerSend](https://www.mailersend.com) - API, SMTP. Webhooks supported.
 * [Mailgun](https://www.mailgun.com) - API, HTTPS, SMTP. Webhooks supported.
-* [MailKite](https://mailkite.dev) - API, SMTP, SMTPS.
 * [Mailjet](https://www.mailjet.com) - API, SMTP. Webhooks supported.
+* [MailKite](https://mailkite.dev) - API, SMTP, SMTPS.
 * [Mailomat](https://mailomat.swiss) - API, SMTP. Webhooks supported.
 * [MailPace](https://mailpace.com) - API, SMTP.
 * [Mailtrap](https://mailtrap.io) - SMTP, API, Sandbox. Webhooks supported.
@@ -50,22 +58,28 @@ Jooosi Mail works with SMTP and many popular email providers. Available sending 
 * [Native PHP](https://www.php.net/manual/en/function.mail.php) - Native PHP mail.
 * [Null](https://symfony.com/doc/current/mailer.html#disabling-delivery) - Null transport.
 * [Pepipost](https://netcorecloud.com/email/) - API, SMTP, SMTPS.
+* [Plunk](https://useplunk.com) - API, SMTP, SMTPS.
 * [Postal](https://docs.postalserver.io) - API.
 * [Postmark](https://postmarkapp.com) - API, SMTP. Webhooks supported.
+* [PostShiba](https://www.postshiba.com) - API, SMTP. Webhooks supported.
+* [Primitive](https://primitive.dev) - API.
 * [PufferPost](https://pufferpost.com) - API.
 * [Resend](https://resend.com) - API, SMTP. Webhooks supported.
 * [Scaleway](https://www.scaleway.com/en/transactional-email-tem/) - API, SMTP.
 * [SendGrid](https://sendgrid.com) - API, SMTP. Webhooks supported.
+* [SendHeron](https://sendheron.com) - API.
 * [SendLayer](https://sendlayer.com) - API, SMTP, SMTPS. Webhooks supported.
 * [Sendmail](https://www.proofpoint.com/us/products/email-protection/open-source-email-solution) - Sendmail.
 * [SendPulse](https://sendpulse.com) - API, SMTP, SMTPS.
+* [Sequenzy](https://www.sequenzy.com) - API, SMTP, SMTPS.
 * [SMTP](https://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol) - SMTP, SMTPS.
-* [SMTP2GO](https://www.smtp2go.com) - API, SMTP, SMTPS. Webhooks supported.
 * [SMTP.com](https://www.smtp.com) - API, SMTP, SMTPS.
+* [SMTP2GO](https://www.smtp2go.com) - API, SMTP, SMTPS. Webhooks supported.
 * [SparkPost](https://www.sparkpost.com) - API, SMTP, SMTPS. Webhooks supported.
 * [Sweego](https://www.sweego.io) - API, SMTP. Webhooks supported.
 * [toSend](https://tosend.com) - API. Webhooks supported.
 * [TurboSMTP](https://www.turbo-smtp.com) - API, SMTP.
+* [Unosend](https://unosend.co) - API, SMTP, SMTPS.
 * [ZeptoMail](https://www.zoho.com/zeptomail/) - API, SMTP, SMTPS. Webhooks supported.
 * [Zoho Mail](https://www.zoho.com/mail/) - SMTP, SMTPS.
 
@@ -73,7 +87,7 @@ Visit [the GitHub repository](https://github.com/jooosi-project/jooosi-mail) for
 
 ### External services
 
-Jooosi Mail routes WordPress emails through third-party email service providers. No data is sent to any external service unless the site administrator explicitly configures a connection to that provider.
+Jooosi Mail routes emails through the connections configured by the site administrator. External providers receive data when an email is submitted for delivery.
 
 When Jooosi Mail sends an email, the following data is transmitted to the configured provider:
 
@@ -82,9 +96,15 @@ When Jooosi Mail sends an email, the following data is transmitted to the config
 - Sender address (From, Reply-To)
 - Attachments (if any)
 
-This data is sent only when WordPress processes queued or immediate emails (via `wp_mail()` or Action Scheduler). Jooosi Mail does not collect or transmit any data independently.
+Messages may originate from `wp_mail()`, the admin compose screen, a resend, or WP-CLI, and may be sent immediately or by the queue.
 
 If webhooks are enabled for a supported provider, that provider may send delivery, bounce, complaint, open, and click data back to your WordPress site.
+
+If delivery failure alerts are enabled, Jooosi Mail sends the site name, email subject, error, and mail-log link directly to the configured Telegram, Discord, or Slack service. The email body and recipient list are not attached, though an error may contain recipient information. Test alerts also contact the configured service.
+
+* Telegram: [Terms](https://telegram.org/tos), [Privacy Policy](https://telegram.org/privacy)
+* Discord: [Terms](https://discord.com/terms), [Privacy Policy](https://discord.com/privacy)
+* Slack: [Terms](https://slack.com/terms-of-service), [Privacy Policy](https://slack.com/trust/privacy/privacy-policy)
 
 Named third-party provider terms and privacy policies are available here:
 
@@ -97,7 +117,13 @@ Named third-party provider terms and privacy policies are available here:
 * Elastic Email: [Terms of Use](https://elasticemail.com/resources/usage-policies/terms-of-use), [Privacy Policy](https://elasticemail.com/resources/usage-policies/privacy-policy)
 * Emailit: [Terms of Service](https://emailit.com/terms-of-service/), [Privacy Policy](https://emailit.com/privacy-policy/)
 * Gmail: [Google API Terms](https://developers.google.com/terms), [Google Privacy Policy](https://policies.google.com/privacy)
+* Helo: [Terms of Service](https://www.helohq.com/legal/terms-of-service), [Privacy Policy](https://www.helohq.com/legal/privacy-policy)
 * Infobip: [Service Terms and Conditions](https://www.infobip.com/policies/service-terms-conditions), [Privacy Notice](https://www.infobip.com/policies/privacy-notice)
+* Iterable: [Terms of Service](https://iterable.com/legal/terms/), [Privacy Policy](https://iterable.com/legal/privacy-policy/)
+* JetEmail: [Terms of Service](https://jetemail.com/legals/terms-of-service), [Privacy Policy](https://jetemail.com/legals/privacy-policy)
+* Lettermint: [Terms and Conditions](https://lettermint.co/terms-of-service), [Privacy Policy](https://lettermint.co/privacy-policy)
+* Lettr: [Terms](https://lettr.com/terms/), [Privacy Policy](https://lettr.com/privacy-policy/)
+* Loops: [Terms](https://loops.so/terms), [Privacy Policy](https://loops.so/privacy)
 * MailerSend: [Terms of Service](https://www.mailersend.com/legal), [Privacy Policy](https://www.mailersend.com/legal/privacy-policy)
 * Mailgun: [Terms of Service](https://www.mailgun.com/legal/terms/), [Privacy Policy](https://www.mailgun.com/legal/privacy-policy/)
 * MailKite: [Terms of Service](https://mailkite.dev/terms/), [Privacy Policy](https://mailkite.dev/privacy/)
@@ -108,19 +134,25 @@ Named third-party provider terms and privacy policies are available here:
 * Mandrill: [Mailchimp Terms of Use](https://mailchimp.com/legal/terms/), [Mailchimp Privacy Policy](https://mailchimp.com/legal/privacy/)
 * Microsoft Graph: [Microsoft APIs Terms of Use](https://learn.microsoft.com/en-us/legal/microsoft-apis/terms-of-use), [Microsoft Privacy Statement](https://privacy.microsoft.com/en-us/privacystatement)
 * Pepipost: [Netcore Cloud Terms and Conditions](https://netcorecloud.com/email/email-api/terms-and-conditions/), [Netcore Cloud Privacy Policy](https://netcorecloud.com/email/email-api/privacy-policy/)
+* Plunk: [Terms](https://www.useplunk.com/terms), [Privacy Policy](https://www.useplunk.com/privacy)
 * Postmark: [Terms of Service](https://postmarkapp.com/terms-of-service), [Privacy Policy](https://www.activecampaign.com/legal/privacy-policy)
+* PostShiba: [Terms](https://bentonow.com/legal/terms), [Privacy Policy](https://bentonow.com/legal/privacy)
+* Primitive: [Terms](https://www.primitive.dev/terms), [Privacy Policy](https://www.primitive.dev/privacy)
 * PufferPost: [Terms of Service](https://pufferpost.com/terms), [Privacy Policy](https://pufferpost.com/privacy)
 * Resend: [Terms of Service](https://resend.com/legal/terms-of-service), [Privacy Policy](https://resend.com/legal/privacy-policy)
 * Scaleway: [Terms and Contracts](https://www.scaleway.com/en/contracts/), [Privacy Policy](https://www.scaleway.com/en/privacy-policy/)
 * SendGrid: [Twilio Terms of Service](https://www.twilio.com/en-us/legal/tos), [Twilio Privacy Notice](https://www.twilio.com/en-us/legal/privacy)
+* SendHeron: [Terms of Service](https://sendheron.com/terms), [Privacy Policy](https://sendheron.com/privacy)
 * SendLayer: [Terms of Service](https://sendlayer.com/terms-of-service/), [Privacy Policy](https://sendlayer.com/privacy-policy/)
 * SendPulse: [Terms of Use](https://sendpulse.com/legal/terms), [Privacy Policy](https://sendpulse.com/legal/pp)
+* Sequenzy: [Terms of Service](https://www.sequenzy.com/terms), [Privacy Policy](https://www.sequenzy.com/privacy)
 * SMTP2GO: [Terms](https://www.smtp2go.com/terms), [Privacy Policy](https://www.smtp2go.com/privacy)
 * SMTP.com: [Terms and Conditions](https://www.smtp.com/policies/terms-and-conditions/), [Privacy Policy](https://www.smtp.com/policies/privacy-policy/)
 * SparkPost: [Bird Terms](https://bird.com/en-us/legal/terms), [Bird Privacy Statement](https://bird.com/en-us/legal/privacy)
 * Sweego: [General Terms and Conditions of Sale](https://www.sweego.io/general-terms-and-conditions-of-sale), [Privacy Policy](https://www.sweego.io/privacy-policy)
 * toSend: [Terms of Service](https://tosend.com/legal/terms-of-service/), [Privacy Policy](https://tosend.com/legal/privacy-policy/)
 * TurboSMTP: [Terms and Conditions](https://turbosmtp.com/terms-and-conditions/), [Privacy Policy](https://serversmtp.com/privacypolicy-eu-regulation-2016-79-gdpr/)
+* Unosend: [Terms](https://www.unosend.co/terms), [Privacy Policy](https://www.unosend.co/privacy)
 * ZeptoMail: [Zoho Terms of Service](https://www.zoho.com/terms.html), [Zoho Privacy Policy](https://www.zoho.com/privacy.html)
 * Zoho Mail: [Zoho Terms of Service](https://www.zoho.com/terms.html), [Zoho Privacy Policy](https://www.zoho.com/privacy.html)
 
@@ -131,6 +163,9 @@ When a site administrator configures one of those transports to send through an 
 1. Upload the plugin files to `/wp-content/plugins/jooosi-mail`, or install the plugin through the WordPress plugins screen.
 2. Activate Jooosi Mail through the Plugins screen in WordPress.
 3. Open Jooosi Mail in the WordPress admin and configure a sending connection.
+4. Send a test email from Email Logs and check Settings for delivery, routing, and retention options.
+
+The PHP Sodium extension is required to encrypt saved credentials. Queued delivery also requires WordPress and Action Scheduler to run scheduled tasks.
 
 == Frequently Asked Questions ==
 
@@ -140,7 +175,7 @@ Jooosi Mail supports SMTP and many popular transactional email providers through
 
 = Does Jooosi Mail replace wp_mail()? =
 
-Yes. Jooosi Mail intercepts WordPress `wp_mail()` calls and routes them through the configured delivery workflow.
+When interception is enabled, Jooosi Mail routes `wp_mail()` calls through its configured delivery workflow. It respects an earlier `pre_wp_mail` result.
 
 = Does Jooosi Mail support WP-CLI? =
 
@@ -157,6 +192,23 @@ Yes. Jooosi Mail includes WP-CLI commands for operational tasks such as managing
 7. Mail delivery and routing settings.
 
 == Changelog ==
+
+= 1.0.13 - 2026-10-27 =
+
+**Added**
+
+* [Helo](https://helohq.com) mail provider.
+* [Iterable](https://iterable.com) mail provider.
+* [JetEmail](https://jetemail.com) mail provider.
+* [Lettermint](https://lettermint.co) mail provider.
+* [Lettr](https://lettr.com) mail provider.
+* [Loops](https://loops.so) mail provider.
+* [Plunk](https://useplunk.com) mail provider.
+* [PostShiba](https://www.postshiba.com) mail provider.
+* [Primitive](https://primitive.dev) mail provider.
+* [Sequenzy](https://www.sequenzy.com) mail provider.
+* [SendHeron](https://sendheron.com) mail provider.
+* [Unosend](https://unosend.co) mail provider.
 
 = 1.0.12 - 2026-10-17 =
 

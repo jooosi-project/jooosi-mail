@@ -75,7 +75,7 @@ final class ServiceLocatorTagPass extends AbstractRecursivePass
         }
         ksort($services);
         $value->setArgument(0, $services);
-        $id = '.service_locator.' . ContainerBuilder::hash($value);
+        $id = self::getLocatorId($this->container, $value, $this->currentId);
         if ($isRoot) {
             if ($id !== $this->currentId) {
                 $this->container->setAlias($id, new Alias($this->currentId, \false));
@@ -94,7 +94,7 @@ final class ServiceLocatorTagPass extends AbstractRecursivePass
         if (null !== $callerId && $container->hasDefinition($callerId)) {
             $locator->setBindings($container->getDefinition($callerId)->getBindings());
         }
-        if (!$container->hasDefinition($id = '.service_locator.' . ContainerBuilder::hash($locator))) {
+        if (!$container->hasDefinition($id = self::getLocatorId($container, $locator, $callerId))) {
             $container->setDefinition($id, $locator);
         }
         if (null !== $callerId) {
@@ -105,5 +105,19 @@ final class ServiceLocatorTagPass extends AbstractRecursivePass
             $container->register($id .= '.' . $callerId, ServiceLocator::class)->setFactory([new Reference($locatorId), 'withContext'])->addTag('container.service_locator_context', ['id' => $callerId])->addArgument($callerId)->addArgument(new Reference('service_container'));
         }
         return new Reference($id);
+    }
+    private static function getLocatorId(ContainerBuilder $container, Definition $locator, ?string $consumerId): string
+    {
+        $values = $bindingIds = [];
+        foreach ($locator->getBindings() as $key => $binding) {
+            [$values[$key], $bindingIds[$key]] = $binding->getValues();
+        }
+        // The file declaring a binding and its usage-tracking id are not hashed, so that the id depends neither on the project directory nor on what else the process compiled
+        $hash = ContainerBuilder::hash($values ? [(clone $locator)->setBindings([]), $values] : $locator);
+        $id = '.service_locator.' . $hash;
+        if (null !== $consumerId && $container->hasDefinition($id) && $bindingIds !== array_map(static fn($binding) => $binding->getValues()[1], $container->getDefinition($id)->getBindings())) {
+            $id = '.service_locator.' . ContainerBuilder::hash([$hash, $consumerId]);
+        }
+        return $id;
     }
 }

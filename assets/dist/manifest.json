@@ -1,37 +1,37 @@
 {
-  "_twinkleplop.tokens-B5kG6npJ.js": {
-    "file": "assets/twinkleplop.tokens-B5kG6npJ.js",
-    "name": "twinkleplop.tokens"
+  "_token-types-CjNVMzn7.js": {
+    "file": "assets/token-types-CjNVMzn7.js",
+    "name": "token-types"
   },
-  "node_modules/.pnpm/@twinkleplop+html@0.1.4/node_modules/@twinkleplop/html/dist/index.js": {
-    "file": "assets/dist-i_K9oaI3.js",
-    "name": "dist",
-    "src": "node_modules/.pnpm/@twinkleplop+html@0.1.4/node_modules/@twinkleplop/html/dist/index.js",
+  "node_modules/.pnpm/@pierre+highlights@0.2.0/node_modules/@pierre/highlights/dist/default.js": {
+    "file": "assets/default-BtPTAMWg.js",
+    "name": "default",
+    "src": "node_modules/.pnpm/@pierre+highlights@0.2.0/node_modules/@pierre/highlights/dist/default.js",
     "isDynamicEntry": true,
     "imports": [
-      "_twinkleplop.tokens-B5kG6npJ.js"
+      "_token-types-CjNVMzn7.js"
     ]
   },
-  "node_modules/.pnpm/@twinkleplop+json@0.1.4/node_modules/@twinkleplop/json/dist/index.js": {
-    "file": "assets/dist-Rym0C2am.js",
-    "name": "dist",
-    "src": "node_modules/.pnpm/@twinkleplop+json@0.1.4/node_modules/@twinkleplop/json/dist/index.js",
+  "node_modules/.pnpm/@pierre+highlights@0.2.0/node_modules/@pierre/highlights/dist/themes.js": {
+    "file": "assets/themes-DCKhva6U.js",
+    "name": "themes",
+    "src": "node_modules/.pnpm/@pierre+highlights@0.2.0/node_modules/@pierre/highlights/dist/themes.js",
     "isDynamicEntry": true,
     "imports": [
-      "_twinkleplop.tokens-B5kG6npJ.js"
+      "_token-types-CjNVMzn7.js"
     ]
   },
   "resources/App.tsx": {
-    "file": "assets/app-ZytxIg8E.js",
+    "file": "assets/app-FNn_oMHK.js",
     "name": "app",
     "src": "resources/App.tsx",
     "isEntry": true,
     "dynamicImports": [
-      "node_modules/.pnpm/@twinkleplop+html@0.1.4/node_modules/@twinkleplop/html/dist/index.js",
-      "node_modules/.pnpm/@twinkleplop+json@0.1.4/node_modules/@twinkleplop/json/dist/index.js"
+      "node_modules/.pnpm/@pierre+highlights@0.2.0/node_modules/@pierre/highlights/dist/default.js",
+      "node_modules/.pnpm/@pierre+highlights@0.2.0/node_modules/@pierre/highlights/dist/themes.js"
     ],
     "css": [
-      "assets/app-CUVo81nV.css"
+      "assets/app-BOBhVk7x.css"
     ]
   }
 }

@@ -21,12 +21,14 @@ use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerRateLimitedEvent;
 use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerRunningEvent;
 use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerStartedEvent;
 use JooosiMailDeps\Symfony\Component\Messenger\Event\WorkerStoppedEvent;
+use JooosiMailDeps\Symfony\Component\Messenger\Exception\DelayedMessageHandlingException;
 use JooosiMailDeps\Symfony\Component\Messenger\Exception\EnvelopeAwareExceptionInterface;
 use JooosiMailDeps\Symfony\Component\Messenger\Exception\RejectRedeliveredMessageException;
 use JooosiMailDeps\Symfony\Component\Messenger\Exception\RuntimeException;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\AckStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\ConsumedByWorkerStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\FlushBatchHandlersStamp;
+use JooosiMailDeps\Symfony\Component\Messenger\Stamp\HandledStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\NoAutoAckStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\ReceivedStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Transport\Receiver\QueueReceiverInterface;
@@ -165,6 +167,10 @@ class Worker
                 }
                 if ($e instanceof EnvelopeAwareExceptionInterface && null !== $e->getEnvelope()) {
                     $envelope = $e->getEnvelope();
+                }
+                if ($e instanceof DelayedMessageHandlingException) {
+                    // a retry must run the handlers again, so that they dispatch the delayed messages that failed again
+                    $envelope = $envelope->withoutAll(HandledStamp::class);
                 }
                 $failedEvent = new WorkerMessageFailedEvent($envelope, $transportName, $e);
                 $this->eventDispatcher?->dispatch($failedEvent);

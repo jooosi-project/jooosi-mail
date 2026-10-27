@@ -12,6 +12,7 @@ namespace JooosiMailDeps\Symfony\Component\Messenger\Transport\Serialization;
 
 use JooosiMailDeps\Symfony\Component\Messenger\Envelope;
 use JooosiMailDeps\Symfony\Component\Messenger\Exception\MessageDecodingFailedException;
+use JooosiMailDeps\Symfony\Component\Messenger\Stamp\HandledStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\MessageDecodingFailedStamp;
 use JooosiMailDeps\Symfony\Component\Messenger\Stamp\NonSendableStampInterface;
 /**
@@ -48,6 +49,10 @@ class PhpSerializer implements SerializerInterface
     public function encode(Envelope $envelope): array
     {
         $envelope = $envelope->withoutStampsOfType(NonSendableStampInterface::class);
+        // handler results are for synchronous callers: retries only need the names of the handlers that already ran
+        if ($handledStamps = $envelope->all(HandledStamp::class)) {
+            $envelope = $envelope->withoutAll(HandledStamp::class)->with(...array_map(static fn(HandledStamp $stamp) => new HandledStamp(null, $stamp->getHandlerName()), $handledStamps));
+        }
         $body = addslashes(serialize($envelope));
         if (!preg_match('//u', $body)) {
             $body = base64_encode($body);
@@ -85,6 +90,8 @@ class PhpSerializer implements SerializerInterface
         if (!$envelope instanceof Envelope) {
             throw new MessageDecodingFailedException('Could not decode message into an Envelope.');
         }
+        // encoding strips these stamps, so they never come from a transport
+        $envelope = $envelope->withoutStampsOfType(NonSendableStampInterface::class);
         if ($envelope->getMessage() instanceof \__PHP_Incomplete_Class) {
             $envelope = $envelope->with(new MessageDecodingFailedStamp());
         }
