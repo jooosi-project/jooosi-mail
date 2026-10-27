@@ -1,7 +1,7 @@
 {
   "name": "jooosi-mail",
   "private": true,
-  "version": "1.0.12",
+  "version": "1.0.13",
   "scripts": {
     "dev": "vp dev",
     "typecheck": "tsc --noEmit",

@@ -4,7 +4,7 @@ Donate link: https://ko-fi.com/Q5Q75XSF7
 Tags: email, smtp, mailer, transactional email, logs
 Requires at least: 7.0
 Tested up to: 7.1
-Stable tag: 1.0.12
+Stable tag: 1.0.13
 Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -192,6 +192,23 @@ Yes. Jooosi Mail includes WP-CLI commands for operational tasks such as managing
 7. Mail delivery and routing settings.
 
 == Changelog ==
+
+= 1.0.13 - 2026-10-27 =
+
+**Added**
+
+* [Helo](https://helohq.com) mail provider.
+* [Iterable](https://iterable.com) mail provider.
+* [JetEmail](https://jetemail.com) mail provider.
+* [Lettermint](https://lettermint.co) mail provider.
+* [Lettr](https://lettr.com) mail provider.
+* [Loops](https://loops.so) mail provider.
+* [Plunk](https://useplunk.com) mail provider.
+* [PostShiba](https://www.postshiba.com) mail provider.
+* [Primitive](https://primitive.dev) mail provider.
+* [Sequenzy](https://www.sequenzy.com) mail provider.
+* [SendHeron](https://sendheron.com) mail provider.
+* [Unosend](https://unosend.co) mail provider.
 
 = 1.0.12 - 2026-10-17 =
 

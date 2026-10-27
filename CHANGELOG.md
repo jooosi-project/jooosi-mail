@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.13] - 2026-10-27
+
 ### Added
 - [Helo](https://helohq.com) mail provider.
 - [Iterable](https://iterable.com) mail provider.
@@ -100,7 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - 🐣 Initial release.
 
-[unreleased]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.12...HEAD
+[unreleased]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.13...HEAD
+[1.0.13]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.12...1.0.13
 [1.0.12]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.11...1.0.12
 [1.0.11]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.10...1.0.11
 [1.0.10]: https://github.com/jooosi-project/jooosi-mail/compare/1.0.9...1.0.10
