@@ -184,10 +184,9 @@ export interface DataGridContextProps<TData extends object> {
 
 export type DataGridAutoSizeController = {
   /**
-   * Fits the first visible `meta.autoSize` column to the measured free space.
-   * Reconciles prior automatic sizing when the viewport changes, but leaves
-   * user-resized columns untouched. Returns true when a sizing update was
-   * dispatched.
+   * Shares the measured free space between visible `meta.autoSize` columns.
+   * Reconciles automatic sizing when the viewport or visibility changes, but
+   * leaves user-resized columns untouched. Returns true when sizing changed.
    */
   apply: (widthDelta: number) => boolean;
 };
@@ -205,74 +204,124 @@ function createDataGridAutoSizeController<TData extends object>(
    */
   getTable: () => DataGridTableInstance<TData>,
 ): DataGridAutoSizeController {
-  let applied: { columnId: string; base: number; grown: number } | null = null;
+  const applied = new Map<string, { base: number; grown: number }>();
 
   return {
     apply(widthDelta: number) {
       const table = getTable();
       const columnSizing = table.state.columnSizing;
-
-      // Re-arm after reset flows (double-click resetSize, resetColumnSizing,
-      // controlled state replacement) so the column re-fills instead of
-      // leaving a dead blank strip.
-      if (applied && columnSizing[applied.columnId] === undefined) {
-        applied = null;
-      }
-
-      const autoSizeColumn = table
+      const autoSizeColumns = table
         .getVisibleLeafColumns()
-        .find((column) => column.columnDef.meta?.autoSize && column.getCanResize());
+        .filter((column) => column.columnDef.meta?.autoSize && column.getCanResize());
+      const visibleAutoSizeColumnIds = new Set(autoSizeColumns.map((column) => column.id));
+      const sizingUpdates = new Map<string, number | null>();
 
-      if (!autoSizeColumn) return false;
+      applied.forEach((sizing, columnId) => {
+        const column = table.getColumn(columnId);
 
-      const currentSize = columnSizing[autoSizeColumn.id];
-
-      // Keep the flex column in sync when the viewport changes. A size that
-      // no longer matches our last write belongs to the user, so preserve it.
-      if (applied?.columnId === autoSizeColumn.id) {
-        if (currentSize !== applied.grown || widthDelta === 0) return false;
-
-        const grown = Math.max(applied.base, currentSize + widthDelta);
-        if (grown === currentSize) return false;
-
-        applied = { ...applied, grown };
-        table.setColumnSizing((old) => ({ ...old, [autoSizeColumn.id]: grown }));
-
-        return true;
-      }
-
-      if (widthDelta <= 0) return false;
-
-      // A width this coordinator did not write belongs to someone else -
-      // almost always the user, who just dragged the column's resize handle.
-      // Filling over it is what made a `meta.autoSize` column look
-      // un-resizable: the drag committed, the next viewport measurement
-      // stamped the fill back on top, and the column snapped to its old width.
-      //
-      // Deliberately keyed on observed state rather than on `applied`, which
-      // is per-coordinator memory: anything that rebuilds the coordinator
-      // (a remount, a new table store) forgets what it did, and the guard has
-      // to survive that. An explicit reset clears the entry and re-arms the
-      // fill, which is what makes double-click-to-reset still work.
-      if (currentSize !== undefined && currentSize !== applied?.grown) {
-        return false;
-      }
-
-      // Candidate switched (e.g. the grown column was hidden and another
-      // meta.autoSize column took over): revert the previous growth if the
-      // user hasn't manually resized that column since, so visibility
-      // toggles cannot ratchet the table wider than its container forever.
-      const revert = applied && columnSizing[applied.columnId] === applied.grown ? applied : null;
-      const base = columnSizing[autoSizeColumn.id] ?? autoSizeColumn.getSize();
-      const restoredWidth = revert ? revert.grown - revert.base : 0;
-      const grown = base + Math.max(0, widthDelta + restoredWidth);
-
-      applied = { columnId: autoSizeColumn.id, base, grown };
-      table.setColumnSizing((old) => {
-        const next = { ...old, [autoSizeColumn.id]: grown };
-        if (revert && next[revert.columnId] === revert.grown) {
-          next[revert.columnId] = revert.base;
+        if (!column) {
+          applied.delete(columnId);
+          return;
         }
+
+        const currentSize = columnSizing[columnId] ?? column.getSize();
+
+        // A size change the controller did not write belongs to the user.
+        if (currentSize !== sizing.grown) {
+          applied.delete(columnId);
+          return;
+        }
+
+        if (!visibleAutoSizeColumnIds.has(columnId) && currentSize !== sizing.base) {
+          sizingUpdates.set(columnId, null);
+          applied.set(columnId, { ...sizing, grown: sizing.base });
+        }
+      });
+
+      const managedColumns = autoSizeColumns.flatMap((column) => {
+        const sizing = applied.get(column.id);
+        const currentSize = columnSizing[column.id] ?? column.getSize();
+
+        if (sizing) {
+          if (currentSize !== sizing.grown) {
+            applied.delete(column.id);
+            return [];
+          }
+
+          return [{ column, base: sizing.base, current: currentSize }];
+        }
+
+        // Existing sizing state is user-owned, including state restored after
+        // a remount where this controller no longer knows its prior writes.
+        if (columnSizing[column.id] !== undefined) return [];
+
+        const base = column.getSize();
+        applied.set(column.id, { base, grown: base });
+
+        return [{ column, base, current: base }];
+      });
+
+      const nextSizes = new Map(managedColumns.map(({ column, current }) => [column.id, current]));
+      let remainingDelta = widthDelta;
+      let adjustableColumns = managedColumns.filter(({ column, base, current }) => {
+        const maxSize = column.columnDef.maxSize ?? Number.POSITIVE_INFINITY;
+
+        return remainingDelta >= 0 ? current < maxSize : current > base;
+      });
+
+      // Distribute space evenly, redistributing any remainder when a column
+      // reaches its max size or its original size while shrinking.
+      while (adjustableColumns.length > 0 && Math.abs(remainingDelta) > 0.01) {
+        const deltaPerColumn = remainingDelta / adjustableColumns.length;
+        let distributedDelta = 0;
+        const remainingColumns: typeof adjustableColumns = [];
+
+        adjustableColumns.forEach((item) => {
+          const current = nextSizes.get(item.column.id) ?? item.current;
+          const maxSize = item.column.columnDef.maxSize ?? Number.POSITIVE_INFINITY;
+          const next = Math.min(maxSize, Math.max(item.base, current + deltaPerColumn));
+
+          nextSizes.set(item.column.id, next);
+          distributedDelta += next - current;
+
+          if (remainingDelta >= 0 ? next < maxSize : next > item.base) {
+            remainingColumns.push(item);
+          }
+        });
+
+        if (Math.abs(distributedDelta) <= 0.01) break;
+
+        remainingDelta -= distributedDelta;
+        adjustableColumns = remainingColumns;
+      }
+
+      managedColumns.forEach(({ column, base, current }) => {
+        const grown = Math.max(base, nextSizes.get(column.id) ?? current);
+        const nextSize = grown > base ? grown : null;
+        const sizing = applied.get(column.id);
+
+        if (sizing) {
+          applied.set(column.id, { ...sizing, grown });
+        }
+
+        if (grown !== current) {
+          sizingUpdates.set(column.id, nextSize);
+        }
+      });
+
+      if (sizingUpdates.size === 0) return false;
+
+      table.setColumnSizing((old) => {
+        const next = { ...old };
+
+        sizingUpdates.forEach((size, columnId) => {
+          if (size === null) {
+            delete next[columnId];
+          } else {
+            next[columnId] = size;
+          }
+        });
+
         return next;
       });
 

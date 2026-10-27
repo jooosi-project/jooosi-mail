@@ -248,7 +248,7 @@ function ConnectionProfileHoverCard({
         render={
           <button
             type="button"
-            className="inline-flex max-w-56 items-center gap-2 rounded-sm text-left font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="inline-flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-sm text-left font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           />
         }
       >
@@ -560,6 +560,8 @@ export function ConnectionsOverviewTable({
       {
         accessorFn: (row) => (row.enabled ? "enabled" : "disabled"),
         id: "enabled",
+        minSize: 80,
+        size: 88,
         header: () => <span className="text-xs font-medium">Enabled</span>,
         cell: ({ row }) => {
           const connectionId = row.original.id;
@@ -582,22 +584,25 @@ export function ConnectionsOverviewTable({
       {
         accessorKey: "name",
         id: "name",
+        minSize: 220,
+        size: 260,
+        meta: { autoSize: true },
         header: ({ column }) => <SortableHeader column={column} title="Connection" />,
         cell: ({ row }) => (
           <div className="flex min-w-0 items-start gap-2">
             <ConnectionStatusDot status={row.original.statusKey} label={row.original.statusLabel} />
-            <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <Button
                 type="button"
                 variant="link"
-                className="h-auto justify-start px-0 text-left"
+                className="h-auto min-w-0 max-w-full justify-start overflow-hidden px-0 text-left"
                 onClick={() => onOpenConnection(row.original.id)}
                 disabled={row.original.id === null}
               >
-                {row.original.name}
+                <span className="block min-w-0 truncate">{row.original.name}</span>
               </Button>
               {row.original.unavailableReasons.length > 0 ? (
-                <span className="max-w-80 truncate text-xs text-muted-foreground">
+                <span className="max-w-full truncate text-xs text-muted-foreground">
                   {row.original.unavailableReasons.join(", ")}
                 </span>
               ) : null}
@@ -608,6 +613,9 @@ export function ConnectionsOverviewTable({
       {
         accessorFn: (row) => row.profile.label,
         id: "profile",
+        minSize: 160,
+        size: 180,
+        meta: { autoSize: true },
         header: ({ column }) => <SortableHeader column={column} title="Profile" />,
         cell: ({ row }) => (
           <ConnectionProfileHoverCard
@@ -619,6 +627,8 @@ export function ConnectionsOverviewTable({
       {
         accessorKey: "healthScore",
         id: "health",
+        minSize: 88,
+        size: 96,
         header: ({ column }) => <SortableHeader column={column} title="Health" />,
         cell: ({ row }) => (
           <Badge variant={getHealthVariant(row.original.healthScore)}>
@@ -629,6 +639,8 @@ export function ConnectionsOverviewTable({
       {
         accessorFn: (row) => `${row.priority}-${row.weight}`,
         id: "route",
+        minSize: 96,
+        size: 112,
         header: ({ column }) => <SortableHeader column={column} title="Route" />,
         cell: ({ row }) => (
           <div className="text-sm text-muted-foreground">
@@ -645,6 +657,8 @@ export function ConnectionsOverviewTable({
           return hasEnabledConnectionWebhooks(row) ? "enabled" : "disabled";
         },
         id: "webhooks",
+        minSize: 132,
+        size: 144,
         header: ({ column }) => <SortableHeader column={column} title="Webhooks" />,
         cell: ({ row }) =>
           !supportsConnectionWebhooks(row.original) ? null : hasEnabledConnectionWebhooks(
@@ -664,6 +678,8 @@ export function ConnectionsOverviewTable({
       {
         accessorFn: (row) => (row.default ? "default" : "secondary"),
         id: "default",
+        minSize: 88,
+        size: 92,
         header: () => <span className="text-xs font-medium">Default</span>,
         cell: ({ row }) => {
           const connectionId = row.original.id;
@@ -736,7 +752,7 @@ export function ConnectionsOverviewTable({
       table={table}
       recordCount={filteredRows.length}
       emptyMessage="No connections match the current search and filters."
-      tableLayout={{ headerBackground: true, rowBorder: true }}
+      tableLayout={{ columnsResizable: true, headerBackground: true, rowBorder: true }}
     >
       <Frame stacked spacing="sm">
         <FrameHeader>
@@ -801,7 +817,7 @@ export function ConnectionsOverviewTable({
                 void onDefaultChange(Number(value));
               }
             }}
-            className="contents"
+            className="w-full"
           >
             <DataGridTable />
           </RadioGroup>
