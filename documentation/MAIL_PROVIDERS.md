@@ -33,6 +33,17 @@ When changing an existing profile, preserve the profile key and existing field n
 
 `ConnectionDsnResolver` uses a saved DSN override when present, otherwise it calls the profile's `buildDsn()`. It also checks the resulting scheme against the profile's supported schemes.
 
+### Add the provider brand icon
+
+Give each built-in provider a recognizable brand icon in the connection screens:
+
+1. Search brand icon libraries and catalogs broadly, whether or not they are already dependencies. Include Iconify collections such as `logos` and `simple-icons`, standalone icon packages, and other maintained brand sets. If the best match is in a set that is not installed yet, add its package when its license and integration fit the project, then use its supported import path. Prefer a provider's official mark over a generic mail symbol.
+2. If no suitable icon is available, check the provider's official website, developer docs, or media kit for an SVG or raster logo. Prefer the official square mark, favicon, or app icon when available.
+3. If the provider does not publish an SVG but has an official raster logo, preserve the exact artwork by embedding the original image bytes as a base64 data URI inside a self-contained SVG `<image>` element. Preserve its proportions and transparency; do not redraw, trace, restyle, or approximate it. If no official logo asset can be found, keep the profile's initial fallback instead of inventing a brand mark.
+4. Save a custom SVG at `resources/icons/provider-icons/{profile-key}.svg`. Register the icon for the profile key in both [`profile-brand-icon.tsx`](../resources/components/profile-brand-icon.tsx) and [`connections.tsx`](../resources/pages/connections.tsx), which maintain the shared icon and connection detail mappings. Iconify imports should follow the existing mappings in those files; custom SVGs should be imported with `?react`.
+
+Use the provider's official colors and proportions where practical, and check that the mark remains legible at the small sizes used in connection lists. Keep the SVG self-contained so it can be embedded by the admin UI without fetching provider assets at runtime.
+
 ## 3. Add the Transport Factory and Transport
 
 Put provider transports under `src/Mail/Transport/Bridge/{Provider}/Transport/`.
@@ -96,5 +107,6 @@ Use `wp jooosi-mail connection:profiles` as the runtime source of truth for an i
 - [ ] API payload mapping respects the `Email` and `Envelope`; unsupported features fail explicitly.
 - [ ] SMTP security, port defaults, fixed usernames, and message adaptations match provider documentation.
 - [ ] Webhook claims, signature verification, event names, and profile metadata match official documentation.
+- [ ] The provider's official brand icon is sourced and registered for its profile key in both connection screens; raster artwork is embedded unchanged in a self-contained SVG when no official SVG exists.
 - [ ] Focused coverage and discovery checks are updated for the change.
 - [ ] Both provider catalogs, operations guide, external service disclosures, and changelog reflect the shipped behavior.

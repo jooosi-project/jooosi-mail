@@ -61,6 +61,7 @@ Jooosi Mail works with SMTP and many email providers. This catalog describes the
 * [Plunk](https://useplunk.com) - API, SMTP, SMTPS.
 * [Postal](https://docs.postalserver.io) - API.
 * [Postmark](https://postmarkapp.com) - API, SMTP. Webhooks supported.
+* [PostShiba](https://www.postshiba.com) - API, SMTP. Webhooks supported.
 * [Primitive](https://primitive.dev) - API.
 * [PufferPost](https://pufferpost.com) - API.
 * [Resend](https://resend.com) - API, SMTP. Webhooks supported.
@@ -135,6 +136,7 @@ Named third-party provider terms and privacy policies are available here:
 * Pepipost: [Netcore Cloud Terms and Conditions](https://netcorecloud.com/email/email-api/terms-and-conditions/), [Netcore Cloud Privacy Policy](https://netcorecloud.com/email/email-api/privacy-policy/)
 * Plunk: [Terms](https://www.useplunk.com/terms), [Privacy Policy](https://www.useplunk.com/privacy)
 * Postmark: [Terms of Service](https://postmarkapp.com/terms-of-service), [Privacy Policy](https://www.activecampaign.com/legal/privacy-policy)
+* PostShiba: [Terms](https://bentonow.com/legal/terms), [Privacy Policy](https://bentonow.com/legal/privacy)
 * Primitive: [Terms](https://www.primitive.dev/terms), [Privacy Policy](https://www.primitive.dev/privacy)
 * PufferPost: [Terms of Service](https://pufferpost.com/terms), [Privacy Policy](https://pufferpost.com/privacy)
 * Resend: [Terms of Service](https://resend.com/legal/terms-of-service), [Privacy Policy](https://resend.com/legal/privacy-policy)

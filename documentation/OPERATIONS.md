@@ -43,6 +43,7 @@ wp jooosi-mail mail:send --to=you@example.com --subject="Reminder" --text-messag
 ### Provider Setup
 
 - **MailKite:** Use SMTP for inline CID attachments.
+- **PostShiba:** The REST API uses a send-only API key and supports an optional cluster ID. SMTP uses a cluster credential with AUTH PLAIN after STARTTLS at `smtp.postshiba.com:587`; implicit TLS is not available. Send from verified domains with a sending-ready cluster. The REST API supports up to 50 recipients, one Reply-To address, one category, and 10 attachments totaling 18 MB; inline CID attachments require SMTP. SMTP messages have a 25 MB limit. Provider-hosted templates are not used; Jooosi Mail sends the composed message. Cluster capacity limits can reject sends when hourly or daily caps are reached, so size capacity for peak traffic. PostShiba recommends SMTP for high-volume sends.
 - **PufferPost:** A batch may partially accept recipients before failing, so retrying can resend to already accepted recipients. The integration sends subject and body inline; provider-hosted templates are not supported.
 - **TurboSMTP:** Choose the global or EU region.
 - **Helo and JetEmail:** SMTP uses separate credentials. Helo's SMTP user is scoped to a Channel; JetEmail selects the global or EU relay by region. Helo's API can use an optional Channel ID.
@@ -105,6 +106,8 @@ For a supported profile, enable webhooks on the connection and configure the dis
 See the [provider catalog](../README.md#email-providers) for profile-level webhook support. The endpoint returns `404` for a connection with webhooks disabled.
 
 Verification varies by adapter and configured credentials: it may use a shared secret, signature, public key, IP allowlist, or accept unsigned callbacks. Some configurations are unsupported until required secrets are supplied. Check the actual connection before relying on webhook feedback:
+
+PostShiba signs each delivery event with HMAC-SHA256 over `{timestamp}.{raw body}`. Save the endpoint's Signing secret in the connection's webhook secret field. It reports processed, deferred, delivered, bounce, dropped, spam-report, and unsubscribe events.
 
 ```bash
 wp jooosi-mail webhook:status --all=true

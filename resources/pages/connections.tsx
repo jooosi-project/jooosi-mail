@@ -59,6 +59,7 @@ import PepipostIcon from "@/icons/provider-icons/pepipost.svg?react";
 import PlunkIcon from "@/icons/provider-icons/plunk.svg?react";
 import PostalIcon from "@/icons/provider-icons/postal.svg?react";
 import PostmarkIcon from "@/icons/provider-icons/postmark.svg?react";
+import PostShibaIcon from "@/icons/provider-icons/postshiba.svg?react";
 import PufferPostIcon from "@/icons/provider-icons/pufferpost.svg?react";
 import PrimitiveIcon from "@/icons/provider-icons/primitive.svg?react";
 import SendLayerIcon from "@/icons/provider-icons/sendlayer.svg?react";
@@ -203,6 +204,7 @@ const PROFILE_BRAND_PALETTES: Record<string, ProfileBrandPalette> = {
   pepipost: { background: "#fc5e02", foreground: "#111827", soft: "rgb(252 94 2 / 16%)" },
   postal: { background: "#ff9900", foreground: "#111827", soft: "rgb(255 153 0 / 18%)" },
   postmark: { background: "#ffde00", foreground: "#111827", soft: "rgb(255 222 0 / 20%)" },
+  postshiba: { background: "#f9b18e", foreground: "#692d45", soft: "rgb(249 177 142 / 18%)" },
   plunk: { background: "#111827", foreground: "#ffffff", soft: "rgb(17 24 39 / 16%)" },
   primitive: { background: "#262b2a", foreground: "#ffffff", soft: "rgb(38 43 42 / 16%)" },
   pufferpost: { background: "#1f8a7a", foreground: "#ffffff", soft: "rgb(31 138 122 / 16%)" },
@@ -245,6 +247,7 @@ const PROFILE_BRAND_ICON_ASSETS: Record<string, ProfileBrandIconAsset> = {
   pepipost: { component: PepipostIcon, className: "size-10" },
   postal: { component: PostalIcon, className: "size-10" },
   postmark: { component: PostmarkIcon },
+  postshiba: { component: PostShibaIcon },
   plunk: { component: PlunkIcon, containerClassName: "bg-[var(--profile-brand)] p-2" },
   primitive: { component: PrimitiveIcon, containerClassName: "bg-[var(--profile-brand)] p-2" },
   pufferpost: { component: PufferPostIcon },

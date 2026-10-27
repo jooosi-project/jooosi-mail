@@ -132,6 +132,7 @@ Jooosi Mail works with SMTP and many email providers. This catalog describes the
 | [PufferPost](https://pufferpost.com) | `pufferpost` | API |  |
 | [Postal](https://docs.postalserver.io) | `postal` | API |  |
 | [Postmark](https://postmarkapp.com) | `postmark` | API, SMTP | ✅ |
+| [PostShiba](https://www.postshiba.com) | `postshiba` | API, SMTP | ✅ |
 | [Primitive](https://primitive.dev) | `primitive` | API |  |
 | [Resend](https://resend.com) | `resend` | API, SMTP | ✅ |
 | [Scaleway](https://www.scaleway.com/en/transactional-email-tem/) | `scaleway` | API, SMTP |  |

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [Lettr](https://lettr.com) mail provider.
 - [Loops](https://loops.so) mail provider.
 - [Plunk](https://useplunk.com) mail provider.
+- [PostShiba](https://www.postshiba.com) mail provider.
 - [Primitive](https://primitive.dev) mail provider.
 - [Sequenzy](https://www.sequenzy.com) mail provider.
 - [SendHeron](https://sendheron.com) mail provider.

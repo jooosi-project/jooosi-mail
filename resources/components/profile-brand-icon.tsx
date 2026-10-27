@@ -18,6 +18,7 @@ import PepipostIcon from "@/icons/provider-icons/pepipost.svg?react"
 import PlunkIcon from "@/icons/provider-icons/plunk.svg?react"
 import PostalIcon from "@/icons/provider-icons/postal.svg?react"
 import PostmarkIcon from "@/icons/provider-icons/postmark.svg?react"
+import PostShibaIcon from "@/icons/provider-icons/postshiba.svg?react"
 import PufferPostIcon from "@/icons/provider-icons/pufferpost.svg?react"
 import PrimitiveIcon from "@/icons/provider-icons/primitive.svg?react"
 import SendLayerIcon from "@/icons/provider-icons/sendlayer.svg?react"
@@ -103,6 +104,7 @@ const PROFILE_BRAND_PALETTES: Record<string, ProfileBrandPalette> = {
   pepipost: { background: "#fc5e02", foreground: "#111827" },
   postal: { background: "#ff9900", foreground: "#111827" },
   postmark: { background: "#ffde00", foreground: "#111827" },
+  postshiba: { background: "#f9b18e", foreground: "#692d45" },
   plunk: { background: "#111827", foreground: "#ffffff" },
   primitive: { background: "#262b2a", foreground: "#ffffff" },
   pufferpost: { background: "#1f8a7a", foreground: "#ffffff" },
@@ -141,6 +143,7 @@ const PROFILE_BRAND_ICON_ASSETS: Record<string, ProfileBrandIconAsset> = {
   pepipost: { component: PepipostIcon, className: "size-10" },
   postal: { component: PostalIcon, className: "size-10" },
   postmark: { component: PostmarkIcon },
+  postshiba: { component: PostShibaIcon },
   plunk: { component: PlunkIcon, brandBackground: true },
   primitive: { component: PrimitiveIcon, brandBackground: true },
   pufferpost: { component: PufferPostIcon },
