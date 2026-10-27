@@ -16,14 +16,14 @@ use Override;
  * @since 1.0.13
  */
 #[Service]
-#[MailProfile(key: 'jetemail', label: 'JetEmail', description: 'Send email through the JetEmail API.', website: 'https://jetemail.com', docsUrl: 'https://jetemail.com/docs/api-reference/email/send-an-email', useCases: ['transactional'])]
+#[MailProfile(key: 'jetemail', label: 'JetEmail', description: 'Send email through the JetEmail API or SMTP relay.', website: 'https://jetemail.com', docsUrl: 'https://jetemail.com/docs/api-reference/email/send-an-email', useCases: ['transactional'])]
 final class JetEmailProfile extends AbstractMailProfile
 {
     /** @return list<string> */
     #[Override]
     public function getSupportedSchemes(): array
     {
-        return ['jetemail+api'];
+        return ['jetemail+api', 'jetemail+smtp', 'jetemail+smtps'];
     }
 
     /**
@@ -34,10 +34,39 @@ final class JetEmailProfile extends AbstractMailProfile
     #[Override]
     public function getConfigurationFields(): array
     {
+        $smtpSchemes = ['jetemail+smtp', 'jetemail+smtps'];
+
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'jetemail+api', 'choices' => $this->getSupportedSchemes()],
-            'api_key' => ['label' => 'JetEmail API key', 'type' => 'password', 'required' => true],
-            'region' => ['label' => 'Delivery region', 'type' => 'choice', 'required' => false, 'default' => 'global', 'choices' => ['global', 'eu']],
+            'api_key' => [
+                'label' => 'JetEmail API key',
+                'type' => 'password',
+                'required' => false,
+                'visible_when' => [$this->conditionIn('scheme', 'jetemail+api')],
+                'required_when' => [$this->conditionIn('scheme', 'jetemail+api')],
+            ],
+            'smtp_username' => [
+                'label' => 'JetEmail SMTP username',
+                'type' => 'text',
+                'required' => false,
+                'visible_when' => [$this->conditionIn('scheme', $smtpSchemes)],
+                'required_when' => [$this->conditionIn('scheme', $smtpSchemes)],
+            ],
+            'smtp_password' => [
+                'label' => 'JetEmail SMTP password',
+                'type' => 'password',
+                'required' => false,
+                'visible_when' => [$this->conditionIn('scheme', $smtpSchemes)],
+                'required_when' => [$this->conditionIn('scheme', $smtpSchemes)],
+            ],
+            'region' => [
+                'label' => 'Delivery region',
+                'type' => 'choice',
+                'required' => false,
+                'default' => 'global',
+                'choices' => ['global', 'eu'],
+                'visible_when' => [$this->conditionIn('scheme', $this->getSupportedSchemes())],
+            ],
         ];
     }
 
@@ -47,9 +76,11 @@ final class JetEmailProfile extends AbstractMailProfile
     {
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'jetemail+api';
-        if ($scheme === 'jetemail+api') {
-            $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['api_key']);
-        }
+        match ($scheme) {
+            'jetemail+api' => $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['api_key']),
+            'jetemail+smtp', 'jetemail+smtps' => $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['smtp_username', 'smtp_password']),
+            default => null,
+        };
     }
 
     /**
@@ -60,13 +91,24 @@ final class JetEmailProfile extends AbstractMailProfile
     {
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'jetemail+api';
-        $apiKey = $this->extractScalarString($defaults, 'api_key');
-        if ($scheme !== 'jetemail+api' || $apiKey === null || $apiKey === '') {
+        if (! in_array($scheme, $this->getSupportedSchemes(), true)) {
             return null;
         }
 
-        $query = $this->buildQueryString(['region' => $this->extractScalarString($defaults, 'region') ?? 'global']);
+        $region = $this->extractScalarString($defaults, 'region') ?? 'global';
+        $query = $this->buildQueryString(['region' => $region]);
 
-        return 'jetemail+api://' . rawurlencode($apiKey) . '@default' . ($query === '' ? '' : '?' . $query);
+        if ($scheme === 'jetemail+api') {
+            $apiKey = $this->extractScalarString($defaults, 'api_key');
+
+            return $apiKey === null || $apiKey === '' ? null : $scheme . '://' . rawurlencode($apiKey) . '@default' . ($query === '' ? '' : '?' . $query);
+        }
+
+        $username = $this->extractScalarString($defaults, 'smtp_username');
+        $password = $this->extractScalarString($defaults, 'smtp_password');
+
+        return $username === null || $password === null || $password === ''
+            ? null
+            : $scheme . '://' . rawurlencode($username) . ':' . rawurlencode($password) . '@default' . ($query === '' ? '' : '?' . $query);
     }
 }

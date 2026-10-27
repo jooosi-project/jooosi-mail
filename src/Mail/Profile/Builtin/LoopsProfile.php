@@ -16,14 +16,14 @@ use Override;
  * @since 1.0.13
  */
 #[Service]
-#[MailProfile(key: 'loops', label: 'Loops', description: 'Send through a published Loops transactional email template.', website: 'https://loops.so', docsUrl: 'https://app.loops.so/docs/transactional/guide', useCases: ['transactional'])]
+#[MailProfile(key: 'loops', label: 'Loops', description: 'Send through a published Loops transactional email template using its API or SMTP relay.', website: 'https://loops.so', docsUrl: 'https://app.loops.so/docs/transactional/guide', useCases: ['transactional'])]
 final class LoopsProfile extends AbstractMailProfile
 {
     /** @return list<string> */
     #[Override]
     public function getSupportedSchemes(): array
     {
-        return ['loops+api'];
+        return ['loops+api', 'loops+smtp'];
     }
 
     /**
@@ -36,7 +36,13 @@ final class LoopsProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'loops+api', 'choices' => $this->getSupportedSchemes()],
-            'api_key' => ['label' => 'Loops API key', 'type' => 'password', 'required' => true],
+            'api_key' => [
+                'label' => 'Loops API key / SMTP password',
+                'type' => 'password',
+                'required' => true,
+                'visible_when' => [$this->conditionIn('scheme', $this->getSupportedSchemes())],
+                'required_when' => [$this->conditionIn('scheme', $this->getSupportedSchemes())],
+            ],
             'transactional_id' => ['label' => 'Transactional email ID', 'type' => 'text', 'required' => true],
         ];
     }
@@ -47,7 +53,7 @@ final class LoopsProfile extends AbstractMailProfile
     {
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'loops+api';
-        if ($scheme === 'loops+api') {
+        if (in_array($scheme, $this->getSupportedSchemes(), true)) {
             $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['api_key', 'transactional_id']);
         }
     }
@@ -60,12 +66,15 @@ final class LoopsProfile extends AbstractMailProfile
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'loops+api';
         $apiKey = $this->extractScalarString($defaults, 'api_key');
         $transactionalId = $this->extractScalarString($defaults, 'transactional_id');
-        if ($scheme !== 'loops+api' || $apiKey === null || $apiKey === '' || $transactionalId === null || $transactionalId === '') {
+        if (! in_array($scheme, $this->getSupportedSchemes(), true) || $apiKey === null || $apiKey === '' || $transactionalId === null || $transactionalId === '') {
             return null;
         }
 
         $query = $this->buildQueryString(['transactional_id' => $transactionalId]);
 
-        return 'loops+api://' . rawurlencode($apiKey) . '@default' . ($query === '' ? '' : '?' . $query);
+        $username = $scheme === 'loops+api' ? rawurlencode($apiKey) : 'loops';
+        $password = $scheme === 'loops+api' ? '' : ':' . rawurlencode($apiKey);
+
+        return $scheme . '://' . $username . $password . '@default' . ($query === '' ? '' : '?' . $query);
     }
 }

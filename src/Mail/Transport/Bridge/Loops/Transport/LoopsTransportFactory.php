@@ -13,7 +13,7 @@ use Symfony\Component\Mailer\Transport\Dsn;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 
 /**
- * Creates Loops API transports.
+ * Creates Loops API and SMTP transports.
  *
  * @since 1.0.13
  */
@@ -24,7 +24,8 @@ final class LoopsTransportFactory extends AbstractTransportFactory
     /** @since 1.0.13 */
     public function create(Dsn $dsn): TransportInterface
     {
-        if ($dsn->getScheme() !== 'loops+api') {
+        $scheme = $dsn->getScheme();
+        if (! in_array($scheme, $this->getSupportedSchemes(), true)) {
             throw new UnsupportedSchemeException($dsn, 'loops', $this->getSupportedSchemes());
         }
 
@@ -33,14 +34,20 @@ final class LoopsTransportFactory extends AbstractTransportFactory
             throw new IncompleteDsnException('A transactional_id option is required for Loops.');
         }
 
-        return (new LoopsApiTransport($this->getUser($dsn), $transactionalId, $this->client, $this->dispatcher, $this->logger))
-            ->setHost($dsn->getHost() === 'default' ? null : $dsn->getHost())
-            ->setPort($dsn->getPort());
+        $host = $dsn->getHost() === 'default' ? null : $dsn->getHost();
+        $port = $dsn->getPort();
+
+        return match ($scheme) {
+            'loops+api' => (new LoopsApiTransport($this->getUser($dsn), $transactionalId, $this->client, $this->dispatcher, $this->logger))->setHost($host)->setPort($port),
+            'loops+smtp' => new LoopsSmtpTransport($this->getPassword($dsn), $transactionalId, $port, $this->dispatcher, $this->logger),
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+            default => throw new UnsupportedSchemeException($dsn, 'loops', $this->getSupportedSchemes()),
+        };
     }
 
     /** @return list<string> */
     protected function getSupportedSchemes(): array
     {
-        return ['loops+api'];
+        return ['loops+api', 'loops+smtp'];
     }
 }

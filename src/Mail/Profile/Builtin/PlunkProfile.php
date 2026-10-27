@@ -16,14 +16,14 @@ use Override;
  * @since 1.0.13
  */
 #[Service]
-#[MailProfile(key: 'plunk', label: 'Plunk', description: 'Send email through the Plunk API.', website: 'https://useplunk.com', docsUrl: 'https://docs.useplunk.com/api-reference/public-api/sendEmail', useCases: ['transactional'])]
+#[MailProfile(key: 'plunk', label: 'Plunk', description: 'Send email through the Plunk API or SMTP relay.', website: 'https://useplunk.com', docsUrl: 'https://docs.useplunk.com/api-reference/public-api/sendEmail', useCases: ['transactional'])]
 final class PlunkProfile extends AbstractMailProfile
 {
     /** @return list<string> */
     #[Override]
     public function getSupportedSchemes(): array
     {
-        return ['plunk+api'];
+        return ['plunk+api', 'plunk+smtp', 'plunk+smtps'];
     }
 
     /** @return array<string, mixed> */
@@ -32,7 +32,13 @@ final class PlunkProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'plunk+api', 'choices' => $this->getSupportedSchemes()],
-            'api_key' => ['label' => 'Plunk API key', 'type' => 'password', 'required' => true],
+            'api_key' => [
+                'label' => 'Plunk API key / SMTP password',
+                'type' => 'password',
+                'required' => false,
+                'visible_when' => [$this->conditionIn('scheme', $this->getSupportedSchemes())],
+                'required_when' => [$this->conditionIn('scheme', $this->getSupportedSchemes())],
+            ],
         ];
     }
 
@@ -42,7 +48,7 @@ final class PlunkProfile extends AbstractMailProfile
     {
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'plunk+api';
-        if ($scheme === 'plunk+api') {
+        if (in_array($scheme, $this->getSupportedSchemes(), true)) {
             $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['api_key']);
         }
     }
@@ -55,6 +61,12 @@ final class PlunkProfile extends AbstractMailProfile
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'plunk+api';
         $apiKey = $this->extractScalarString($defaults, 'api_key');
 
-        return $scheme !== 'plunk+api' || $apiKey === null || $apiKey === '' ? null : $scheme . '://' . rawurlencode($apiKey) . '@default';
+        if (! in_array($scheme, $this->getSupportedSchemes(), true) || $apiKey === null || $apiKey === '') {
+            return null;
+        }
+
+        return $scheme === 'plunk+api'
+            ? $scheme . '://' . rawurlencode($apiKey) . '@default'
+            : $scheme . '://plunk:' . rawurlencode($apiKey) . '@default';
     }
 }

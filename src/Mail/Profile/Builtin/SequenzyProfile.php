@@ -16,14 +16,14 @@ use Override;
  * @since 1.0.13
  */
 #[Service]
-#[MailProfile(key: 'sequenzy', label: 'Sequenzy', description: 'Send transactional mail through the Sequenzy API.', website: 'https://www.sequenzy.com', docsUrl: 'https://docs.sequenzy.com/api-reference/transactional/send', useCases: ['transactional'])]
+#[MailProfile(key: 'sequenzy', label: 'Sequenzy', description: 'Send transactional mail through the Sequenzy API or SMTP relay.', website: 'https://www.sequenzy.com', docsUrl: 'https://docs.sequenzy.com/api-reference/transactional/send', useCases: ['transactional'])]
 final class SequenzyProfile extends AbstractMailProfile
 {
     /** @return list<string> */
     #[Override]
     public function getSupportedSchemes(): array
     {
-        return ['sequenzy+api'];
+        return ['sequenzy+api', 'sequenzy+smtp', 'sequenzy+smtps'];
     }
 
     /** @return array<string, mixed> */
@@ -32,7 +32,13 @@ final class SequenzyProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'sequenzy+api', 'choices' => $this->getSupportedSchemes()],
-            'api_key' => ['label' => 'Sequenzy API key', 'type' => 'password', 'required' => true],
+            'api_key' => [
+                'label' => 'Sequenzy API key / SMTP password',
+                'type' => 'password',
+                'required' => false,
+                'visible_when' => [$this->conditionIn('scheme', $this->getSupportedSchemes())],
+                'required_when' => [$this->conditionIn('scheme', $this->getSupportedSchemes())],
+            ],
         ];
     }
 
@@ -42,7 +48,7 @@ final class SequenzyProfile extends AbstractMailProfile
     {
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'sequenzy+api';
-        if ($scheme === 'sequenzy+api') {
+        if (in_array($scheme, $this->getSupportedSchemes(), true)) {
             $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['api_key']);
         }
     }
@@ -55,6 +61,12 @@ final class SequenzyProfile extends AbstractMailProfile
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'sequenzy+api';
         $apiKey = $this->extractScalarString($defaults, 'api_key');
 
-        return $scheme !== 'sequenzy+api' || $apiKey === null || $apiKey === '' ? null : $scheme . '://' . rawurlencode($apiKey) . '@default';
+        if (! in_array($scheme, $this->getSupportedSchemes(), true) || $apiKey === null || $apiKey === '') {
+            return null;
+        }
+
+        return $scheme === 'sequenzy+api'
+            ? $scheme . '://' . rawurlencode($apiKey) . '@default'
+            : $scheme . '://api:' . rawurlencode($apiKey) . '@default';
     }
 }

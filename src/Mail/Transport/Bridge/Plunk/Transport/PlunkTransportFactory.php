@@ -12,7 +12,7 @@ use Symfony\Component\Mailer\Transport\Dsn;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 
 /**
- * Creates Plunk API transports.
+ * Creates Plunk API and SMTP transports.
  *
  * @since 1.0.13
  */
@@ -23,18 +23,22 @@ final class PlunkTransportFactory extends AbstractTransportFactory
     /** @since 1.0.13 */
     public function create(Dsn $dsn): TransportInterface
     {
-        if ($dsn->getScheme() !== 'plunk+api') {
-            throw new UnsupportedSchemeException($dsn, 'plunk', $this->getSupportedSchemes());
-        }
+        $scheme = $dsn->getScheme();
+        $host = $dsn->getHost() === 'default' ? null : $dsn->getHost();
+        $port = $dsn->getPort();
 
-        return (new PlunkApiTransport($this->getUser($dsn), $this->client, $this->dispatcher, $this->logger))
-            ->setHost($dsn->getHost() === 'default' ? null : $dsn->getHost())
-            ->setPort($dsn->getPort());
+        return match ($scheme) {
+            'plunk+api' => (new PlunkApiTransport($this->getUser($dsn), $this->client, $this->dispatcher, $this->logger))->setHost($host)->setPort($port),
+            'plunk+smtp' => new PlunkSmtpTransport($this->getPassword($dsn), false, $port, $this->dispatcher, $this->logger),
+            'plunk+smtps' => new PlunkSmtpTransport($this->getPassword($dsn), true, $port, $this->dispatcher, $this->logger),
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+            default => throw new UnsupportedSchemeException($dsn, 'plunk', $this->getSupportedSchemes()),
+        };
     }
 
     /** @return list<string> */
     protected function getSupportedSchemes(): array
     {
-        return ['plunk+api'];
+        return ['plunk+api', 'plunk+smtp', 'plunk+smtps'];
     }
 }

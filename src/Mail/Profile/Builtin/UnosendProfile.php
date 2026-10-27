@@ -16,14 +16,14 @@ use Override;
  * @since 1.0.13
  */
 #[Service]
-#[MailProfile(key: 'unosend', label: 'Unosend', description: 'Send email through the Unosend API.', website: 'https://unosend.co', docsUrl: 'https://docs.unosend.co/sdks/php', useCases: ['transactional'])]
+#[MailProfile(key: 'unosend', label: 'Unosend', description: 'Send email through the Unosend API or SMTP relay.', website: 'https://unosend.co', docsUrl: 'https://docs.unosend.co/sdks/php', useCases: ['transactional'])]
 final class UnosendProfile extends AbstractMailProfile
 {
     /** @return list<string> */
     #[Override]
     public function getSupportedSchemes(): array
     {
-        return ['unosend+api'];
+        return ['unosend+api', 'unosend+smtp', 'unosend+smtps'];
     }
 
     /** @return array<string, mixed> */
@@ -32,7 +32,13 @@ final class UnosendProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'unosend+api', 'choices' => $this->getSupportedSchemes()],
-            'api_key' => ['label' => 'Unosend API key', 'type' => 'password', 'required' => true],
+            'api_key' => [
+                'label' => 'Unosend API key / SMTP password',
+                'type' => 'password',
+                'required' => false,
+                'visible_when' => [$this->conditionIn('scheme', $this->getSupportedSchemes())],
+                'required_when' => [$this->conditionIn('scheme', $this->getSupportedSchemes())],
+            ],
         ];
     }
 
@@ -42,7 +48,7 @@ final class UnosendProfile extends AbstractMailProfile
     {
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'unosend+api';
-        if ($scheme === 'unosend+api') {
+        if (in_array($scheme, $this->getSupportedSchemes(), true)) {
             $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['api_key']);
         }
     }
@@ -55,6 +61,12 @@ final class UnosendProfile extends AbstractMailProfile
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'unosend+api';
         $apiKey = $this->extractScalarString($defaults, 'api_key');
 
-        return $scheme !== 'unosend+api' || $apiKey === null || $apiKey === '' ? null : $scheme . '://' . rawurlencode($apiKey) . '@default';
+        if (! in_array($scheme, $this->getSupportedSchemes(), true) || $apiKey === null || $apiKey === '') {
+            return null;
+        }
+
+        return $scheme === 'unosend+api'
+            ? $scheme . '://' . rawurlencode($apiKey) . '@default'
+            : $scheme . '://emailapikey:' . rawurlencode($apiKey) . '@default';
     }
 }

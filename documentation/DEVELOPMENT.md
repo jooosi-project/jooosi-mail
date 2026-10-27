@@ -126,15 +126,9 @@ add_filter(
 
 After submission, `a!jooosi-mail/mail:resend.submitted` receives the source mail-log ID, new mail-log ID, and acceptance status. Exceptions from action subscribers are logged without changing the already-completed submission result.
 
-### Add a New Profile
+### Add or Update an Email Provider
 
-To add a new mail profile:
-
-1. Create a class under `src/Mail/Profile`.
-2. Mark it with `#[Service]` and `#[MailProfile(...)]`.
-3. Implement profile metadata and runtime transport building from stored configuration.
-4. Keep structured configuration in connection settings and secrets.
-5. Update the operations documentation if the profile becomes user-facing.
+Follow [`MAIL_PROVIDERS.md`](MAIL_PROVIDERS.md) for the provider research, profile, transport, optional webhook, coverage, discovery, and documentation checklist.
 
 ### Add a New Webhook Adapter
 

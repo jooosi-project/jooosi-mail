@@ -8,6 +8,7 @@ Third-party code incorporated into the plugin is documented in [`THIRD_PARTY_NOT
 
 - [`../README.md`](../README.md) - product overview and entry points
 - [`OPERATIONS.md`](OPERATIONS.md) - setup, admin and CLI workflows, queue, routing, webhooks, observability, and current operational limits
+- [`MAIL_PROVIDERS.md`](MAIL_PROVIDERS.md) - workflow and review checklist for adding or updating provider profiles, transports, and webhooks
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) - how the runtime is structured and why
 - [`BACKEND_REBUILD.md`](BACKEND_REBUILD.md) - compatibility boundary, implemented internal slices, and remaining migration plan
 - [`DEVELOPMENT.md`](DEVELOPMENT.md) - local development notes and extension points
@@ -16,6 +17,7 @@ Third-party code incorporated into the plugin is documented in [`THIRD_PARTY_NOT
 ## Document Roles
 
 - Overview docs explain what the plugin is and what is currently in scope.
+- Provider docs explain how to add or update provider integrations consistently.
 - Operations docs explain how to configure and run the plugin.
 - Architecture docs explain system boundaries, data flow, and design choices.
 - Development docs explain how to work on the codebase and extend it safely.

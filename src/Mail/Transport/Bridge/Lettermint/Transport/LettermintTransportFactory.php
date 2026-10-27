@@ -12,7 +12,7 @@ use Symfony\Component\Mailer\Transport\Dsn;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 
 /**
- * Creates Lettermint API transports.
+ * Creates Lettermint API and SMTP transports.
  *
  * @since 1.0.13
  */
@@ -23,18 +23,22 @@ final class LettermintTransportFactory extends AbstractTransportFactory
     /** @since 1.0.13 */
     public function create(Dsn $dsn): TransportInterface
     {
-        if ($dsn->getScheme() !== 'lettermint+api') {
-            throw new UnsupportedSchemeException($dsn, 'lettermint', $this->getSupportedSchemes());
-        }
+        $scheme = $dsn->getScheme();
 
-        return (new LettermintApiTransport($this->getUser($dsn), $dsn->getOption('route'), $this->client, $this->dispatcher, $this->logger))
-            ->setHost($dsn->getHost() === 'default' ? null : $dsn->getHost())
-            ->setPort($dsn->getPort());
+        return match ($scheme) {
+            'lettermint+api' => (new LettermintApiTransport($this->getUser($dsn), $dsn->getOption('route'), $this->client, $this->dispatcher, $this->logger))
+                ->setHost($dsn->getHost() === 'default' ? null : $dsn->getHost())
+                ->setPort($dsn->getPort()),
+            'lettermint+smtp' => new LettermintSmtpTransport($this->getPassword($dsn), $dsn->getOption('route'), false, $dsn->getPort(), $this->dispatcher, $this->logger),
+            'lettermint+smtps' => new LettermintSmtpTransport($this->getPassword($dsn), $dsn->getOption('route'), true, $dsn->getPort(), $this->dispatcher, $this->logger),
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+            default => throw new UnsupportedSchemeException($dsn, 'lettermint', $this->getSupportedSchemes()),
+        };
     }
 
     /** @return list<string> */
     protected function getSupportedSchemes(): array
     {
-        return ['lettermint+api'];
+        return ['lettermint+api', 'lettermint+smtp', 'lettermint+smtps'];
     }
 }

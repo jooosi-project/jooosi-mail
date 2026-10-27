@@ -13,17 +13,19 @@ use Override;
 /**
  * Lettermint email profile.
  *
+ * @link https://lettermint.co/docs/guides/send-email-with-smtp
+ *
  * @since 1.0.13
  */
 #[Service]
-#[MailProfile(key: 'lettermint', label: 'Lettermint', description: 'Send email through the Lettermint API.', website: 'https://lettermint.co', docsUrl: 'https://lettermint.co/docs/api-reference/sending/send', useCases: ['transactional'])]
+#[MailProfile(key: 'lettermint', label: 'Lettermint', description: 'Send email through Lettermint using its Sending API or SMTP relay.', website: 'https://lettermint.co', docsUrl: 'https://lettermint.co/docs/api-reference/sending/send', useCases: ['transactional'])]
 final class LettermintProfile extends AbstractMailProfile
 {
     /** @return list<string> */
     #[Override]
     public function getSupportedSchemes(): array
     {
-        return ['lettermint+api'];
+        return ['lettermint+api', 'lettermint+smtp', 'lettermint+smtps'];
     }
 
     /**
@@ -36,7 +38,7 @@ final class LettermintProfile extends AbstractMailProfile
     {
         return [
             'scheme' => ['label' => 'Transport scheme', 'type' => 'choice', 'required' => false, 'default' => 'lettermint+api', 'choices' => $this->getSupportedSchemes()],
-            'api_key' => ['label' => 'Lettermint API key', 'type' => 'password', 'required' => true],
+            'api_key' => ['label' => 'Lettermint Project API token', 'type' => 'password', 'required' => true],
             'route' => ['label' => 'Route (optional)', 'type' => 'text', 'required' => false],
         ];
     }
@@ -47,7 +49,7 @@ final class LettermintProfile extends AbstractMailProfile
     {
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'lettermint+api';
-        if ($scheme === 'lettermint+api') {
+        if (in_array($scheme, $this->getSupportedSchemes(), true)) {
             $this->assertRequiredConfigurationValues($defaults, $this->profileKey(), $scheme, ['api_key']);
         }
     }
@@ -59,12 +61,17 @@ final class LettermintProfile extends AbstractMailProfile
         $defaults = $this->getConfigurationDefaults($connection);
         $scheme = $this->extractScalarString($defaults, 'scheme') ?? 'lettermint+api';
         $apiKey = $this->extractScalarString($defaults, 'api_key');
-        if ($scheme !== 'lettermint+api' || $apiKey === null || $apiKey === '') {
+        if (! in_array($scheme, $this->getSupportedSchemes(), true) || $apiKey === null || $apiKey === '') {
             return null;
         }
 
         $query = $this->buildQueryString(['route' => $this->extractScalarString($defaults, 'route')]);
+        $routeQuery = $query === '' ? '' : '?' . $query;
 
-        return 'lettermint+api://' . rawurlencode($apiKey) . '@default' . ($query === '' ? '' : '?' . $query);
+        if ($scheme === 'lettermint+api') {
+            return $scheme . '://' . rawurlencode($apiKey) . '@default' . $routeQuery;
+        }
+
+        return $scheme . '://lettermint:' . rawurlencode($apiKey) . '@default' . $routeQuery;
     }
 }

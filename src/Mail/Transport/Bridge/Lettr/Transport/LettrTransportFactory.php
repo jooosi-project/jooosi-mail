@@ -12,7 +12,7 @@ use Symfony\Component\Mailer\Transport\Dsn;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 
 /**
- * Creates Lettr API transports.
+ * Creates Lettr API and SMTP transports.
  *
  * @since 1.0.13
  */
@@ -23,18 +23,22 @@ final class LettrTransportFactory extends AbstractTransportFactory
     /** @since 1.0.13 */
     public function create(Dsn $dsn): TransportInterface
     {
-        if ($dsn->getScheme() !== 'lettr+api') {
-            throw new UnsupportedSchemeException($dsn, 'lettr', $this->getSupportedSchemes());
-        }
+        $scheme = $dsn->getScheme();
+        $host = $dsn->getHost() === 'default' ? null : $dsn->getHost();
+        $port = $dsn->getPort();
 
-        return (new LettrApiTransport($this->getUser($dsn), $this->client, $this->dispatcher, $this->logger))
-            ->setHost($dsn->getHost() === 'default' ? null : $dsn->getHost())
-            ->setPort($dsn->getPort());
+        return match ($scheme) {
+            'lettr+api' => (new LettrApiTransport($this->getUser($dsn), $this->client, $this->dispatcher, $this->logger))->setHost($host)->setPort($port),
+            'lettr+smtp' => new LettrSmtpTransport($this->getPassword($dsn), false, $port, $this->dispatcher, $this->logger),
+            'lettr+smtps' => new LettrSmtpTransport($this->getPassword($dsn), true, $port, $this->dispatcher, $this->logger),
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+            default => throw new UnsupportedSchemeException($dsn, 'lettr', $this->getSupportedSchemes()),
+        };
     }
 
     /** @return list<string> */
     protected function getSupportedSchemes(): array
     {
-        return ['lettr+api'];
+        return ['lettr+api', 'lettr+smtp', 'lettr+smtps'];
     }
 }
